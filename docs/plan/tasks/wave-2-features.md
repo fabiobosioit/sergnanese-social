@@ -1,189 +1,162 @@
-# Wave 2 — Features (6 tasks in parallel)
+# Wave 2 — Features (5 tasks in parallel)
 
-Two API tasks and four UI tasks. The UI tasks develop against the mock API from T1.6, so they do not wait for the API tasks. Real wiring happens in T3.1.
+Five screens. Each one develops against the in-memory fakes (`Scripts/run.sh --mock`), so none waits for the database or the render engine. Real wiring happens in T3.1.
 
-**Gate to Wave 3:** all six merged into `main`, `npm run check` green, and with `VITE_MOCK=1` every page is usable end to end.
+**Gate to Wave 3:** all five merged into `main`, `Scripts/check.sh` green, and with `Scripts/run.sh --mock` the whole weekly job can be done end to end: review matches → generate → share an image.
 
-| Task | Agent | Model | Owns |
+| Task | Agent | Model | Owns (under `Sources/SSApp/Features/` and `Tests/SSAppTests/`) |
 |---|---|---|---|
-| T2.1 Data API | `backend-dev` | sonnet | `src/server/routes/data/**`, `scripts/seed.ts` |
-| T2.2 Templates + render API | `backend-dev` | sonnet | `src/server/routes/render/**` |
-| T2.3 Matches page | `ui-dev` | sonnet | `src/ui/pages/matches/**` |
-| T2.4 Opponents, teams, settings pages | `chore-runner` | haiku | `src/ui/pages/opponents/**`, `teams/**`, `settings/**` |
-| T2.5 Templates page | `ui-dev` | sonnet | `src/ui/pages/templates/**` |
-| T2.6 Generate + archive pages | `ui-dev` | sonnet | `src/ui/pages/generate/**`, `archive/**` |
+| T2.1 Matches | `ui-dev` | sonnet | `Matches/**` |
+| T2.2 Opponents and teams | `ui-dev` | sonnet | `Opponents/**`, `Teams/**` |
+| T2.3 Settings | `ui-dev` | sonnet | `Settings/**` |
+| T2.4 Templates | `ui-dev` | sonnet | `Templates/**` |
+| T2.5 Generate and archive | `ui-dev` | sonnet | `Generate/**`, `Archive/**` |
 
-Each UI page keeps its strings in its own `strings.it.ts` inside its folder.
+Rules common to all five (details in `03-mac-design.md`):
 
----
-
-## T2.1 — Data API
-
-| | |
-|---|---|
-| **Agent / model** | `backend-dev` · sonnet · effort medium |
-| **Depends on** | T1.1, T1.4 |
-| **Size** | M |
-
-**Features**
-
-1. Fastify plugins for teams, opponents, matches, settings exactly as in `src/shared/api.ts`; request and response validated with the shared schemas.
-2. `GET /matches?from&to&teamId`: defaults to the coming weekend when no range is given.
-3. `POST /matches/:id/duplicate`: copies a match to a given date (for repeated fixtures).
-4. Opponent logo: `PUT /opponents/:id/logo` (multipart; PNG, JPEG, WebP or SVG; max 2 MB; stored in `userData/logos/` under a generated name; old file removed), `DELETE` to clear, `GET /logos/:file` to serve with caching headers and no path traversal.
-5. SVG uploads are sanitised (scripts and external references removed) before saving.
-6. Conflict errors from repositories mapped to HTTP 409 with a readable Italian message.
-7. `POST /dev/seed` and `scripts/seed.ts` (`npm run seed`): load the fake data with today's date; copies seed logos into `userData/logos/`.
-8. Integration tests with Fastify `inject` on an in-memory database: happy path and one failure per route, logo upload/replace/delete, seed endpoint.
-
-**Acceptance**
-
-- [ ] Every data route in `api.ts` is implemented and tested.
-- [ ] `npm run seed` then `GET /api/matches` returns next weekend's fake matches.
-- [ ] `npm run check` passes.
+- One `@MainActor @Observable` view model per screen, taking `AppServices`; views stay thin. Tests exercise the view model with `AppServices.fake()`.
+- Publish the screen's actions to the menu bar through the focused-value keys from T1.6. Do not edit the shell.
+- Every row and image has a context menu. Every list has an empty state and an error state.
+- Strings in the feature's own `Strings` file.
+- Before finishing, run `swift run ss-tool screenshots`, look at your screen in Light and Dark, and say what you saw.
 
 ---
 
-## T2.2 — Templates and render API
+## T2.1 — Matches (the review-and-edit screen)
 
 | | |
 |---|---|
-| **Agent / model** | `backend-dev` · sonnet · effort medium |
-| **Depends on** | T1.1, T1.2, T1.3 |
-| **Size** | M |
-
-**Features**
-
-1. `GET /templates` (manifest + a cached thumbnail URL), `POST /templates` (zip upload → validation problems returned as a list), `DELETE /templates/:id`, restore of built-ins.
-2. `POST /templates/:id/preview`: body = optional match ids; without ids it uses the shared fixture. Returns a PNG. Thumbnails are generated once per template version and cached on disk.
-3. `POST /render/plan`: body = `{ from, to, matchIds?, templateIds }` → images that would be produced and all warnings. No files written.
-4. `POST /render`: same body → runs the render service, returns `RenderRecord`s and warnings. Progress is streamed with Server-Sent Events on `GET /render/progress/:jobId`.
-5. `GET /renders`, `GET /renders/:id/file`, `POST /renders/zip` (streamed zip named `sergnanese_<from>_<to>.zip`), `POST /renders/reveal` (opens the folder in Finder).
-6. Default selection rules, used when the request does not list templates:
-   - `story-programme`: all scheduled matches in the range, one story set per day;
-   - `post-prematch`: the first team's match in the range.
-7. Postponed and cancelled matches are excluded by default and listed in the plan as "skipped".
-8. Integration tests with the render service mocked, plus one real render test under Electron.
-
-**Acceptance**
-
-- [ ] Every render route in `api.ts` is implemented and tested.
-- [ ] After `npm run seed`, `POST /render` for next weekend produces programme stories and one pre-match post on disk.
-- [ ] Uploading a broken zip returns readable problems and installs nothing.
-- [ ] `npm run check` passes.
-
----
-
-## T2.3 — Matches page (the review-and-edit screen)
-
-| | |
-|---|---|
-| **Agent / model** | `ui-dev` · sonnet · effort medium |
 | **Depends on** | T1.6 |
-| **Size** | M |
+| **Size** | M–L |
 
-This page is decision D7: check and fix the weekend before generating.
+This screen is decision D7: check and fix the weekend before generating.
 
 **Features**
 
-1. Weekend selector at the top (previous / this / next, or custom range); matches grouped by day, ordered by time.
-2. Row: time, team, home/away marker, opponent with logo thumbnail, venue, round, status badge, lock icon, source badge.
-3. Add and edit in a side dialog: team (select), opponent (searchable select with "create new" inline), date, time, home/away toggle that pre-fills the venue with the club's home venue, competition, round, status, score and half-time score, notes.
-4. Inline quick edit for the two things that change most: time and venue.
-5. Duplicate, delete (with confirm), lock/unlock.
-6. Problems shown on the row before generating: no time, no venue, opponent without logo, opponent name that will be truncated (using `displayName` and the largest slot limit).
-7. Filter by team and by status; a counter "N partite, M con avvisi".
-8. Button "Genera immagini per questo weekend" → opens the Generate page with the range pre-selected.
-9. Empty state with "Carica dati demo" (calls the seed endpoint) and "Aggiungi partita".
-10. Component tests for the form validation and the warning logic.
+1. Toolbar: `WeekendSwitcher`, Aggiungi, filter menu (team, status), search, prominent **Genera**. The weekend is the shared one in `AppModel`.
+2. A `Table` of the weekend's matches, sectioned by day, ordered by time. Columns: time, team, home/away marker, opponent with logo thumbnail, venue, round, status badge, warnings. Lock and source show as small icons with labels.
+3. Selecting a row opens the **inspector** with the full form: team, opponent (searchable picker with "Nuovo avversario…" inline), date, time, home/away (switching to home pre-fills the venue with the club's home venue), competition, round, status, score and half-time score, notes, lock. Changes save when a field commits; validation problems show next to the field.
+4. ⌘N adds a match for the shown weekend in a sheet with the same form.
+5. Context menu and menu bar: Modifica, Duplica (to next week), Blocca/Sblocca, Rinvia (sets status postponed), Elimina (with confirmation). Multi-selection works for Blocca and Elimina.
+6. Warnings per match, computed in the view model: no time, no venue, opponent without logo, opponent name that will be cut (using `displayName` and the smallest `teamName` limit among installed templates). A summary line: "N partite, M con avvisi". The sidebar badge shows M.
+7. **Genera** (toolbar, ⌘R) switches to the Genera section for the shown weekend.
+8. Empty state: "Nessuna partita in questo weekend" with "Aggiungi partita" and, when the database has no matches at all, "Carica dati demo".
+9. Tests: form validation, warning logic, duplicate date maths, filter + search.
 
 **Acceptance**
 
-- [ ] With mocks: add, edit, duplicate, delete, lock all work and the list refreshes.
+- [ ] With fakes: add, edit, duplicate, delete, lock all work and the table refreshes.
 - [ ] Warnings appear for the fixture match with the 45-character opponent and the one without a logo.
-- [ ] Usable with keyboard only (tab order, Enter to save, Esc to close).
-- [ ] `npm run check` passes.
+- [ ] Keyboard only: arrows move the selection, Tab walks the inspector, ⌘N / ⌘D / ⌘⌫ work, Esc closes the sheet.
+- [ ] VoiceOver reads a row as one sentence.
+- [ ] `Scripts/check.sh` passes.
 
 ---
 
-## T2.4 — Opponents, teams and settings pages
+## T2.2 — Opponents and teams
 
 | | |
 |---|---|
-| **Agent / model** | `chore-runner` · haiku |
 | **Depends on** | T1.6 |
 | **Size** | M |
 
-Three plain CRUD screens built only from the shared components and the typed client. No design decisions, so haiku is assigned. If the reviewer rejects it twice, rerun on sonnet.
-
 **Features**
 
-1. **Avversari**: searchable table (logo, name, short name, number of matches); dialog to create/edit name, short name, aliases (chips); logo drop zone with preview and remove; a live "come apparirà" line showing `displayName` truncated to the default slot; delete blocked with the API's 409 message.
-2. **Squadre**: table with drag or up/down ordering, name, short label, first-team radio (exactly one), active toggle; create/edit/delete.
-3. **Impostazioni**: club name, short name, season, accent colour (colour input + hex), social handle, home venue, output folder (text field + "apri cartella"), a read-only line with the data folder path and app version.
-4. Form validation from the shared zod schemas; errors shown next to fields.
-5. Component tests: one per page for create and for a validation error.
+1. **Avversari**: searchable `Table` (logo, name, short name, number of matches). Inspector to edit name, short name, aliases (token field), and the logo through `LogoWell` (drop, paste, choose, remove). A live "Come apparirà" line shows `displayName` cut to the smallest template limit, so the user sees at once whether a short name is needed.
+2. ⇧⌘N and the toolbar + create an opponent in a sheet.
+3. Delete asks for confirmation; when the opponent has matches, the repository's conflict message is shown in an alert and nothing is deleted.
+4. **Squadre**: a `List` reordered by drag (`onMove`), each row with name, short label, an "attiva" toggle and a first-team marker (exactly one; choosing another moves it). Add, rename inline, delete with the same guard.
+5. Tests: one per screen for create, for a validation error, for the delete guard; team reordering persists the new `sortOrder`.
 
 **Acceptance**
 
-- [ ] With mocks: full create/edit/delete cycle on opponents and teams; settings save and reload.
-- [ ] Only shared components are used; no new styling system.
-- [ ] `npm run check` passes.
+- [ ] With fakes: full create/edit/delete cycle on opponents and teams; reorder persists.
+- [ ] A PNG dragged from Finder and an image dragged from Safari both set the logo; ⌘V with an image on the clipboard does too.
+- [ ] Only shared components and standard controls are used.
+- [ ] `Scripts/check.sh` passes.
 
 ---
 
-## T2.5 — Templates page
+## T2.3 — Settings
 
 | | |
 |---|---|
-| **Agent / model** | `ui-dev` · sonnet · effort medium |
 | **Depends on** | T1.6 |
-| **Size** | S–M |
+| **Size** | S |
+
+The Settings window (⌘,), a `TabView` with `Form`s in the standard macOS settings style.
 
 **Features**
 
-1. Grid of template cards: thumbnail, name, format badge (Post 1080×1350 / Story 1080×1920), kind (singola / elenco), purpose, version, "integrato" badge for built-ins.
-2. Upload by drag-and-drop or file picker (`.zip`); validation problems listed clearly; on id clash ask "sostituire?".
-3. Detail view: large preview, manifest fields, list of slots with their limits, list of required fields.
-4. "Anteprima con una partita": pick a match (or a weekend for list templates) and see the real render.
-5. Delete (user templates) and "ripristina" (built-ins).
-6. Help panel linking to the template-writing guide from T1.2.
+1. **Società**: club name, short name, season, social handle, home venue.
+2. **Immagini**: template accent colour (`ColorPicker` + hex field, with "Ripristina rosso Sergnanese"); output folder shown as a path control with "Scegli…" (system folder picker, `fileImporter`) and "Mostra nel Finder".
+3. **Dati**: the data folder path with "Mostra nel Finder", the date of the last automatic backup, "Carica dati demo" / "Rimuovi dati demo", the app version.
+4. Changes apply immediately (no Save button), as in system settings; invalid values show a problem under the field and are not saved.
+5. Tests: load/save round trip, hex colour validation, output folder change.
 
 **Acceptance**
 
-- [ ] With mocks: list, upload success, upload with problems, preview, delete, restore.
-- [ ] Thumbnails keep the right aspect ratio for post and story.
-- [ ] `npm run check` passes.
+- [ ] With fakes: every setting saves and is there after closing and reopening the window.
+- [ ] The window has the standard settings look, no custom chrome, and works in Dark Mode.
+- [ ] `Scripts/check.sh` passes.
 
 ---
 
-## T2.6 — Generate and archive pages
+## T2.4 — Templates
 
 | | |
 |---|---|
-| **Agent / model** | `ui-dev` · sonnet · effort medium |
 | **Depends on** | T1.6 |
 | **Size** | M |
+
+**Features**
+
+1. A grid of template cards: thumbnail at the right aspect ratio, name, format badge (Post 1080×1350 / Story 1080×1920), kind (singola / elenco), version, "integrato" badge for built-ins.
+2. Import with ⌘O / the toolbar (a `.zip` or a folder) and by dropping one on the grid. Validation problems are listed in a sheet; on an id clash ask "Sostituire?".
+3. Inspector for the selected template: large preview, manifest fields, the `limits`, the required fields.
+4. "Anteprima con una partita": pick a match (or a weekend, for list templates) and show the real render through `RenderService.preview`; Space opens it in Quick Look.
+5. Context menu: Anteprima, Mostra nel Finder, Elimina (user templates), Ripristina (built-ins).
+6. A help link to the template-writing guide.
+7. Tests: list, import success, import with problems, clash handling, delete vs restore rules.
+
+**Acceptance**
+
+- [ ] With fakes: list, import success, import with problems, preview, delete, restore.
+- [ ] Dropping a folder and dropping a zip both start the import.
+- [ ] `Scripts/check.sh` passes.
+
+---
+
+## T2.5 — Generate and archive
+
+| | |
+|---|---|
+| **Depends on** | T1.6 |
+| **Size** | L |
 
 **Features — Genera**
 
-1. Step 1, **Quando**: weekend selector (default: next weekend).
-2. Step 2, **Partite**: the matches in range with checkboxes, pre-selected by the default rules; warnings per match with an "modifica" link that opens the match dialog; skipped (postponed/cancelled) matches shown greyed.
-3. Step 3, **Template**: checkboxes per template, with a line saying what each will produce ("Story programma: 2 immagini (12 partite)", "Post pre-partita: Prima Squadra vs …").
-4. Live plan from `POST /render/plan`: total images and all warnings, before anything is generated.
-5. **Genera** → progress bar per image (SSE) → result gallery.
-6. Gallery: thumbnails at the right aspect ratio, click to enlarge, per-image "mostra nel Finder" and "rigenera", plus "scarica ZIP" and "apri cartella".
+One screen, not a wizard: choices on the left, the result on the right.
+
+1. Left column, top: `WeekendSwitcher` (shared weekend; default next weekend).
+2. Left column, **Partite**: the weekend's matches as a checklist, pre-selected by the plan's default rules; warnings per match with a "Modifica" button that jumps to the match in Partite; skipped (postponed/cancelled) matches greyed.
+3. Left column, **Template**: a checklist of templates, each with a line saying what it will produce ("Story programma: 2 immagini (12 partite)", "Post pre-partita: Prima Squadra vs …").
+4. A live summary from `RenderService.plan`: total images and all warnings, updated as choices change, before anything is generated.
+5. **Genera immagini** (prominent toolbar button, ⌘R, default action): runs `RenderService.render`, shows a determinate progress bar in the window and on the Dock icon, with **Annulla**. Disabled, with the reason shown, when no match or no template is selected. Warnings never block.
+6. Right side: `ImageGallery` of the results as they arrive. Selection, Quick Look, share (AirDrop), drag-out, copy, Mostra nel Finder, Rigenera — all from the shared component, the context menu and the Immagini menu. A "Condividi tutte" toolbar button shares the whole set.
 
 **Features — Archivio**
 
-7. Past renders grouped by weekend, filter by date range and template, same gallery actions, delete from archive (file stays unless "elimina anche il file" is ticked).
+7. Past renders grouped by weekend in the same `ImageGallery`, with a date-range menu and a template filter. Same actions, plus "Elimina dall'archivio" (asks whether to move the file to the Trash as well).
+8. Records whose file no longer exists on disk are shown with a "file mancante" badge and can be removed or regenerated.
 
 **Tests**
 
-8. Component tests for the plan summary and for the step logic with zero matches, one match, twelve matches.
+9. View-model tests for the plan summary and the selection logic with zero matches, one match, twelve matches; progress and cancellation with the fake renderer; archive grouping and filters.
 
 **Acceptance**
 
-- [ ] With mocks: the full flow from weekend to gallery works, including the two-page programme case.
-- [ ] Nothing is generated while the plan has blocking problems (no template selected, no match selected); warnings do not block.
-- [ ] `npm run check` passes.
+- [ ] With fakes: the full flow from weekend to gallery works, including the two-page programme case.
+- [ ] Sharing a selection offers AirDrop; dragging two thumbnails to Finder copies two PNG files.
+- [ ] Cancelling mid-run keeps the images already made and stops cleanly.
+- [ ] `Scripts/check.sh` passes.

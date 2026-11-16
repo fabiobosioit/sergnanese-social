@@ -2,16 +2,20 @@
 
 All six tasks depend only on Wave 0 and own separate folders, so they start together.
 
-**Gate to Wave 2:** all six merged into `main`, `npm run check` green, and this demo works from a terminal: `npm run demo:render` writes four correct PNGs from the fixtures (script delivered by T1.3, templates by T1.2 — the orchestrator runs it after merging both).
+**Gate to Wave 2:** all six merged into `main`, `Scripts/check.sh` green, and:
+
+- `swift run ss-tool demo-render` writes four correct PNGs from the fixtures (tool from T1.3, templates from T1.2 — the orchestrator runs it after merging both);
+- the user has downloaded the trial `.dmg` from GitHub with a browser, installed it and opened it (T1.5);
+- the user has clicked through the shell with `Scripts/run.sh --mock` in Light and Dark Mode (T1.6).
 
 | Task | Agent | Model | Owns |
 |---|---|---|---|
-| T1.1 Database layer | `backend-dev` | sonnet | `src/server/db/**` |
-| T1.2 Template conversion | `template-converter` | sonnet | `templates-builtin/**`, `scripts/template-preview.mjs` |
-| T1.3 Render engine | `render-engineer` | opus | `src/server/services/**`, `tests/electron/render/**`, `scripts/demo-render.ts` |
-| T1.4 Fake data | `chore-runner` | haiku | `seed/**` |
-| T1.5 Packaging + CI | `release-engineer` | sonnet | `electron-builder.yml`, `build/**`, `.github/**`, `electron/smoke.ts`, `docs/INSTALL.md` |
-| T1.6 UI shell | `ui-dev` | sonnet | `src/ui/app/**`, `src/ui/components/**`, `src/ui/api/**`, `src/ui/i18n/**`, placeholder `src/ui/pages/*/index.tsx` |
+| T1.1 Database layer | `core-dev` | sonnet | `Sources/SSData/**`, `Tests/SSDataTests/**` |
+| T1.2 Template conversion | `template-converter` | sonnet | `Resources/Templates/**`, `Sources/ss-tool/Preview.swift` |
+| T1.3 Render engine | `render-engineer` | opus | `Sources/SSTemplates/**`, `Sources/SSRender/**`, their test folders, `Sources/ss-tool/DemoRender.swift` |
+| T1.4 Fake data | `chore-runner` | haiku | `Sources/SSSeed/**`, `Resources/Seed/**`, `Tests/SSSeedTests/**` |
+| T1.5 Packaging + CI | `release-engineer` | sonnet | `Scripts/package_app.sh`, `Packaging/**`, `.github/**`, `Sources/SergnaneseSocial/Smoke.swift`, `docs/INSTALL.md` |
+| T1.6 App shell | `ui-dev` | sonnet (effort high) | `Sources/SSApp/**`, `Tests/SSAppTests/Shell/**`, `Tests/SSAppTests/Components/**`, `Sources/SergnaneseSocial/main.swift`, `Sources/ss-tool/Screenshots.swift` |
 
 ---
 
@@ -19,28 +23,29 @@ All six tasks depend only on Wave 0 and own separate folders, so they start toge
 
 | | |
 |---|---|
-| **Agent / model** | `backend-dev` · sonnet · effort medium |
+| **Agent / model** | `core-dev` · sonnet · effort medium |
 | **Depends on** | T0.2 |
 | **Size** | M |
 
 **Features**
 
-1. `openDatabase(path)` with WAL mode and foreign keys on; `':memory:'` supported for tests.
-2. Versioned migrations in `src/server/db/migrations/NNN_name.sql`, applied in order inside a transaction; a `schema_version` table.
-3. Migration 001: tables `teams`, `opponents`, `matches`, `settings`, `renders` matching `01-architecture.md` §3; indexes on `matches(date)`, `matches(team_id, date)`, `renders(created_at)`.
-4. Implementations of every interface in `src/shared/repositories.ts`. Rows are parsed through the zod schemas on the way out.
-5. `matches.list({ from, to, teamId })` returns matches joined with team and opponent, ordered by date, time, team `sortOrder`.
-6. Delete guards: deleting a team/opponent with matches throws a typed `ConflictError`.
-7. `settings`: defaults (`ASD Sergnanese`, `Sergnanese`, `2026/27`, `#CF3326`) returned when nothing is stored.
-8. `locked` matches: `update` works, but a `upsertFromImport` method skips them (used in Wave 4; implemented and tested now).
-9. Automatic backup: on open, if the newest file in `userData/backups/` is older than 7 days, copy the database there; keep the last 5.
+1. `Database.open(at:)` on a GRDB `DatabaseQueue` with foreign keys on; an in-memory variant for tests.
+2. Versioned migrations with GRDB's `DatabaseMigrator`. Migration 1: tables `teams`, `opponents`, `matches`, `settings`, `renders` matching `01-architecture.md` §3; indexes on `matches(date)`, `matches(team_id, date)`, `renders(created_at)`.
+3. Implementations of every repository protocol in `SSCore/Repositories.swift`. Database records are private to `SSData`; the public surface is the `SSCore` model types.
+4. `matches.list(from:to:teamID:)` returns `MatchDetail` values (match + team + opponent), ordered by date, time, team `sortOrder`.
+5. Delete guards: deleting a team/opponent with matches throws `AppError.conflict` with an Italian message.
+6. `settings`: defaults (`ASD Sergnanese`, `Sergnanese`, `2026/27`, `#CF3326`) returned when nothing is stored.
+7. `isLocked` matches: `update` works, but `upsertFromImport` skips them (used in Wave 4; implemented and tested now).
+8. `LogoStore` on the logos folder: import from a file URL or image data (PNG, JPEG, WebP, HEIC, SVG; max 5 MB), always stored as a PNG no larger than 1024 px under a generated name; replacing removes the old file.
+9. Automatic backup: on open, if the newest file in `backups/` is older than 7 days, write a new one with **GRDB's backup API** (not a file copy); keep the last 5.
 
 **Acceptance**
 
-- [ ] Unit tests on an in-memory database for every repository method, including guards and date-range edges (Saturday 00:00 to Sunday 23:59).
+- [ ] Tests on an in-memory database for every repository method, including guards and date-range edges (Saturday to Sunday inclusive).
 - [ ] Opening an empty file creates the schema; opening it again changes nothing.
-- [ ] No SQL outside `src/server/db/`.
-- [ ] `npm run check` passes.
+- [ ] No SQL and no GRDB import outside `Sources/SSData/`.
+- [ ] Logo import test: an SVG and a 3000 px JPEG both come out as PNG ≤ 1024 px.
+- [ ] `Scripts/check.sh` passes.
 
 ---
 
@@ -49,7 +54,7 @@ All six tasks depend only on Wave 0 and own separate folders, so they start toge
 | | |
 |---|---|
 | **Agent / model** | `template-converter` · sonnet · effort medium |
-| **Depends on** | T0.2 (manifest schema, fixtures) |
+| **Depends on** | T0.2 (manifest type, fixtures) |
 | **Size** | M |
 
 Input: the four zips in `template-demo/`. Output: four template folders that the render engine can use unchanged.
@@ -64,41 +69,41 @@ Input: the four zips in `template-demo/`. Output: four template folders that the
 **Features**
 
 1. Apply the conversion rules of `01-architecture.md` §4 to each template. Keep every inline style value; the look must not change.
-2. Placeholder mapping:
+2. Placeholder mapping (Mustache; no helpers exist):
 
    | In the export | Becomes |
    |---|---|
    | `{{accent}}` | `{{club.accent}}` |
    | `ASD Sergnanese`, `Stagione 2026/27`, `[@account]` | `{{club.name}}`, `Stagione {{club.season}}`, `{{club.handle}}` |
-   | `[Categoria]`, `[Categoria n]` | `{{match.category}}` / `{{category}}` inside `{{#each rows}}` |
-   | `[Avversario]` | `{{slot "teamName" match.opponent.displayName}}` |
-   | `Giornata [N]` | shown only when `round` is set |
+   | `[Categoria]`, `[Categoria n]` | `{{match.category}}` / `{{category}}` inside `{{#rows}}` |
+   | `[Avversario]` | `{{match.opponent.displayName}}` (already cut to the manifest limit) |
+   | `Giornata [N]` | wrapped in `{{#match.round}}…{{/match.round}}` so it shows only when set |
    | `[Dom 00 mese]`, `[Domenica 00 mese]`, `[Data]` | `dateShort` / `dateLong` |
-   | `[00:00]`, `[Ora]` | `time`, or `—` when missing |
-   | `[Campo]` | `{{slot "venue" match.venue}}` |
-   | score `0` / `0` | `match.us.score`, `match.opponent.score` (half-time template uses `halfTime`) |
-   | `[Marcatori / note]` | `match.notes`, block hidden when empty |
-   | dashed `LOGO` circle | `<img>` of the opponent logo, or an initials circle in the same size |
+   | `[00:00]`, `[Ora]` | `{{#time}}{{time}}{{/time}}{{^time}}—{{/time}}` |
+   | `[Campo]` | `{{match.venue}}` |
+   | score `0` / `0` | `match.home.score`, `match.away.score` (half-time template uses `halfTime`) |
+   | `[Marcatori / note]` | `{{#match.notes}}…{{/match.notes}}`, block hidden when empty |
+   | dashed `LOGO` circle | `{{#logo}}<img …>{{/logo}}{{^logo}}initials circle of the same size{{/logo}}` |
 
 3. Home/away: in `post-prematch`, the left block is `match.home`, the right is `match.away`. In the two result stories the first row is `match.home`, the second `match.away`. The Sergnanese crest comes from `club.logo`, not a hard-coded file.
-4. `story-programme`: one row block inside `{{#each rows}}`; each row shows time, category, `vs <opponent>` and venue; a small `(C)`/`(T)` marker for home/away in the venue cell. With fewer than 10 rows the list stays top-aligned. The header shows `page.index/page.total` only when `total > 1`.
+4. `story-programme`: one row block inside `{{#rows}}`; each row shows time, category, `vs <opponent>` and venue; a small `(C)`/`(T)` marker for home/away in the venue cell. With fewer than 10 rows the list stays top-aligned. The header shows `{{pageLabel}}` only inside `{{#hasPages}}`. The export's "Giornata [N]" in the header is dropped: rows belong to different teams and rounds.
 5. Keep Instagram safe zones: nothing important in the top and bottom 250 px of stories.
-6. Fonts: `@font-face` rules pointing at `{{asset}}`-resolved bundled Barlow files (weights 500/600/700, Condensed 600/700/800 + 800 italic). No external URL anywhere.
-7. One `manifest.json` per template with slots: `teamName`, `venue`, `category`, each with a `maxChars` tuned by looking at the rendered result.
-8. `scripts/template-preview.mjs <template-id> <fixture.json>`: fills a template with a fixture and screenshots it with Playwright's Chromium to `out/preview/`. Used to check the work without waiting for T1.3.
-9. `templates-builtin/README.md`: how to write a new template, with the field list and the helpers.
+6. Fonts: download Barlow (500/600/700) and Barlow Condensed (600/700/800 + 800 italic) from the Google Fonts repository, put the files and the `OFL.txt` licence in each template's `assets/fonts/`, and declare them with relative `@font-face` rules. No external URL anywhere.
+7. One `manifest.json` per template with `limits` for `teamName`, `venue`, `category`, each tuned by looking at the rendered result.
+8. `ss-tool preview <template-folder> <fixture.json>`: renders the template with Mustache and screenshots it with a bare off-screen `WKWebView` to `out/preview/`. It is a deliberately crude checker so this task does not wait for T1.3; it may apply the limits with `SSCore`'s `truncateAtWord`.
+9. `Resources/Templates/README.md`: how to write a new template, with the field list and the Mustache patterns above.
 
 **Acceptance**
 
-- [ ] `grep -r "googleapis\|x-dc\|support.js\|vendor/" templates-builtin` finds nothing.
-- [ ] Each manifest validates against `src/shared/manifest.ts` (test).
+- [ ] `grep -r "googleapis\|x-dc\|support.js\|vendor/" Resources/Templates` finds nothing.
+- [ ] Each manifest decodes with `SSCore`'s `TemplateManifest` (test in the agent's report: the preview tool refuses an invalid one).
 - [ ] Previews exist for all four templates with: the standard fixture, the 45-character name, the missing logo, an away match. The agent has **looked at each PNG** and reports what it saw.
-- [ ] Standard-fixture previews match the look of the original exports (same positions, colours, fonts).
-- [ ] `npm run check` passes.
+- [ ] Standard-fixture previews match the look of the original exports (same positions, colours, fonts). "Match day" fits on one line, which proves Barlow Condensed loaded.
+- [ ] `Scripts/check.sh` passes.
 
 ---
 
-## T1.3 — Render engine and template service
+## T1.3 — Render engine and template store
 
 | | |
 |---|---|
@@ -106,38 +111,44 @@ Input: the four zips in `template-demo/`. Output: four template folders that the
 | **Depends on** | T0.2 |
 | **Size** | L |
 
-Opus is used because this is the part with real technical risk: exact pixel output across displays, font timing, sandboxing, and Electron APIs that are easy to get subtly wrong.
+Opus is used because this is the part with real technical risk: exact pixel output across displays, font timing, isolation of template code, and WebKit APIs that are easy to get subtly wrong. A throwaway experiment already produced a correct 1080×1350 sRGB PNG from the pre-match demo on this Mac (`takeSnapshot` gave 2160×2700 on a Retina display, redrawn to exact size); this task makes it robust.
 
-**Features — template service (`src/server/services/templates/`)**
+**Features — template store (`Sources/SSTemplates/`)**
 
-1. `installBuiltins()`: copy `templates-builtin/*` into `userData/templates/` on first run and when a built-in's version is newer.
+1. `installBuiltins()`: copy `Resources/Templates/*` into the data folder's `templates/` on first run and when a built-in's version is newer.
 2. `list()`, `get(id)`, `remove(id)`, `restoreBuiltin(id)`.
-3. `installFromZip(buffer)`: safe unzip (reject `..`, absolute paths, symlinks; max 20 MB, max 200 files; allowed extensions only), locate `manifest.json` at the root or one folder deep, validate, refuse an id clash unless `replace: true`.
-4. Validation result is a list of readable problems (`manifest.width must be a number`, `template.html not found`, …).
+3. `install(from:replace:)` for a folder or a `.zip`: safe unzip with ZIPFoundation (reject `..`, absolute paths, symlinks; max 20 MB, max 200 files; allowed extensions only), locate `manifest.json` at the root or one folder deep, validate, refuse an id clash unless `replace` is true.
+4. Validation result is a list of readable Italian problems (`manifest.width deve essere un numero`, `template.html non trovato`, …).
 
-**Features — render service (`src/server/services/render/`)**
+**Features — render service (`Sources/SSRender/`)**
 
-5. `buildContexts(template, matches, settings)`: builds `SingleContext` per match, or sorted and paginated `ListContext`s; resolves logo paths; computes `displayName`; collects warnings (missing logo, missing time/venue, truncated name, postponed/cancelled match included).
-6. Handlebars environment with the helpers of `01-architecture.md` §4 (`slot` reads the template's manifest), compiled templates cached by id + version.
-7. `renderToPng(template, context)` following the pipeline in §6:
-   - hidden `BrowserWindow`, `sandbox: true`, `contextIsolation: true`, no node integration, dedicated session with every non-`file:` request cancelled and `file:` limited to the template folder, the bundled fonts and the logos folder;
+5. `ContextBuilder`: builds a `SingleContext` per match, or sorted and paginated `ListContext`s; resolves logo URLs; applies the manifest `limits`; collects warnings (missing logo, missing time/venue, cut name, postponed/cancelled match included).
+6. Mustache rendering with compiled templates cached by id + version.
+7. `WebRenderer` (`@MainActor`) following the pipeline in `01-architecture.md` §6:
+   - `WKWebView` in a borderless off-screen window; app activation is never requested;
+   - a `WKURLSchemeHandler` serving only the template folder and the logos folder; a `WKContentRuleList` blocking every remote request; non-persistent data store; no script message handlers;
+   - light appearance forced on the web view;
    - wait for `document.fonts.ready`, image decode, optional `window.__ready`, with a 10 s timeout that fails with a clear error;
-   - CDP device metrics override at scale 1 and `Page.captureScreenshot` clipped to the root element;
-   - verify the PNG header reports exactly `width × height`, else throw.
-8. A small pool (2 windows) and a queue, so generating 20 images does not open 20 windows.
-9. `planRender(request)`: dry run returning the list of images that would be produced and all warnings, without rendering.
-10. `render(request)`: writes files with the naming scheme of §6 (never overwrites: adds `-2`, `-3`), stores `RenderRecord`s through `RenderRepo`, returns records and warnings. Progress callback per image.
-11. `scripts/demo-render.ts` and npm script `demo:render`: renders all installed templates from the shared fixtures into `out/demo/`.
-12. Tests live in `tests/electron/render/` (they need a real Electron process) and use two tiny templates under `src/server/services/render/__fixtures__/` (one single, one list), so this task does not wait for T1.2. Pure logic (context building, pagination, naming, zip validation) is unit-tested with Vitest.
+   - `takeSnapshot`, redraw into an sRGB bitmap of exactly `width × height` pixels, encode as PNG;
+   - verify the PNG's pixel size, else throw.
+8. One web view reused through a serial queue, so generating 20 images does not create 20 web views.
+9. `plan(request)`: dry run returning the images that would be produced and all warnings, without rendering. Default selection when the request lists no templates: `story-programme` takes all scheduled matches in the range, one set per day; `post-prematch` takes the first team's match. Postponed and cancelled matches are excluded by default and listed as "skipped".
+10. `render(request)`: an `AsyncThrowingStream` of events (started, image done i/n, finished). Writes files with the naming scheme of §6 (never overwrites: adds `-2`, `-3`), stores `RenderRecord`s through `RenderRepository`. Cancelling the task stops after the current image.
+11. `preview(templateID:matchIDs:)`: renders to a temp PNG; without match ids it uses the fixture.
+12. `ss-tool demo-render`: renders all templates found in `Resources/Templates/` from the fixtures into `out/demo/`.
+13. Tests use two tiny templates under `Tests/SSRenderTests/Fixtures/` (one single, one list), so this task does not wait for T1.2.
 
 **Acceptance**
 
-- [ ] Output is exactly `width × height` with the display scale factor forced to 1 and to 2 in tests.
-- [ ] A template that requests `https://…` renders with that request blocked and a warning recorded.
+- [ ] Output is exactly `width × height` pixels on this Mac's display. The redraw step is also unit-tested with synthetic 1× and 2× snapshot images.
+- [ ] A test template with a full-bleed `#CF3326` block: the centre pixel of the PNG reads exactly `#CF3326`.
+- [ ] The same test template renders identically with the app forced to Dark Mode.
+- [ ] A template that requests `https://…` renders with that request blocked and a warning recorded. A template that asks for a file outside its folder (`../`) does not get it.
 - [ ] List pagination: 23 rows with pageSize 10 → 3 images with `1/3`, `2/3`, `3/3`.
-- [ ] Zip tests: valid, missing manifest, path traversal, oversize.
-- [ ] Rendering the same context twice gives byte-identical PNGs.
-- [ ] `npm run check` passes, including `test:electron`.
+- [ ] Import tests: valid folder, valid zip, missing manifest, path traversal, symlink, oversize.
+- [ ] Rendering the same context twice on the same Mac gives identical pixels.
+- [ ] While tests run, no window appears and the frontmost app does not change.
+- [ ] `Scripts/check.sh` passes.
 
 ---
 
@@ -149,22 +160,22 @@ Opus is used because this is the part with real technical risk: exact pixel outp
 | **Depends on** | T0.2 |
 | **Size** | S |
 
-Haiku is enough: the shapes are fixed by the schemas and the content is invented.
+Haiku is enough: the shapes are fixed by `SSCore`, the content is invented, and the only code is one small pure function and a loader. If the build fails twice, rerun on sonnet.
 
 **Features**
 
-1. `seed/teams.json`: 10 teams (Prima Squadra, Juniores, Allievi U17, Allievi U16, Giovanissimi U15, Giovanissimi U14, Esordienti, Pulcini, Primi Calci, Femminile), with `sortOrder` and `isFirstTeam` on the first.
-2. `seed/opponents.json`: 20 **invented** clubs (no real club names), including: three names over 35 characters, two with legal prefixes (`A.S.D.`, `Pol.`), one with an apostrophe and an accent, four without a logo.
-3. `seed/logos/`: 16 simple generated SVG crests (shape + initials, varied colours). They are fake data and safe to commit.
-4. `seed/generate-matches.ts`: pure function `generateMatches(today)` producing matches for the **next four weekends** from `today`: 8–11 matches per weekend, mixed Saturday/Sunday, home and away, one postponed, one without a time, one weekend with 12 matches (to force two programme pages), plus last weekend's matches with scores and half-time scores.
-5. `seed/index.ts`: `loadSeed(repos, today)` that clears seed-sourced rows and inserts everything with `source: 'seed'`, using only the interfaces in `src/shared/repositories.ts`.
-6. Tests: all JSON validates against the schemas; generator is deterministic for a given date; counts and edge cases above are present.
+1. `Resources/Seed/teams.json`: 10 teams (Prima Squadra, Juniores, Allievi U17, Allievi U16, Giovanissimi U15, Giovanissimi U14, Esordienti, Pulcini, Primi Calci, Femminile), with `sortOrder` and `isFirstTeam` on the first.
+2. `Resources/Seed/opponents.json`: 20 **invented** clubs (no real club names), including: three names over 35 characters, two with legal prefixes (`A.S.D.`, `Pol.`), one with an apostrophe and an accent, four without a logo.
+3. `Resources/Seed/logos/`: 16 simple generated PNG crests, 512×512 (shape + initials, varied colours), made with a short script kept in the same folder. They are fake data and safe to commit.
+4. `generateMatches(today:)`: a pure function producing matches for the **next four weekends** from `today`: 8–11 matches per weekend, mixed Saturday/Sunday, home and away, one postponed, one without a time, one weekend with 12 matches (to force two programme pages), plus last weekend's matches with scores and half-time scores.
+5. `SeedLoader`, the implementation of `SSCore`'s `DemoDataLoader`: clears seed-sourced rows and inserts everything with `source: .seed`, using only the repository protocols and `LogoStore`.
+6. Tests: all JSON decodes into the model types; the generator is deterministic for a given date; counts and edge cases above are present; loading twice into the in-memory fakes leaves the same number of rows.
 
 **Acceptance**
 
-- [ ] `npm run check` passes.
+- [ ] `Scripts/check.sh` passes.
 - [ ] No real club name, logo or person appears in the seed.
-- [ ] `loadSeed` run twice leaves the same number of rows.
+- [ ] `SSSeed` imports only Foundation and `SSCore`.
 
 ---
 
@@ -176,50 +187,62 @@ Haiku is enough: the shapes are fixed by the schemas and the content is invented
 | **Depends on** | T0.1 |
 | **Size** | M |
 
-Done in Wave 1, not at the end, so that packaging problems (native SQLite module, signing, architectures) appear while the app is still tiny. Background and sources: `05-macos-packaging.md`.
+Done in Wave 1, not at the end, so that packaging problems (runner toolchain, signing, resources, Gatekeeper) appear while the app is still tiny. Background: `05-macos-packaging.md`.
 
 **Features**
 
-1. `electron-builder.yml`: product name `Sergnanese Social`, app id `it.sergnanese.social`, targets `dmg` and `zip`, architectures `arm64` and `x64`, ad-hoc signing, `templates-builtin/` and fonts shipped as extra resources, app icon (`build/icon.icns`) generated from the club crest PNG found inside the `template-demo` zips.
-2. Native module: `better-sqlite3` rebuilt for Electron for each architecture. If cross-building x64 on an arm64 runner fails, switch the workflow to a two-job matrix (one runner per architecture). If that fails too, report to the orchestrator with the fallback options listed in `05-macos-packaging.md`; do not swap the database library yourself.
-3. `electron/smoke.ts` and a `--smoke` launch flag. In this wave the check is self-contained, because the real engine is being written in parallel: the packaged app opens a SQLite database in a temp dir (proves the native module loads), captures a tiny inline HTML page in a hidden window and checks the PNG size (proves offscreen capture works when packaged), prints `SMOKE OK`, exits 0. T3.1 later switches it to the real engine. `electron/main.ts` is not edited: T0.1 already routes the `--smoke` flag to `electron/smoke.ts` when that file exists.
-4. `.github/workflows/ci.yml`: on pull request and push to `main` → `npm ci`, `npm run check` on Ubuntu (with `xvfb-run`).
-5. `.github/workflows/release.yml`: on tag `v*` and manual dispatch → macOS runner, build, package both architectures, run the packaged app with `--smoke`, upload `.dmg` and `.zip` to a GitHub Release (draft for manual runs).
-6. `docs/INSTALL.md` (Italian + English): download, drag to Applications, first-launch approval in System Settings → Privacy & Security → "Open Anyway", how to update, where the data lives, how to uninstall.
-7. Workflow uses only the built-in `GITHUB_TOKEN` with `contents: write` on the release job. No other secrets.
+1. `Scripts/package_app.sh release`: release build for arm64, the bundle of T0.1 plus `AppIcon.icns`, ad-hoc signature, then `build/Sergnanese-Social-<version>.dmg` made with `hdiutil`, containing the app and an Applications shortcut. Verifies the result with `codesign --verify --deep --strict`.
+2. App icon per `03-mac-design.md` §10: the crest on a white rounded-square plate, all sizes generated with `sips` + `iconutil` into `Packaging/AppIcon.icns`, from the best crest available (`Packaging/crest-source.*` if the user supplied one, else the 500 px PNG from the demo zips — say which in the report).
+3. `Sources/SergnaneseSocial/Smoke.swift`, run by `--smoke`. In this wave the check is self-contained, because the real engine is being written in parallel: open a GRDB database in a temp folder, find `Resources/Templates` or `Resources/Fixtures` through `AppPaths`, snapshot a tiny inline HTML page in an off-screen `WKWebView` and check the PNG size, print `SMOKE OK`, exit 0. T3.1 later switches it to the real engine.
+4. `.github/workflows/ci.yml`: on pull request and push to `main` → Apple silicon macOS runner, `Scripts/check.sh`.
+5. `.github/workflows/release.yml`: on tag `v*`, on manual dispatch, and on push to branches named `release-trial/**` → `Scripts/check.sh`, `Scripts/package_app.sh release`, **copy the `.app` to a temp folder, delete `.build`, run it with `--smoke`**, then upload the `.dmg` to a GitHub Release (a draft for manual and trial runs). The trial-branch trigger exists because a manual run cannot be started for a workflow that is not yet on `main`.
+6. `docs/INSTALL.md` (Italian + English): which Macs are supported (Apple silicon, macOS 15+), download, drag to Applications, first-launch approval in System Settings → Privacy & Security → "Open Anyway", the `xattr` alternative, how to update, where the data lives, how to uninstall.
+7. Workflows use only the built-in `GITHUB_TOKEN` with `contents: write` on the release job. No other secrets. Third-party actions pinned to a commit.
 
 **Acceptance**
 
-- [ ] A manual run of `release.yml` on the task branch produces two `.dmg` files and the smoke step prints `SMOKE OK`.
-- [ ] `ci.yml` is green on the task branch.
-- [ ] `npm run dist:mac` works locally on a Mac (documented; verified by the user at the wave gate).
-- [ ] `INSTALL.md` matches what actually happens on first launch.
+- [ ] The task branch is pushed as `release-trial/t1.5`; the run is green, prints `SMOKE OK`, and leaves a draft release with one `.dmg`.
+- [ ] `ci.yml` is green on a pull request from the task branch.
+- [ ] `Scripts/package_app.sh release` works locally with only the Command Line Tools.
+- [ ] The report says plainly what could not be checked by an agent: the Gatekeeper first-launch steps. **The user checks them at the wave gate** with the browser-downloaded `.dmg`, and `INSTALL.md` is corrected to match what they saw on macOS 27.
 
 ---
 
-## T1.6 — UI shell, shared components, API client
+## T1.6 — App shell, shared components, mock mode
 
 | | |
 |---|---|
-| **Agent / model** | `ui-dev` · sonnet · effort medium |
+| **Agent / model** | `ui-dev` · sonnet · **effort high** |
 | **Depends on** | T0.2 |
-| **Size** | M |
+| **Size** | L |
+
+Everything here follows `03-mac-design.md`. This task decides how Mac-like the app is; the Wave 2 screens only fill it in.
 
 **Features**
 
-1. App layout: left navigation (Partite, Avversari, Squadre, Template, Genera, Archivio, Impostazioni), content area, toast area. Works from 1024 px wide down to a phone width (needed later for T4.4).
-2. Router with one route per page; each page is a **placeholder component in its own folder** under `src/ui/pages/<name>/index.tsx`, so Wave 2 tasks replace their own folder and never edit the router.
-3. Typed API client generated from `src/shared/api.ts`: one function per route, zod-parsed responses, a single `ApiError`.
-4. TanStack Query setup with sensible defaults and query-key helpers per entity.
-5. MSW mock handlers for every route, backed by the T0.2 fixtures, switched on with `VITE_MOCK=1`. Wave 2 UI tasks develop against these.
-6. Shared components: `Button`, `Field` (text/number/date/time/select/checkbox), `Table` (sortable, empty state), `Dialog`, `ConfirmDialog`, `Toast`, `Badge`, `DateRangePicker` with **weekend shortcuts** (questo weekend / prossimo / precedente), `FileDrop`, `ImageThumb`, `Spinner`, `EmptyState`.
-7. Design tokens in CSS variables (club red `#CF3326`, neutrals, spacing, radius), Barlow fonts.
-8. `src/ui/i18n/`: shared strings (navigation, buttons, common errors) and a tiny `t()` helper. Each page keeps its own `strings.it.ts` in its folder, so Wave 2 pages never edit a common file.
-9. Component tests for `DateRangePicker` (weekend maths) and `Table`.
+1. `Shell/`: the `App` type with the main `Window` scene (min 900×600, default 1200×760) and the `Settings` scene; `NavigationSplitView` with the two-section sidebar of §2; the selected section remembered with `@SceneStorage`/`@AppStorage`.
+2. The complete menu bar of `03-mac-design.md` §4 as SwiftUI `Commands`, wired through `@FocusedValue` action keys defined here (`newItem`, `duplicate`, `delete`, `find`, `generate`, `share`, `quickLook`, `revealInFinder`, `copyImage`, weekend navigation). Items are disabled when the current section does not publish the action. ⌘1–⌘6 switch sections.
+3. `AppModel` (`@MainActor @Observable`): holds `AppServices`, the current section, the **selected weekend** (shared by Partite, Genera and Archivio) and a way for one section to open another with context ("Genera for this weekend").
+4. One placeholder view per feature in `Features/<Name>/<Name>View.swift` (a `ContentUnavailableView`), so Wave 2 tasks replace the contents of their own folder and never edit the shell. The Settings scene shows `Features/Settings/SettingsView`.
+5. `Sources/SergnaneseSocial/main.swift`: starts the shell. With `--mock` it uses `AppServices.fake()`; without it, it calls `Composition.makeServices()`, which is still a stub in this wave and falls back to the fakes with a visible "dati demo" badge in the toolbar.
+6. `Components/`:
+   - `WeekendSwitcher` (previous / label / next, "Questo weekend"),
+   - `ImageGallery`: a selectable grid of rendered images on a neutral grey mat, correct aspect ratio for post and story, with Quick Look, drag-out as file URLs, system share picker, copy, "Mostra nel Finder" and the matching context menu — used by Genera, Archivio and Template,
+   - `LogoWell`: shows a logo or initials; accepts a dropped image file, an image dragged from a browser, and ⌘V paste; has "Scegli…" and "Rimuovi",
+   - `WarningLabel`, `StatusBadge`, `HomeAwayMarker`, each with an accessibility label,
+   - `FormSection` helpers that show field-level validation problems from `SSCore`,
+   - a small `confirmDelete` modifier wrapping `confirmationDialog`.
+7. `Strings/`: shared Italian strings (sections, menus, common buttons and errors). Each feature keeps its own `Strings` file in its folder.
+8. Dock progress helper (`NSDockTile` progress + one bounce when done in the background).
+9. `ss-tool screenshots`: renders every feature's root view with `AppServices.fake()`, in Light and in Dark appearance, to `out/screens/<feature>-<light|dark>.png`, so agents and `qa-reviewer` can look at screens without driving the app. Best effort: toolbar and menu bar are not captured.
+10. Tests: `AppModel` weekend navigation; the command-enabling logic; `ImageGallery`'s selection model.
 
 **Acceptance**
 
-- [ ] `VITE_MOCK=1 npm run dev` shows the shell; every nav item opens its placeholder.
-- [ ] The API client has a function for every route in `api.ts` (type-level test).
-- [ ] No hard-coded user-visible string outside the strings files.
-- [ ] `npm run check` passes.
+- [ ] `Scripts/run.sh --mock` shows the shell; every sidebar item and ⌘1–⌘6 open the right placeholder; ⌘, opens Settings; closing the window quits.
+- [ ] The menu bar matches `03-mac-design.md` §4, in Italian; items with no handler are greyed out.
+- [ ] `ImageGallery` with the fake renders: Space opens Quick Look, a thumbnail drags to Finder as a PNG file, Condividi shows AirDrop.
+- [ ] Quit and relaunch: window size, position and selected section are restored.
+- [ ] Screenshots exist for every section in Light and Dark; the agent has looked at them and reports what it saw.
+- [ ] No user-visible string outside a `Strings` file. No fixed colours for surfaces or text.
+- [ ] `Scripts/check.sh` passes.

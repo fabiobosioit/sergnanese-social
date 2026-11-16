@@ -2,17 +2,17 @@
 
 **Status:** plan only. No application code exists yet. The repo holds this plan and the four demo templates in `template-demo/`.
 
-**Written:** 2026-11-16 · **Target:** v0.1.0, a Mac app downloadable from GitHub Releases.
+**Written:** 2026-11-16 · **Revised:** 2026-11-16 (native Mac app instead of Electron) · **Target:** v0.1.0, a Mac app downloadable from GitHub Releases.
 
 ## What we are building
 
-A desktop app for the Mac that turns the club's weekend fixtures into ready-to-post Instagram and Facebook images.
+A native Mac app that turns the club's weekend fixtures into ready-to-post Instagram and Facebook images.
 
 1. **Match database** — teams, opponents and matches stored locally.
 2. **Review and edit** — check and fix the matches of a weekend before anything is generated.
-3. **Template manager** — load, preview and manage HTML/CSS/JS templates.
+3. **Template manager** — load, preview and manage HTML/CSS templates.
 4. **Fill templates** — pick matches by date; opponent name, logo, time, venue and home/away are filled in.
-5. **Generate and save** — PNG files at the exact social size (post 1080×1350, story 1080×1920).
+5. **Generate and share** — PNG files at the exact social size (post 1080×1350, story 1080×1920), sent to the phone with AirDrop or the Share menu.
 
 ## Decisions already taken
 
@@ -21,23 +21,41 @@ A desktop app for the Mac that turns the club's weekend fixtures into ready-to-p
 | D1 | Runs on the user's own Mac. No server, no cloud. | User |
 | D2 | Match data in v0.1.0 is entered by hand. Development uses **fake matches** (seed data). | User |
 | D3 | Import (CSV/Excel, website scraping, PDF) comes later, in Wave 4. | User |
-| D4 | Opponent logos will later be downloaded from tuttocampo.it. In v0.1.0 they are uploaded by hand; seed data uses generated placeholder logos. | User |
+| D4 | Opponent logos will later be downloaded from tuttocampo.it. In v0.1.0 they are added by hand; seed data uses generated placeholder logos. | User |
 | D5 | Long team names are **truncated** (with a manual short-name override). | User |
 | D6 | The app must be downloadable from GitHub as a package and run on the Mac. | User |
 | D7 | Review/edit before render is part of v0.1.0. | User |
-| D8 | iPhone use is wanted, but after the Mac app works (Wave 4, over the home Wi-Fi). | User + plan |
+| D8 | **The app is used on the Mac only.** There is no iPhone browser access. Images reach the phone through AirDrop / the Share menu. (Revised 2026-11-16; replaces "iPhone over Wi-Fi later".) | User |
 | D9 | Implementation is done with Claude Code CLI, with parallel subagents. | User |
 
 ## Decisions proposed by this plan (change them before Wave 0 if you disagree)
 
 | # | Proposal | Why |
 |---|---|---|
-| P1 | **Electron** desktop app. | It ships its own Chromium, so templates render to PNG inside the app with no extra browser to install. It packages to a `.dmg` on GitHub Actions. |
-| P2 | One local HTTP API (Fastify) inside the app; the window and, later, the iPhone both use it. | One code path for Mac and iPhone. |
-| P3 | SQLite database in the user's Application Support folder. | Single file, easy backup, nothing in git. |
-| P4 | Templates are folders: `template.html` (Handlebars) + `manifest.json` + `assets/`. | Simple to write by hand or with Claude, easy to validate. |
-| P5 | App UI language: Italian, with all strings in one file. | The club's volunteers are Italian speakers. |
+| P1 | **Native Mac app in Swift + SwiftUI**, built with Swift Package Manager. No Xcode project. | With D8 there is no reason to carry a web stack. A native app gets menus, Dark Mode, sharing, Quick Look and accessibility from the system, and is a few MB instead of ~100 MB. |
+| P2 | Templates are rendered by the system web engine (WebKit, `WKWebView`) in an off-screen view. | No browser to bundle. Checked on this Mac: see "What was verified" below. |
+| P3 | SQLite database in the user's Application Support folder, through the GRDB library. | Single file, easy backup, nothing in git. SwiftData is not usable without Xcode (verified). |
+| P4 | Templates are folders: `template.html` (Mustache) + `manifest.json` + `assets/`. Each template is self-contained, fonts included. | Simple to write by hand or with Claude, easy to validate. |
+| P5 | App UI language: Italian only. | The club's volunteers are Italian speakers. |
 | P6 | App is **ad-hoc signed, not notarized**. First launch needs one manual approval in System Settings. | Notarization needs a paid Apple Developer account. See `05-macos-packaging.md`. |
+| P7 | **Apple silicon only, macOS 15 or later.** No Intel build. | The user's Mac is Apple silicon on macOS 27. macOS 26 was the last release for Intel Macs. One download, half the packaging work. |
+| P8 | Bundle identifier `com.sergnanese.social`. | Matches the club's domain (sergnanese.com). Must not change after release. |
+
+## What was verified on the user's Mac (2026-11-16)
+
+The Mac has the Xcode Command Line Tools only (Swift 6.4.2), not Xcode. These were run as throwaway experiments, outside the repo:
+
+| Check | Result |
+|---|---|
+| SwiftUI + AppKit + `@Observable` build with `swift build` | Works |
+| Swift Testing (`swift test`) | Works |
+| SwiftData `@Model` | **Does not build** without Xcode (macro plugin missing). Not used. |
+| GRDB 7.12, swift-mustache 2.1, ZIPFoundation 0.9.20 | Resolve and build; a Mustache `{{#rows}}` / `{{^logo}}` template renders correctly |
+| `Post · Pre-partita` demo rendered by an off-screen `WKWebView` | PNG of exactly 1080×1350 on a Retina display; the accent pixel reads exactly `#CF3326` |
+| `iconutil`, `hdiutil`, `codesign`, `ditto`, `swift format` | Present |
+| `actool` (compiles the new layered `.icon` format) | **Missing** without Xcode. The icon is a classic `.icns`. |
+
+Not yet verified: the same build and render on a GitHub macOS runner. T1.5 proves it.
 
 ## Files in this plan
 
@@ -45,11 +63,12 @@ A desktop app for the Mac that turns the club's weekend fixtures into ready-to-p
 |---|---|
 | `01-architecture.md` | Stack, folder layout, data model, contracts, template format, render pipeline |
 | `02-agents-and-models.md` | Which model for which kind of task, the agent roster, escalation rules |
+| `03-mac-design.md` | How the app looks and behaves as a Mac app: window, sidebar, menus, shortcuts, sharing, accessibility |
 | `tasks/wave-0-foundation.md` | Sequential foundation tasks (scaffold, contracts) |
 | `tasks/wave-1-core.md` | 6 tasks that run in parallel |
-| `tasks/wave-2-features.md` | 6 tasks that run in parallel |
+| `tasks/wave-2-features.md` | 5 tasks that run in parallel |
 | `tasks/wave-3-release.md` | Integration, QA, first release |
-| `tasks/wave-4-later.md` | Import, scraping, iPhone, results workflow |
+| `tasks/wave-4-later.md` | Import, scraping, results workflow, signing |
 | `04-execution-guide.md` | How to run each wave in Claude Code CLI, with copy-paste prompts |
 | `05-macos-packaging.md` | Building the Mac app on GitHub: what works, limits, install steps |
 | `agents/*.md` | Ready-to-use subagent definitions (copied to `.claude/agents/` in task T0.0) |
@@ -68,19 +87,18 @@ flowchart LR
     T13[T1.3 render engine]
     T14[T1.4 fake data]
     T15[T1.5 packaging + CI]
-    T16[T1.6 UI shell]
+    T16[T1.6 app shell]
   end
-  subgraph W2[Wave 2 · 6 in parallel]
-    T21[T2.1 data API]
-    T22[T2.2 render API]
-    T23[T2.3 matches UI]
-    T24[T2.4 opponents/teams/settings UI]
-    T25[T2.5 templates UI]
-    T26[T2.6 generate + archive UI]
+  subgraph W2[Wave 2 · 5 in parallel]
+    T21[T2.1 matches]
+    T22[T2.2 opponents + teams]
+    T23[T2.3 settings]
+    T24[T2.4 templates]
+    T25[T2.5 generate + archive]
   end
   subgraph W3[Wave 3 · release]
-    T31[T3.1 wiring + e2e]
-    T32[T3.2 visual QA]
+    T31[T3.1 wiring + integration tests]
+    T32[T3.2 visual + Mac QA]
     T33[T3.3 docs]
     T34[T3.4 release v0.1.0]
     T35[T3.5 final review]
@@ -92,9 +110,9 @@ flowchart LR
 |---|---|---|---|---|---|
 | 0 Foundation | 3 | no | 0 | 1 | 1 (+ T0.0 in main session) |
 | 1 Core | 6 | yes, all 6 | 1 | 4 | 1 |
-| 2 Features | 6 | yes, all 6 | 1 | 5 | 0 |
+| 2 Features | 5 | yes, all 5 | 0 | 5 | 0 |
 | 3 Release | 5 | partly | 1 | 2 | 2 |
-| **Total v0.1.0** | **20** | | **3** | **12** | **4** |
+| **Total v0.1.0** | **19** | | **2** | **12** | **4** |
 
 Fable, the most capable and most expensive model, is not assigned to any task. It is the last step of the escalation ladder in `02-agents-and-models.md`.
 
@@ -108,6 +126,7 @@ Fable, the most capable and most expensive model, is not assigned to any task. I
 
 | Needed for | Input |
 |---|---|
+| T1.5 | The club crest as a vector file (SVG/PDF) or a PNG of at least 1024×1024. The one inside the demo zips is 500×500, too small for a sharp app icon. Without it the icon is upscaled and slightly soft. |
 | T1.4 (nice to have) | Real list of the club's teams/categories. Fake ones are used otherwise. |
 | T4.2 | The tuttocampo.it page address for each team, and a check of that site's terms of use. |
 | T4.1 / T4.3 | A sample fixture document (Excel/CSV/PDF). |
