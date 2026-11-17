@@ -1,0 +1,51 @@
+{
+  "club": {
+    "name": "ASD Sergnanese",
+    "shortName": "Sergnanese",
+    "logo": "assets/club-logo.png",
+    "accent": "#CF3326",
+    "season": "2026/27",
+    "handle": "@sergnanese.demo"
+  },
+  "match": {
+    "category": "Juniores",
+    "dateLong": "Domenica 22 novembre",
+    "dateShort": "Dom 22 nov",
+    "venue": "Centro…",
+    "isHome": false,
+    "isAway": true,
+    "home": {
+      "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+      "displayName": "Oratorio…",
+      "initials": "OSE",
+      "isUs": false,
+      "logo": "_logos/fixture-eufrasio.png"
+    },
+    "away": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true
+    },
+    "us": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true
+    },
+    "opponent": {
+      "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+      "displayName": "Oratorio…",
+      "initials": "OSE",
+      "isUs": false,
+      "logo": "_logos/fixture-eufrasio.png"
+    },
+    "isPostponed": false,
+    "isCancelled": false,
+    "round": 10,
+    "competition": "Juniores Regionali",
+    "time": "10:30"
+  }
+}

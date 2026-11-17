@@ -1,0 +1,48 @@
+{
+  "club": {
+    "name": "ASD Sergnanese",
+    "shortName": "Sergnanese",
+    "logo": "assets/club-logo.png",
+    "accent": "#CF3326",
+    "season": "2026/27",
+    "handle": "@sergnanese.demo"
+  },
+  "match": {
+    "category": "Pulcini",
+    "dateLong": "Sabato 21 novembre",
+    "dateShort": "Sab 21 nov",
+    "venue": "Prato Fiorito",
+    "isHome": false,
+    "isAway": true,
+    "home": {
+      "name": "A.C. Prato Fiorito",
+      "displayName": "Prato Fiorito",
+      "initials": "PF",
+      "isUs": false,
+      "logo": "_logos/fixture-pratofiorito.png"
+    },
+    "away": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true
+    },
+    "us": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true
+    },
+    "opponent": {
+      "name": "A.C. Prato Fiorito",
+      "displayName": "Prato Fiorito",
+      "initials": "PF",
+      "isUs": false,
+      "logo": "_logos/fixture-pratofiorito.png"
+    },
+    "isPostponed": false,
+    "isCancelled": false
+  }
+}

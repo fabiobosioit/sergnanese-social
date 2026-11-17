@@ -1,0 +1,683 @@
+{
+  "referenceSaturday": "2026-11-21",
+  "settings": {
+    "clubName": "ASD Sergnanese",
+    "clubShortName": "Sergnanese",
+    "season": "2026/27",
+    "accentColor": "#CF3326",
+    "socialHandle": "@sergnanese.demo",
+    "homeVenue": "Campo Comunale"
+  },
+  "teams": [
+    {
+      "id": "AEC75B2B-FB76-58B0-B510-44EF48418D1A",
+      "name": "Prima Squadra",
+      "shortLabel": "Prima Squadra",
+      "sortOrder": 0,
+      "isFirstTeam": true,
+      "isActive": true
+    },
+    {
+      "id": "CAD30E64-0126-5940-8B6D-B0CA218E4361",
+      "name": "Juniores",
+      "shortLabel": "Juniores",
+      "sortOrder": 1,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "34B6D42C-D71D-59C9-B3AE-286740C62575",
+      "name": "Allievi U17",
+      "shortLabel": "Allievi U17",
+      "sortOrder": 2,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "A58E78F2-A649-5C69-8BE6-468C0FBD8FF4",
+      "name": "Allievi U16",
+      "shortLabel": "Allievi U16",
+      "sortOrder": 3,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "480C8298-6E24-598B-B95E-00B2B7E7D85D",
+      "name": "Giovanissimi U15",
+      "shortLabel": "Giov. U15",
+      "sortOrder": 4,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "F9F35786-9254-5995-ADCC-E2F551390317",
+      "name": "Giovanissimi U14",
+      "shortLabel": "Giov. U14",
+      "sortOrder": 5,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "0971C19F-1BBF-5EC8-821C-D9F7BFDA0FB8",
+      "name": "Esordienti",
+      "shortLabel": "Esordienti",
+      "sortOrder": 6,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "FF8EB2B5-A4C4-55EF-BD6D-6A32D4557B0D",
+      "name": "Pulcini",
+      "shortLabel": "Pulcini",
+      "sortOrder": 7,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "2B6B9333-81B4-5A97-8DC0-F7D7D018505A",
+      "name": "Primi Calci",
+      "shortLabel": "Primi Calci",
+      "sortOrder": 8,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "75ACD2E7-E2FE-5555-8655-2B6F5C522F92",
+      "name": "Femminile",
+      "shortLabel": "Femminile",
+      "sortOrder": 9,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "CBA65859-1C64-508C-A065-25D46B85946E",
+      "name": "Juniores Femminile",
+      "shortLabel": "Jun. Femminile",
+      "sortOrder": 10,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "10787308-4A8F-5949-A60C-C16E04778555",
+      "name": "Amatori",
+      "shortLabel": "Amatori",
+      "sortOrder": 11,
+      "isFirstTeam": false,
+      "isActive": true
+    },
+    {
+      "id": "DDE7F1B9-8228-5588-AD34-8BCB5A253095",
+      "name": "Veterani",
+      "shortLabel": "Veterani",
+      "sortOrder": 12,
+      "isFirstTeam": false,
+      "isActive": false
+    }
+  ],
+  "opponents": [
+    {
+      "id": "1F512223-696F-5CEC-A031-F9A161A36106",
+      "name": "A.S.D. Oratorio San Gerolamo",
+      "aliases": [
+        "Oratorio S. Gerolamo"
+      ],
+      "shortName": "San Gerolamo",
+      "logoFile": "fixture-gerolamo.png"
+    },
+    {
+      "id": "869E05D8-BA32-5DC2-8400-FB13C86E4D8E",
+      "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+      "aliases": [],
+      "logoFile": "fixture-eufrasio.png"
+    },
+    {
+      "id": "B87C128E-04EB-566B-ABFB-67CFEA3A2CFC",
+      "name": "U.S. Castelverde Calcio",
+      "aliases": [],
+      "logoFile": "fixture-castelverde.png"
+    },
+    {
+      "id": "46EBF6C2-11C9-543E-8096-1C85794BECC8",
+      "name": "F.C. Valdorso",
+      "aliases": [],
+      "logoFile": "fixture-valdorso.png"
+    },
+    {
+      "id": "42F38565-0B3E-5E70-90D6-F343C9523434",
+      "name": "Pol. Borgo Lucente",
+      "aliases": []
+    },
+    {
+      "id": "C7CAC75A-12E6-5461-81F6-0D43384DE3D7",
+      "name": "A.C. Prato Fiorito",
+      "aliases": [],
+      "logoFile": "fixture-pratofiorito.png"
+    },
+    {
+      "id": "5C18DF96-B1BB-5050-BC77-E28F9AEE78F3",
+      "name": "S.S.D. Novaria Bassa",
+      "aliases": [],
+      "logoFile": "fixture-novaria.png"
+    },
+    {
+      "id": "805FB24C-12ED-567A-91BF-2CA165481368",
+      "name": "Real Cascina Alta",
+      "aliases": [],
+      "logoFile": "fixture-cascina.png"
+    },
+    {
+      "id": "EA4F0706-A561-5944-BD83-EDA5BED2DCDB",
+      "name": "Sporting Ripalta Nuova",
+      "aliases": [],
+      "logoFile": "fixture-ripalta.png"
+    },
+    {
+      "id": "1C21133F-1F12-5DD3-BC2B-D7C632BBFDD5",
+      "name": "Atletico Montesello",
+      "aliases": []
+    },
+    {
+      "id": "0E502560-96AF-5AD1-99A3-424AA6532C91",
+      "name": "G.S. Sant'Ilario Città",
+      "aliases": [
+        "Sant'Ilario"
+      ],
+      "logoFile": "fixture-ilario.png"
+    },
+    {
+      "id": "D953E9D9-98AF-5164-99F5-66567FA4F3FF",
+      "name": "Virtus Campofelice",
+      "aliases": [],
+      "logoFile": "fixture-campofelice.png"
+    },
+    {
+      "id": "7B1894C4-52C6-58B5-9D0D-922F7B921F9A",
+      "name": "Unione Calcio Brolo Verde",
+      "aliases": [],
+      "logoFile": "fixture-brolo.png"
+    },
+    {
+      "id": "39E24192-151A-5E0A-A2FA-7EFF5161E011",
+      "name": "Oratorio Santa Lucia",
+      "aliases": [],
+      "logoFile": "fixture-lucia.png"
+    }
+  ],
+  "matches": [
+    {
+      "id": "3633E480-C62F-5014-8E15-EE07161B1235",
+      "teamID": "AEC75B2B-FB76-58B0-B510-44EF48418D1A",
+      "opponentID": "EA4F0706-A561-5944-BD83-EDA5BED2DCDB",
+      "date": "2026-11-15",
+      "isHome": false,
+      "venue": "Ripalta Nuova",
+      "status": "played",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "14:30",
+      "competition": "Prima Categoria · Girone C",
+      "round": 11,
+      "score": {
+        "us": 2,
+        "them": 1
+      },
+      "halfTime": {
+        "us": 1,
+        "them": 0
+      },
+      "notes": "Rossi 23', Bianchi 78'"
+    },
+    {
+      "id": "8BB09E39-9C7C-533A-969B-DD09BA3C4C85",
+      "teamID": "CAD30E64-0126-5940-8B6D-B0CA218E4361",
+      "opponentID": "7B1894C4-52C6-58B5-9D0D-922F7B921F9A",
+      "date": "2026-11-14",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "played",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "15:00",
+      "competition": "Juniores Regionali",
+      "round": 9,
+      "score": {
+        "us": 0,
+        "them": 0
+      },
+      "halfTime": {
+        "us": 0,
+        "them": 0
+      }
+    },
+    {
+      "id": "6A272663-A74D-5384-86D6-37DCCB7EF9CC",
+      "teamID": "34B6D42C-D71D-59C9-B3AE-286740C62575",
+      "opponentID": "39E24192-151A-5E0A-A2FA-7EFF5161E011",
+      "date": "2026-11-15",
+      "isHome": false,
+      "venue": "Oratorio Santa Lucia",
+      "status": "played",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "10:30",
+      "score": {
+        "us": 3,
+        "them": 3
+      },
+      "halfTime": {
+        "us": 1,
+        "them": 2
+      },
+      "notes": "Verdi (2), Neri"
+    },
+    {
+      "id": "44980F55-5A19-5C2E-B0D7-07DF8505DAA4",
+      "teamID": "75ACD2E7-E2FE-5555-8655-2B6F5C522F92",
+      "opponentID": "D953E9D9-98AF-5164-99F5-66567FA4F3FF",
+      "date": "2026-11-14",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "played",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "18:00",
+      "score": {
+        "us": 4,
+        "them": 0
+      },
+      "halfTime": {
+        "us": 2,
+        "them": 0
+      }
+    },
+    {
+      "id": "F1466717-5F4E-5921-8CB1-768ED6A743EF",
+      "teamID": "34B6D42C-D71D-59C9-B3AE-286740C62575",
+      "opponentID": "B87C128E-04EB-566B-ABFB-67CFEA3A2CFC",
+      "date": "2026-11-21",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "15:00",
+      "round": 10
+    },
+    {
+      "id": "6A61E3D6-5291-5144-BA7C-592355C5DADB",
+      "teamID": "480C8298-6E24-598B-B95E-00B2B7E7D85D",
+      "opponentID": "46EBF6C2-11C9-543E-8096-1C85794BECC8",
+      "date": "2026-11-21",
+      "isHome": false,
+      "venue": "Campo Valdorso",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "16:30"
+    },
+    {
+      "id": "6DF07AB5-CE83-580F-AD83-2FAFF384AB62",
+      "teamID": "0971C19F-1BBF-5EC8-821C-D9F7BFDA0FB8",
+      "opponentID": "42F38565-0B3E-5E70-90D6-F343C9523434",
+      "date": "2026-11-21",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "15:00"
+    },
+    {
+      "id": "D6D8FC87-FF1B-53FE-B471-4350AC49F223",
+      "teamID": "FF8EB2B5-A4C4-55EF-BD6D-6A32D4557B0D",
+      "opponentID": "C7CAC75A-12E6-5461-81F6-0D43384DE3D7",
+      "date": "2026-11-21",
+      "isHome": false,
+      "venue": "Prato Fiorito",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z"
+    },
+    {
+      "id": "291F6A39-D948-55A2-BF85-098EE4645551",
+      "teamID": "AEC75B2B-FB76-58B0-B510-44EF48418D1A",
+      "opponentID": "1F512223-696F-5CEC-A031-F9A161A36106",
+      "date": "2026-11-22",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "14:30",
+      "competition": "Prima Categoria · Girone C",
+      "round": 12
+    },
+    {
+      "id": "16030495-20AB-5EE1-81FE-9A0D221C73D9",
+      "teamID": "CAD30E64-0126-5940-8B6D-B0CA218E4361",
+      "opponentID": "869E05D8-BA32-5DC2-8400-FB13C86E4D8E",
+      "date": "2026-11-22",
+      "isHome": false,
+      "venue": "Centro Sportivo Valfonda",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "10:30",
+      "competition": "Juniores Regionali",
+      "round": 10
+    },
+    {
+      "id": "2BC66C31-3D98-58BE-96E4-6B5A291EBDE6",
+      "teamID": "A58E78F2-A649-5C69-8BE6-468C0FBD8FF4",
+      "opponentID": "5C18DF96-B1BB-5050-BC77-E28F9AEE78F3",
+      "date": "2026-11-22",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "10:00"
+    },
+    {
+      "id": "F7069287-9F30-5739-8E36-223EB96BDEE1",
+      "teamID": "F9F35786-9254-5995-ADCC-E2F551390317",
+      "opponentID": "805FB24C-12ED-567A-91BF-2CA165481368",
+      "date": "2026-11-22",
+      "isHome": false,
+      "venue": "Campo Cascina Alta",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "09:30"
+    },
+    {
+      "id": "005D2EA2-2EC7-5349-A96E-C5D6E942385B",
+      "teamID": "75ACD2E7-E2FE-5555-8655-2B6F5C522F92",
+      "opponentID": "0E502560-96AF-5AD1-99A3-424AA6532C91",
+      "date": "2026-11-22",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "postponed",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "18:00"
+    },
+    {
+      "id": "418BFCB3-08EC-5ECB-9CA8-C1742B082B31",
+      "teamID": "2B6B9333-81B4-5A97-8DC0-F7D7D018505A",
+      "opponentID": "1C21133F-1F12-5DD3-BC2B-D7C632BBFDD5",
+      "date": "2026-11-22",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "manual",
+      "isLocked": true,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "11:00"
+    },
+    {
+      "id": "F1F1FED6-B6F0-5088-93CE-C31C9F3ABC81",
+      "teamID": "10787308-4A8F-5949-A60C-C16E04778555",
+      "opponentID": "D953E9D9-98AF-5164-99F5-66567FA4F3FF",
+      "date": "2026-11-28",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "20:30"
+    },
+    {
+      "id": "0E8F3487-D4DC-521F-BE53-CF9FE1D38093",
+      "teamID": "AEC75B2B-FB76-58B0-B510-44EF48418D1A",
+      "opponentID": "B87C128E-04EB-566B-ABFB-67CFEA3A2CFC",
+      "date": "2026-11-29",
+      "isHome": false,
+      "venue": "Comunale Castelverde",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "14:30",
+      "competition": "Prima Categoria · Girone C",
+      "round": 13
+    },
+    {
+      "id": "09BB4260-6349-5866-A934-9767AF04EC45",
+      "teamID": "CAD30E64-0126-5940-8B6D-B0CA218E4361",
+      "opponentID": "39E24192-151A-5E0A-A2FA-7EFF5161E011",
+      "date": "2026-11-29",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "10:30"
+    },
+    {
+      "id": "165ABBFC-F2F5-5939-818F-151694C348C0",
+      "teamID": "34B6D42C-D71D-59C9-B3AE-286740C62575",
+      "opponentID": "EA4F0706-A561-5944-BD83-EDA5BED2DCDB",
+      "date": "2026-11-29",
+      "isHome": false,
+      "venue": "Ripalta Nuova",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "10:00"
+    },
+    {
+      "id": "9E790F03-EC62-5A6E-A75E-BE0D18245EA2",
+      "teamID": "A58E78F2-A649-5C69-8BE6-468C0FBD8FF4",
+      "opponentID": "7B1894C4-52C6-58B5-9D0D-922F7B921F9A",
+      "date": "2026-11-29",
+      "isHome": false,
+      "venue": "Brolo Verde",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "11:00"
+    },
+    {
+      "id": "CD84123F-3276-51FB-A3C6-D38D5F065A8E",
+      "teamID": "480C8298-6E24-598B-B95E-00B2B7E7D85D",
+      "opponentID": "5C18DF96-B1BB-5050-BC77-E28F9AEE78F3",
+      "date": "2026-11-29",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "09:30"
+    },
+    {
+      "id": "8C1608C2-E47D-5AB3-AFBE-141A96D5D8A8",
+      "teamID": "F9F35786-9254-5995-ADCC-E2F551390317",
+      "opponentID": "1F512223-696F-5CEC-A031-F9A161A36106",
+      "date": "2026-11-29",
+      "isHome": false,
+      "venue": "Campo Oratorio San Gerolamo",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "09:30"
+    },
+    {
+      "id": "821D1987-C0FF-58B4-B7AE-9683E5106958",
+      "teamID": "0971C19F-1BBF-5EC8-821C-D9F7BFDA0FB8",
+      "opponentID": "805FB24C-12ED-567A-91BF-2CA165481368",
+      "date": "2026-11-29",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "11:00"
+    },
+    {
+      "id": "2214A75E-2199-5E7B-B898-B39D6E3DCE32",
+      "teamID": "FF8EB2B5-A4C4-55EF-BD6D-6A32D4557B0D",
+      "opponentID": "46EBF6C2-11C9-543E-8096-1C85794BECC8",
+      "date": "2026-11-29",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z"
+    },
+    {
+      "id": "F6E9B783-C7C5-5A96-BD3B-A79621F3D46B",
+      "teamID": "2B6B9333-81B4-5A97-8DC0-F7D7D018505A",
+      "opponentID": "C7CAC75A-12E6-5461-81F6-0D43384DE3D7",
+      "date": "2026-11-29",
+      "isHome": false,
+      "venue": "Prato Fiorito",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "10:00"
+    },
+    {
+      "id": "10038305-C207-52AC-836D-CAC7C6A9B7BD",
+      "teamID": "75ACD2E7-E2FE-5555-8655-2B6F5C522F92",
+      "opponentID": "869E05D8-BA32-5DC2-8400-FB13C86E4D8E",
+      "date": "2026-11-29",
+      "isHome": false,
+      "venue": "Centro Sportivo Valfonda",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "18:00"
+    },
+    {
+      "id": "F1BE41F9-8289-593A-8E21-ECCED79B5400",
+      "teamID": "CBA65859-1C64-508C-A065-25D46B85946E",
+      "opponentID": "1C21133F-1F12-5DD3-BC2B-D7C632BBFDD5",
+      "date": "2026-11-29",
+      "isHome": true,
+      "venue": "Campo Comunale",
+      "status": "scheduled",
+      "source": "seed",
+      "isLocked": false,
+      "createdAt": "2026-11-10T09:00:00Z",
+      "updatedAt": "2026-11-10T09:00:00Z",
+      "time": "16:00"
+    }
+  ],
+  "renders": [
+    {
+      "id": "93618033-28E5-5EBA-AF3D-7BC814119DDF",
+      "templateID": "story-fulltime",
+      "templateVersion": "1.0.0",
+      "matchIDs": [
+        "3633E480-C62F-5014-8E15-EE07161B1235"
+      ],
+      "date": "2026-11-15",
+      "file": "2026-11-15/2026-11-15_story-fulltime_prima-squadra_vs_sporting-ripalta-nuova.png",
+      "width": 1080,
+      "height": 1920,
+      "warnings": [],
+      "createdAt": "2026-11-15T17:10:00Z"
+    },
+    {
+      "id": "499E4E9C-63EA-51C7-9CBC-1F5BE44EDEF7",
+      "templateID": "story-halftime",
+      "templateVersion": "1.0.0",
+      "matchIDs": [
+        "3633E480-C62F-5014-8E15-EE07161B1235"
+      ],
+      "date": "2026-11-15",
+      "file": "2026-11-15/2026-11-15_story-halftime_prima-squadra_vs_sporting-ripalta-nuova.png",
+      "width": 1080,
+      "height": 1920,
+      "warnings": [],
+      "createdAt": "2026-11-15T15:20:00Z"
+    },
+    {
+      "id": "547B8398-3824-581B-B9ED-6588BF7FAB92",
+      "templateID": "post-prematch",
+      "templateVersion": "1.0.0",
+      "matchIDs": [
+        "3633E480-C62F-5014-8E15-EE07161B1235"
+      ],
+      "date": "2026-11-15",
+      "file": "2026-11-15/2026-11-15_post-prematch_prima-squadra_vs_sporting-ripalta-nuova.png",
+      "width": 1080,
+      "height": 1350,
+      "warnings": [],
+      "createdAt": "2026-11-12T20:00:00Z"
+    },
+    {
+      "id": "4570922A-E85E-5D40-8CE5-B845F04C6C1B",
+      "templateID": "story-programme",
+      "templateVersion": "1.0.0",
+      "matchIDs": [
+        "8BB09E39-9C7C-533A-969B-DD09BA3C4C85",
+        "44980F55-5A19-5C2E-B0D7-07DF8505DAA4"
+      ],
+      "date": "2026-11-14",
+      "page": {
+        "index": 1,
+        "total": 1
+      },
+      "file": "2026-11-14/2026-11-14_story-programme_1of1.png",
+      "width": 1080,
+      "height": 1920,
+      "warnings": [
+        "Manca il campo."
+      ],
+      "createdAt": "2026-11-13T19:00:00Z"
+    }
+  ],
+  "missingRenderFileIDs": [
+    "4570922A-E85E-5D40-8CE5-B845F04C6C1B"
+  ]
+}

@@ -1,0 +1,930 @@
+{
+  "club": {
+    "name": "ASD Sergnanese",
+    "shortName": "Sergnanese",
+    "logo": "assets/club-logo.png",
+    "accent": "#CF3326",
+    "season": "2026/27",
+    "handle": "@sergnanese.demo"
+  },
+  "title": "Weekend in campo",
+  "dateLabel": "Dal 14 al 29 novembre",
+  "rows": [
+    {
+      "category": "Juniores",
+      "dateLong": "Sabato 14 novembre",
+      "dateShort": "Sab 14 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "away": {
+        "name": "Unione Calcio Brolo Verde",
+        "displayName": "Unione Calcio Brolo…",
+        "initials": "UCB",
+        "isUs": false,
+        "logo": "_logos/fixture-brolo.png",
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "opponent": {
+        "name": "Unione Calcio Brolo Verde",
+        "displayName": "Unione Calcio Brolo…",
+        "initials": "UCB",
+        "isUs": false,
+        "logo": "_logos/fixture-brolo.png",
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "round": 9,
+      "competition": "Juniores Regionali",
+      "time": "15:00",
+      "halfTime": {
+        "us": 0,
+        "them": 0
+      }
+    },
+    {
+      "category": "Allievi U17",
+      "dateLong": "Sabato 21 novembre",
+      "dateShort": "Sab 21 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "U.S. Castelverde Calcio",
+        "displayName": "Castelverde Calcio",
+        "initials": "CC",
+        "isUs": false,
+        "logo": "_logos/fixture-castelverde.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "U.S. Castelverde Calcio",
+        "displayName": "Castelverde Calcio",
+        "initials": "CC",
+        "isUs": false,
+        "logo": "_logos/fixture-castelverde.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "round": 10,
+      "time": "15:00"
+    },
+    {
+      "category": "Esordienti",
+      "dateLong": "Sabato 21 novembre",
+      "dateShort": "Sab 21 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "Pol. Borgo Lucente",
+        "displayName": "Borgo Lucente",
+        "initials": "BL",
+        "isUs": false
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Pol. Borgo Lucente",
+        "displayName": "Borgo Lucente",
+        "initials": "BL",
+        "isUs": false
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "15:00"
+    },
+    {
+      "category": "Giov. U15",
+      "dateLong": "Sabato 21 novembre",
+      "dateShort": "Sab 21 nov",
+      "venue": "Campo Valdorso",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "F.C. Valdorso",
+        "displayName": "Valdorso",
+        "initials": "VA",
+        "isUs": false,
+        "logo": "_logos/fixture-valdorso.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "F.C. Valdorso",
+        "displayName": "Valdorso",
+        "initials": "VA",
+        "isUs": false,
+        "logo": "_logos/fixture-valdorso.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "16:30"
+    },
+    {
+      "category": "Pulcini",
+      "dateLong": "Sabato 21 novembre",
+      "dateShort": "Sab 21 nov",
+      "venue": "Prato Fiorito",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "A.C. Prato Fiorito",
+        "displayName": "Prato Fiorito",
+        "initials": "PF",
+        "isUs": false,
+        "logo": "_logos/fixture-pratofiorito.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "A.C. Prato Fiorito",
+        "displayName": "Prato Fiorito",
+        "initials": "PF",
+        "isUs": false,
+        "logo": "_logos/fixture-pratofiorito.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false
+    },
+    {
+      "category": "Giov. U14",
+      "dateLong": "Domenica 22 novembre",
+      "dateShort": "Dom 22 nov",
+      "venue": "Campo Cascina…",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "Real Cascina Alta",
+        "displayName": "Real Cascina Alta",
+        "initials": "RCA",
+        "isUs": false,
+        "logo": "_logos/fixture-cascina.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Real Cascina Alta",
+        "displayName": "Real Cascina Alta",
+        "initials": "RCA",
+        "isUs": false,
+        "logo": "_logos/fixture-cascina.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "09:30"
+    },
+    {
+      "category": "Allievi U16",
+      "dateLong": "Domenica 22 novembre",
+      "dateShort": "Dom 22 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "S.S.D. Novaria Bassa",
+        "displayName": "Novaria Bassa",
+        "initials": "NB",
+        "isUs": false,
+        "logo": "_logos/fixture-novaria.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "S.S.D. Novaria Bassa",
+        "displayName": "Novaria Bassa",
+        "initials": "NB",
+        "isUs": false,
+        "logo": "_logos/fixture-novaria.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "10:00"
+    },
+    {
+      "category": "Juniores",
+      "dateLong": "Domenica 22 novembre",
+      "dateShort": "Dom 22 nov",
+      "venue": "Centro…",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+        "displayName": "Oratorio…",
+        "initials": "OSE",
+        "isUs": false,
+        "logo": "_logos/fixture-eufrasio.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+        "displayName": "Oratorio…",
+        "initials": "OSE",
+        "isUs": false,
+        "logo": "_logos/fixture-eufrasio.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "round": 10,
+      "competition": "Juniores Regionali",
+      "time": "10:30"
+    },
+    {
+      "category": "Primi Calci",
+      "dateLong": "Domenica 22 novembre",
+      "dateShort": "Dom 22 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "Atletico Montesello",
+        "displayName": "Atletico Montesello",
+        "initials": "AM",
+        "isUs": false
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Atletico Montesello",
+        "displayName": "Atletico Montesello",
+        "initials": "AM",
+        "isUs": false
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "11:00"
+    },
+    {
+      "category": "Prima Squadra",
+      "dateLong": "Domenica 22 novembre",
+      "dateShort": "Dom 22 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "A.S.D. Oratorio San Gerolamo",
+        "displayName": "San Gerolamo",
+        "initials": "OSG",
+        "isUs": false,
+        "logo": "_logos/fixture-gerolamo.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "A.S.D. Oratorio San Gerolamo",
+        "displayName": "San Gerolamo",
+        "initials": "OSG",
+        "isUs": false,
+        "logo": "_logos/fixture-gerolamo.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "round": 12,
+      "competition": "Prima Categoria · Girone C",
+      "time": "14:30"
+    },
+    {
+      "category": "Femminile",
+      "dateLong": "Domenica 22 novembre",
+      "dateShort": "Dom 22 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "G.S. Sant'Ilario Città",
+        "displayName": "Sant'Ilario Città",
+        "initials": "SIC",
+        "isUs": false,
+        "logo": "_logos/fixture-ilario.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "G.S. Sant'Ilario Città",
+        "displayName": "Sant'Ilario Città",
+        "initials": "SIC",
+        "isUs": false,
+        "logo": "_logos/fixture-ilario.png"
+      },
+      "isPostponed": true,
+      "isCancelled": false,
+      "time": "18:00"
+    },
+    {
+      "category": "Amatori",
+      "dateLong": "Sabato 28 novembre",
+      "dateShort": "Sab 28 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "Virtus Campofelice",
+        "displayName": "Virtus Campofelice",
+        "initials": "VC",
+        "isUs": false,
+        "logo": "_logos/fixture-campofelice.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Virtus Campofelice",
+        "displayName": "Virtus Campofelice",
+        "initials": "VC",
+        "isUs": false,
+        "logo": "_logos/fixture-campofelice.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "20:30"
+    },
+    {
+      "category": "Giov. U15",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "S.S.D. Novaria Bassa",
+        "displayName": "Novaria Bassa",
+        "initials": "NB",
+        "isUs": false,
+        "logo": "_logos/fixture-novaria.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "S.S.D. Novaria Bassa",
+        "displayName": "Novaria Bassa",
+        "initials": "NB",
+        "isUs": false,
+        "logo": "_logos/fixture-novaria.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "09:30"
+    },
+    {
+      "category": "Giov. U14",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Campo…",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "A.S.D. Oratorio San Gerolamo",
+        "displayName": "San Gerolamo",
+        "initials": "OSG",
+        "isUs": false,
+        "logo": "_logos/fixture-gerolamo.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "A.S.D. Oratorio San Gerolamo",
+        "displayName": "San Gerolamo",
+        "initials": "OSG",
+        "isUs": false,
+        "logo": "_logos/fixture-gerolamo.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "09:30"
+    },
+    {
+      "category": "Allievi U17",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Ripalta Nuova",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "Sporting Ripalta Nuova",
+        "displayName": "Sporting Ripalta Nuova",
+        "initials": "SRN",
+        "isUs": false,
+        "logo": "_logos/fixture-ripalta.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Sporting Ripalta Nuova",
+        "displayName": "Sporting Ripalta Nuova",
+        "initials": "SRN",
+        "isUs": false,
+        "logo": "_logos/fixture-ripalta.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "10:00"
+    },
+    {
+      "category": "Primi Calci",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Prato Fiorito",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "A.C. Prato Fiorito",
+        "displayName": "Prato Fiorito",
+        "initials": "PF",
+        "isUs": false,
+        "logo": "_logos/fixture-pratofiorito.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "A.C. Prato Fiorito",
+        "displayName": "Prato Fiorito",
+        "initials": "PF",
+        "isUs": false,
+        "logo": "_logos/fixture-pratofiorito.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "10:00"
+    },
+    {
+      "category": "Juniores",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "Oratorio Santa Lucia",
+        "displayName": "Oratorio Santa Lucia",
+        "initials": "OSL",
+        "isUs": false,
+        "logo": "_logos/fixture-lucia.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Oratorio Santa Lucia",
+        "displayName": "Oratorio Santa Lucia",
+        "initials": "OSL",
+        "isUs": false,
+        "logo": "_logos/fixture-lucia.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "10:30"
+    },
+    {
+      "category": "Allievi U16",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Brolo Verde",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "Unione Calcio Brolo Verde",
+        "displayName": "Unione Calcio Brolo…",
+        "initials": "UCB",
+        "isUs": false,
+        "logo": "_logos/fixture-brolo.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Unione Calcio Brolo Verde",
+        "displayName": "Unione Calcio Brolo…",
+        "initials": "UCB",
+        "isUs": false,
+        "logo": "_logos/fixture-brolo.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "11:00"
+    },
+    {
+      "category": "Esordienti",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "Real Cascina Alta",
+        "displayName": "Real Cascina Alta",
+        "initials": "RCA",
+        "isUs": false,
+        "logo": "_logos/fixture-cascina.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Real Cascina Alta",
+        "displayName": "Real Cascina Alta",
+        "initials": "RCA",
+        "isUs": false,
+        "logo": "_logos/fixture-cascina.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "11:00"
+    },
+    {
+      "category": "Prima Squadra",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Comunale…",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "U.S. Castelverde Calcio",
+        "displayName": "Castelverde Calcio",
+        "initials": "CC",
+        "isUs": false,
+        "logo": "_logos/fixture-castelverde.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "U.S. Castelverde Calcio",
+        "displayName": "Castelverde Calcio",
+        "initials": "CC",
+        "isUs": false,
+        "logo": "_logos/fixture-castelverde.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "round": 13,
+      "competition": "Prima Categoria · Girone C",
+      "time": "14:30"
+    },
+    {
+      "category": "Jun. Femminile",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "Atletico Montesello",
+        "displayName": "Atletico Montesello",
+        "initials": "AM",
+        "isUs": false
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "Atletico Montesello",
+        "displayName": "Atletico Montesello",
+        "initials": "AM",
+        "isUs": false
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "16:00"
+    },
+    {
+      "category": "Femminile",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Centro…",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+        "displayName": "Oratorio…",
+        "initials": "OSE",
+        "isUs": false,
+        "logo": "_logos/fixture-eufrasio.png"
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+        "displayName": "Oratorio…",
+        "initials": "OSE",
+        "isUs": false,
+        "logo": "_logos/fixture-eufrasio.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "time": "18:00"
+    },
+    {
+      "category": "Pulcini",
+      "dateLong": "Domenica 29 novembre",
+      "dateShort": "Dom 29 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "F.C. Valdorso",
+        "displayName": "Valdorso",
+        "initials": "VA",
+        "isUs": false,
+        "logo": "_logos/fixture-valdorso.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "F.C. Valdorso",
+        "displayName": "Valdorso",
+        "initials": "VA",
+        "isUs": false,
+        "logo": "_logos/fixture-valdorso.png"
+      },
+      "isPostponed": false,
+      "isCancelled": false
+    }
+  ],
+  "page": {
+    "index": 1,
+    "total": 1
+  },
+  "hasPages": false,
+  "pageLabel": "1/1"
+}

@@ -1,0 +1,49 @@
+{
+  "club": {
+    "name": "ASD Sergnanese",
+    "shortName": "Sergnanese",
+    "logo": "assets/club-logo.png",
+    "accent": "#CF3326",
+    "season": "2026/27",
+    "handle": "@sergnanese.demo"
+  },
+  "match": {
+    "category": "Giovanissimi U15",
+    "dateLong": "Sabato 21 novembre",
+    "dateShort": "Sab 21 nov",
+    "venue": "Campo Valdorso",
+    "isHome": false,
+    "isAway": true,
+    "home": {
+      "name": "F.C. Valdorso",
+      "displayName": "Valdorso",
+      "initials": "VA",
+      "isUs": false,
+      "logo": "_logos/fixture-valdorso.png"
+    },
+    "away": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true
+    },
+    "us": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true
+    },
+    "opponent": {
+      "name": "F.C. Valdorso",
+      "displayName": "Valdorso",
+      "initials": "VA",
+      "isUs": false,
+      "logo": "_logos/fixture-valdorso.png"
+    },
+    "isPostponed": false,
+    "isCancelled": false,
+    "time": "16:30"
+  }
+}

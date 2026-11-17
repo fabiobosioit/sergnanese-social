@@ -1,0 +1,47 @@
+{
+  "club": {
+    "name": "ASD Sergnanese",
+    "shortName": "Sergnanese",
+    "logo": "assets/club-logo.png",
+    "accent": "#CF3326",
+    "season": "2026/27",
+    "handle": "@sergnanese.demo"
+  },
+  "match": {
+    "category": "Esordienti",
+    "dateLong": "Sabato 21 novembre",
+    "dateShort": "Sab 21 nov",
+    "venue": "Campo Comunale",
+    "isHome": true,
+    "isAway": false,
+    "home": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true
+    },
+    "away": {
+      "name": "Pol. Borgo Lucente",
+      "displayName": "Borgo Lucente",
+      "initials": "BL",
+      "isUs": false
+    },
+    "us": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true
+    },
+    "opponent": {
+      "name": "Pol. Borgo Lucente",
+      "displayName": "Borgo Lucente",
+      "initials": "BL",
+      "isUs": false
+    },
+    "isPostponed": false,
+    "isCancelled": false,
+    "time": "15:00"
+  }
+}
