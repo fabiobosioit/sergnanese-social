@@ -1,0 +1,23 @@
+# macOS filesystem metadata
+.DS_Store
+
+# Swift Package Manager build state and local IDE workspace state
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Locally packaged app artifacts and scratch output
+build/
+out/
+
+# Local databases and their SQLite journal files
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Machine-specific configuration (keep committed example files)
+.env
+.env.*
+!.env.example
