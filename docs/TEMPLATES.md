@@ -44,6 +44,9 @@ Campi che si possono indicare in `requires`: `time`, `venue`, `round`, `competit
 - Nelle storie, il contenuto importante sta lontano dai 250 px in alto e in basso (interfaccia di Instagram).
 - È permesso uno script `<script>` inline (senza `src`). Se il layout deve finire prima, imposta
   `window.__ready` con una promessa. Il template del programma la usa per rimpicciolire un titolo troppo largo.
+- **Testi lunghi**: sui box con nomi, campo e note usa `min-width: 0` e `overflow-wrap: anywhere`; limita le note con
+  `-webkit-line-clamp`; metti `flex-shrink: 0` su punteggi e orari; mostra `{{#match.isPostponed}}` / `{{#match.isCancelled}}`
+  come etichetta (Rinviata / Annullata).
 - **Escape automatico**: `{{x}}` scrive il testo escapato. Usa sempre `{{}}` per ogni testo dell'utente.
 - Il template viene importato solo se è valido: il manifest è controllato, la radice ha le dimensioni giuste,
   lo zip non contiene percorsi con `..` né link simbolici, la dimensione è sotto i 20 MB, ci sono al massimo
@@ -62,7 +65,7 @@ Un template `single` riceve `{club, match}`. Un template `list` riceve
 | `match.round`, `match.competition` | numero e testo, assenti se non impostati |
 | `match.dateLong`, `match.dateShort` | `Domenica 22 novembre`, `Dom 22 nov` |
 | `match.time` | `15:30`, assente se non impostato |
-| `match.venue` | può essere vuoto |
+| `match.venue` | assente se vuoto |
 | `match.isHome`, `match.isAway` | booleani |
 | `match.home`, `match.away` | le due squadre, nell'ordine della partita |
 | `match.us`, `match.opponent` | le stesse due squadre, per ruolo |
@@ -78,8 +81,11 @@ direttamente in `<img src>`.
 
 - **Testo opzionale**: `{{#match.round}}Giornata {{match.round}}{{/match.round}}`.
 - **Orario o trattino**: `{{#match.time}}{{match.time}}{{/match.time}}{{^match.time}}—{{/match.time}}`.
-- **Punteggi: usa sempre `match.hasScore` / `match.hasHalfTime`.** Una sezione sul punteggio stesso nasconde lo 0
-  (Mustache considera falso lo 0):
+- **Campi vuoti = campi assenti.** Il motore di rendering toglie le stringhe vuote o fatte di soli spazi, quindi `{{#match.venue}}` e
+  `{{^match.venue}}` funzionano come per un campo mancante.
+- **Punteggi: usa sempre `match.hasScore` / `match.hasHalfTime`.** In Mustache i numeri, compreso lo 0, sono sempre
+  veri, quindi una sezione sul punteggio non distingue "0" da "nessun punteggio" (e `{{^score}}` non scatta mai).
+  `hasScore` dice se il punteggio c'è davvero:
   `{{#match.hasScore}}{{score}}{{/match.hasScore}}{{^match.hasScore}}–{{/match.hasScore}}`.
 - **Casa e trasferta**: stampa `match.home` a sinistra e `match.away` a destra (o in prima e seconda riga), poi usa
   `{{#isUs}}…{{/isUs}}` dentro il lato per evidenziare la nostra squadra:

@@ -25,6 +25,7 @@ body { margin: 0 }
         <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 48px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; color: #FFFFFF">{{club.name}}</div>
         <div style="font-weight: 600; font-size: 26px; line-height: 1; letter-spacing: 2px; text-transform: uppercase; color: #FFFFFF">{{match.category}}{{#match.round}} · Giornata {{match.round}}{{/match.round}}</div>
       </div>
+      {{#match.isPostponed}}<div style="margin-left: auto; background: #FFFFFF; color: {{club.accent}}; border-radius: 40px; padding: 14px 28px; font-weight: 700; font-size: 28px; line-height: 1; letter-spacing: 2px; text-transform: uppercase">Rinviata</div>{{/match.isPostponed}}{{#match.isCancelled}}<div style="margin-left: auto; background: #FFFFFF; color: {{club.accent}}; border-radius: 40px; padding: 14px 28px; font-weight: 700; font-size: 28px; line-height: 1; letter-spacing: 2px; text-transform: uppercase">Annullata</div>{{/match.isCancelled}}
     </div>
     <div style="display: flex; flex-direction: column; gap: 36px">
       <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-style: italic; font-size: 188px; line-height: 0.88; letter-spacing: -2px; text-transform: uppercase; color: #FFFFFF; white-space: nowrap">Intervallo</div>
@@ -32,24 +33,24 @@ body { margin: 0 }
         {{#match.home}}
         <div style="display: flex; align-items: center; gap: 28px; height: 190px">
           <div style="width: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center">{{#isUs}}{{#logo}}<img src="{{logo}}" alt="" style="width: 140px; height: 140px; object-fit: contain; flex-shrink: 0">{{/logo}}{{^logo}}<div style="width: 140px; height: 140px; box-sizing: border-box; border-radius: 50%; border: 4px dashed #5A4A4C; color: #5A4A4C; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 52px; flex-shrink: 0">{{initials}}</div>{{/logo}}{{/isUs}}{{^isUs}}{{#logo}}<img src="{{logo}}" alt="" style="width: 130px; height: 130px; object-fit: contain; flex-shrink: 0">{{/logo}}{{^logo}}<div style="width: 130px; height: 130px; box-sizing: border-box; border-radius: 50%; border: 4px dashed #5A4A4C; color: #5A4A4C; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 48px; flex-shrink: 0">{{initials}}</div>{{/logo}}{{/isUs}}</div>
-          <div style="flex-grow: 1; min-width: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 60px; line-height: 1; text-transform: uppercase">{{displayName}}</div>
-          <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 190px; line-height: 1; color: {{#isUs}}{{club.accent}}{{/isUs}}{{^isUs}}#1F1214{{/isUs}}">{{#match.hasHalfTime}}{{halfTimeScore}}{{/match.hasHalfTime}}{{^match.hasHalfTime}}–{{/match.hasHalfTime}}</div>
+          <div style="flex-grow: 1; min-width: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 60px; line-height: 1; text-transform: uppercase; overflow-wrap: anywhere">{{displayName}}</div>
+          <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 190px; line-height: 1; flex-shrink: 0; color: {{#isUs}}{{club.accent}}{{/isUs}}{{^isUs}}#1F1214{{/isUs}}">{{#match.hasHalfTime}}{{halfTimeScore}}{{/match.hasHalfTime}}{{^match.hasHalfTime}}–{{/match.hasHalfTime}}</div>
         </div>
         {{/match.home}}
         <div style="height: 4px; background: #FFE1DD"></div>
         {{#match.away}}
         <div style="display: flex; align-items: center; gap: 28px; height: 190px">
           <div style="width: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center">{{#isUs}}{{#logo}}<img src="{{logo}}" alt="" style="width: 140px; height: 140px; object-fit: contain; flex-shrink: 0">{{/logo}}{{^logo}}<div style="width: 140px; height: 140px; box-sizing: border-box; border-radius: 50%; border: 4px dashed #5A4A4C; color: #5A4A4C; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 52px; flex-shrink: 0">{{initials}}</div>{{/logo}}{{/isUs}}{{^isUs}}{{#logo}}<img src="{{logo}}" alt="" style="width: 130px; height: 130px; object-fit: contain; flex-shrink: 0">{{/logo}}{{^logo}}<div style="width: 130px; height: 130px; box-sizing: border-box; border-radius: 50%; border: 4px dashed #5A4A4C; color: #5A4A4C; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 48px; flex-shrink: 0">{{initials}}</div>{{/logo}}{{/isUs}}</div>
-          <div style="flex-grow: 1; min-width: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 60px; line-height: 1; text-transform: uppercase">{{displayName}}</div>
-          <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 190px; line-height: 1; color: {{#isUs}}{{club.accent}}{{/isUs}}{{^isUs}}#1F1214{{/isUs}}">{{#match.hasHalfTime}}{{halfTimeScore}}{{/match.hasHalfTime}}{{^match.hasHalfTime}}–{{/match.hasHalfTime}}</div>
+          <div style="flex-grow: 1; min-width: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 60px; line-height: 1; text-transform: uppercase; overflow-wrap: anywhere">{{displayName}}</div>
+          <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 190px; line-height: 1; flex-shrink: 0; color: {{#isUs}}{{club.accent}}{{/isUs}}{{^isUs}}#1F1214{{/isUs}}">{{#match.hasHalfTime}}{{halfTimeScore}}{{/match.hasHalfTime}}{{^match.hasHalfTime}}–{{/match.hasHalfTime}}</div>
         </div>
         {{/match.away}}
       </div>
-      {{#match.notes}}<div style="font-weight: 700; font-size: 32px; line-height: 1.2; letter-spacing: 2px; text-transform: uppercase; color: #FFFFFF; white-space: pre-line">{{match.notes}}</div>{{/match.notes}}
+      {{#match.notes}}<div style="font-weight: 700; font-size: 32px; line-height: 1.2; letter-spacing: 2px; text-transform: uppercase; color: #FFFFFF; white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; overflow-wrap: anywhere; ">{{match.notes}}</div>{{/match.notes}}
     </div>
     <div style="display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 28px; letter-spacing: 2px; text-transform: uppercase; color: #FFFFFF">
-      <div>{{#match.venue}}{{match.venue}}{{#match.time}} · {{/match.time}}{{/match.venue}}{{#match.time}}{{match.time}}{{/match.time}}</div>
-      <div>{{club.handle}}</div>
+      <div style="display: flex; min-width: 0; white-space: nowrap">{{#match.venue}}<span style="min-width: 0; overflow: hidden; text-overflow: ellipsis">{{match.venue}}</span>{{#match.time}}<span style="flex-shrink: 0; padding: 0 0.5em">·</span>{{/match.time}}{{/match.venue}}{{#match.time}}<span style="flex-shrink: 0">{{match.time}}</span>{{/match.time}}</div>
+      <div style="flex-shrink: 0; max-width: 50%; margin-left: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{club.handle}}</div>
     </div>
   </div>
 </div>
