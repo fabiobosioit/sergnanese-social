@@ -81,7 +81,7 @@ direttamente in `<img src>`.
 
 - **Testo opzionale**: `{{#match.round}}Giornata {{match.round}}{{/match.round}}`.
 - **Orario o trattino**: `{{#match.time}}{{match.time}}{{/match.time}}{{^match.time}}—{{/match.time}}`.
-- **Campi vuoti = campi assenti.** Il motore di rendering toglie le stringhe vuote, quindi `{{#match.venue}}` e
+- **Campi vuoti = campi assenti.** Il motore di rendering toglie le stringhe vuote o fatte di soli spazi, quindi `{{#match.venue}}` e
   `{{^match.venue}}` funzionano come per un campo mancante.
 - **Punteggi: usa sempre `match.hasScore` / `match.hasHalfTime`.** In Mustache i numeri, compreso lo 0, sono sempre
   veri, quindi una sezione sul punteggio non distingue "0" da "nessun punteggio" (e `{{^score}}` non scatta mai).

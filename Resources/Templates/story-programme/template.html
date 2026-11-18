@@ -38,7 +38,7 @@ body { margin: 0 }
           <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 38px; line-height: 1.05; text-transform: uppercase; overflow-wrap: anywhere">{{category}}</div>
           <div style="font-weight: 600; font-size: 28px; line-height: 1.1; color: #5A4A4C; overflow-wrap: anywhere">vs {{opponent.displayName}}</div>
         </div>
-        <div style="width: 230px; flex-shrink: 0; overflow-wrap: anywhere; display: flex; align-items: center; justify-content: flex-end; padding-right: 24px; font-weight: 700; font-size: 24px; text-align: right; text-transform: uppercase; color: {{club.accent}}"><div>{{venue}} <span style="font-weight: 600; font-size: 22px; color: #5A4A4C">{{#isHome}}(C){{/isHome}}{{^isHome}}(T){{/isHome}}</span></div></div>
+        <div style="width: 230px; flex-shrink: 0; overflow-wrap: anywhere; display: flex; align-items: center; justify-content: flex-end; padding-right: 24px; font-weight: 700; font-size: 24px; text-align: right; text-transform: uppercase; color: {{club.accent}}"><div>{{#venue}}{{venue}}{{/venue}}{{^venue}}—{{/venue}} <span style="font-weight: 600; font-size: 22px; color: #5A4A4C">{{#isHome}}(C){{/isHome}}{{^isHome}}(T){{/isHome}}</span></div></div>
       </div>
       {{/rows}}
     </div>

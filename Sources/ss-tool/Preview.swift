@@ -211,7 +211,8 @@ private final class NavigationWaiter: NSObject, WKNavigationDelegate {
 
 // MARK: - Minimal Mustache (variables, sections, inverted sections, comments; no partials, no helpers)
 
-/// Zero counts as false, like swift-mustache, so a template that hides a 0 score shows up in previews.
+/// Truthiness matches swift-mustache as the app uses it: numbers are always true (0 too), booleans follow their
+/// value, and a string is false when it is empty after trimming whitespace (the app drops blank strings).
 struct Mustache {
   private indirect enum Node {
     case text(String)
@@ -308,8 +309,8 @@ struct Mustache {
     case nil, is NSNull: return false
     case let number as NSNumber:
       if CFGetTypeID(number) == CFBooleanGetTypeID() { return number.boolValue }
-      return number.doubleValue != 0
-    case let text as String: return !text.isEmpty
+      return true
+    case let text as String: return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     case let list as [Any]: return !list.isEmpty
     default: return true
     }
