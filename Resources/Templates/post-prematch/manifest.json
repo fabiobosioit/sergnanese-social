@@ -1,0 +1,13 @@
+{
+  "id": "post-prematch",
+  "name": "Post · Pre-partita",
+  "version": "1.0.0",
+  "format": "post",
+  "width": 1080,
+  "height": 1350,
+  "kind": "single",
+  "purpose": "prematch",
+  "pageSize": null,
+  "requires": ["time", "venue"],
+  "limits": { "teamName": 16, "venue": 14, "category": 22 }
+}

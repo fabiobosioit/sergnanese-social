@@ -1,0 +1,13 @@
+{
+  "id": "story-halftime",
+  "name": "Story · Intervallo",
+  "version": "1.0.0",
+  "format": "story",
+  "width": 1080,
+  "height": 1920,
+  "kind": "single",
+  "purpose": "halftime",
+  "pageSize": null,
+  "requires": ["halfTime"],
+  "limits": { "teamName": 20, "venue": 14, "category": 22 }
+}

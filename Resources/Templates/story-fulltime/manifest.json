@@ -1,0 +1,13 @@
+{
+  "id": "story-fulltime",
+  "name": "Story · Risultato finale",
+  "version": "1.0.0",
+  "format": "story",
+  "width": 1080,
+  "height": 1920,
+  "kind": "single",
+  "purpose": "fulltime",
+  "pageSize": null,
+  "requires": ["score"],
+  "limits": { "teamName": 20, "venue": 14, "category": 22 }
+}

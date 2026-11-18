@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Post pre-partita</title>
+<style>
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('assets/fonts/Barlow-Medium.ttf') format('truetype') }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('assets/fonts/Barlow-SemiBold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('assets/fonts/Barlow-Bold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-style: normal; src: url('assets/fonts/BarlowCondensed-SemiBold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-style: normal; src: url('assets/fonts/BarlowCondensed-Bold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 800; font-style: normal; src: url('assets/fonts/BarlowCondensed-ExtraBold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 800; font-style: italic; src: url('assets/fonts/BarlowCondensed-ExtraBoldItalic.ttf') format('truetype') }
+body { margin: 0 }
+</style>
+</head>
+<body>
+<div style="position: relative; width: 1080px; height: 1350px; overflow: hidden; background: #FFFFFF; font-family: 'Barlow', sans-serif; color: #1F1214">
+  <div style="position: absolute; right: -190px; top: -190px; width: 520px; height: 520px; background: #FFF3F1; transform: rotate(45deg)"></div>
+  <div style="position: absolute; left: 0; bottom: 0; width: 1080px; height: 360px; background: {{club.accent}}; clip-path: polygon(0 22%, 100% 0, 100% 100%, 0 100%)"></div>
+  <div style="position: absolute; left: 0; top: 0; width: 1080px; box-sizing: border-box; padding: 80px 60px 0; display: flex; flex-direction: column">
+    <div style="display: flex; align-items: center; gap: 24px">
+      <img src="{{club.logo}}" alt="" style="width: 124px; height: 124px; object-fit: contain">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 48px; line-height: 1; letter-spacing: 1px; text-transform: uppercase">{{club.name}}</div>
+        <div style="font-weight: 600; font-size: 26px; line-height: 1; letter-spacing: 2px; text-transform: uppercase; color: {{club.accent}}">Stagione {{club.season}}</div>
+      </div>
+      <div style="flex-grow: 1"></div>
+      {{#match.round}}<div style="background: #FFF3F1; color: {{club.accent}}; border-radius: 40px; padding: 14px 28px; font-weight: 700; font-size: 28px; line-height: 1; letter-spacing: 2px; text-transform: uppercase">Giornata {{match.round}}</div>{{/match.round}}
+    </div>
+    <div style="margin-top: 70px; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-style: italic; font-size: 200px; line-height: 0.9; letter-spacing: -1px; text-transform: uppercase; color: {{club.accent}}; white-space: nowrap">Match day</div>
+    <div style="margin-top: 14px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 52px; line-height: 1.05; letter-spacing: 2px; text-transform: uppercase">{{match.category}}</div>
+    <div style="margin-top: 60px; display: flex; align-items: center">
+      {{#match.home}}
+      <div style="width: 340px; display: flex; flex-direction: column; align-items: center; gap: 24px">
+        {{#isUs}}{{#logo}}<img src="{{logo}}" alt="" style="width: 240px; height: 240px; object-fit: contain">{{/logo}}{{^logo}}<div style="width: 240px; height: 240px; box-sizing: border-box; border-radius: 50%; border: 4px dashed #5A4A4C; color: #5A4A4C; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 84px">{{initials}}</div>{{/logo}}{{/isUs}}
+        {{^isUs}}{{#logo}}<img src="{{logo}}" alt="" style="width: 220px; height: 220px; object-fit: contain">{{/logo}}{{^logo}}<div style="width: 220px; height: 220px; box-sizing: border-box; border-radius: 50%; border: 4px dashed #5A4A4C; color: #5A4A4C; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 84px">{{initials}}</div>{{/logo}}{{/isUs}}
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 46px; line-height: 1; text-transform: uppercase; text-align: center">{{displayName}}</div>
+      </div>
+      {{/match.home}}
+      <div style="flex-grow: 1; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-style: italic; font-size: 110px; line-height: 1; color: {{club.accent}}; padding-bottom: 70px">VS</div>
+      {{#match.away}}
+      <div style="width: 340px; display: flex; flex-direction: column; align-items: center; gap: 24px">
+        {{#isUs}}{{#logo}}<img src="{{logo}}" alt="" style="width: 240px; height: 240px; object-fit: contain">{{/logo}}{{^logo}}<div style="width: 240px; height: 240px; box-sizing: border-box; border-radius: 50%; border: 4px dashed #5A4A4C; color: #5A4A4C; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 84px">{{initials}}</div>{{/logo}}{{/isUs}}
+        {{^isUs}}{{#logo}}<img src="{{logo}}" alt="" style="width: 220px; height: 220px; object-fit: contain">{{/logo}}{{^logo}}<div style="width: 220px; height: 220px; box-sizing: border-box; border-radius: 50%; border: 4px dashed #5A4A4C; color: #5A4A4C; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 84px">{{initials}}</div>{{/logo}}{{/isUs}}
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 46px; line-height: 1; text-transform: uppercase; text-align: center">{{displayName}}</div>
+      </div>
+      {{/match.away}}
+    </div>
+  </div>
+  <div style="position: absolute; left: 60px; right: 60px; bottom: 70px; display: flex; align-items: stretch; color: #FFFFFF">
+    <div style="flex: 1.5 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+      <div style="font-weight: 700; font-size: 24px; line-height: 1; letter-spacing: 3px; text-transform: uppercase">Data</div>
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 64px; line-height: 1; text-transform: uppercase">{{match.dateShort}}</div>
+    </div>
+    <div style="flex: 0.8 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; border-left: 3px solid rgba(255,255,255,0.5); padding-left: 36px">
+      <div style="font-weight: 700; font-size: 24px; line-height: 1; letter-spacing: 3px; text-transform: uppercase">Ora</div>
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 64px; line-height: 1; text-transform: uppercase">{{#match.time}}{{match.time}}{{/match.time}}{{^match.time}}—{{/match.time}}</div>
+    </div>
+    <div style="flex: 1.3 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; border-left: 3px solid rgba(255,255,255,0.5); padding-left: 36px">
+      <div style="font-weight: 700; font-size: 24px; line-height: 1; letter-spacing: 3px; text-transform: uppercase">Campo</div>
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 64px; line-height: 1; text-transform: uppercase">{{#match.venue}}{{match.venue}}{{/match.venue}}{{^match.venue}}—{{/match.venue}}</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
