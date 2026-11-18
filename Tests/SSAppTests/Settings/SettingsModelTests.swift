@@ -53,6 +53,20 @@ struct SettingsModelTests {
     #expect(model.problems.isEmpty)
   }
 
+  @Test func lightAccentWarnsAboutWhiteText() throws {
+    let model = SettingsModel(services: services)
+    model.setAccentColor(hex: "#FFE066")
+    #expect(model.accentContrastWarning != nil)
+    model.setAccentColor(hex: "#F2F2F2")
+    #expect(model.accentContrastWarning != nil)
+    model.setAccentColor(hex: "#CF3326")
+    #expect(model.accentContrastWarning == nil)
+    model.setAccentColor(hex: "#14213D")
+    #expect(model.accentContrastWarning == nil)
+    let red = try #require(SettingsModel.contrastWithWhite("#CF3326"))
+    #expect(abs(red - 5.0) < 0.2)
+  }
+
   @Test func outputFolderChangeAndReset() throws {
     let model = SettingsModel(services: services)
     #expect(model.usesDefaultOutputFolder)

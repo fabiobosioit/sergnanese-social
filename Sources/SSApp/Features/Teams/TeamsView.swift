@@ -65,7 +65,9 @@ public struct TeamsView: View {
             .contextMenu {
               Button(TeamsStrings.makeFirstTeam) { vm.makeFirst(team) }
                 .disabled(team.isFirstTeam)
-              Button(team.isActive ? "Disattiva" : TeamsStrings.active) { vm.setActive(team, !team.isActive) }
+              Button(team.isActive ? TeamsStrings.deactivate : TeamsStrings.active) {
+                vm.setActive(team, !team.isActive)
+              }
               Divider()
               Button(TeamsStrings.moveUp) {
                 vm.selection = team.id
@@ -124,8 +126,10 @@ private struct TeamRow: View {
         .onSubmit(commit)
       Toggle(TeamsStrings.active, isOn: Binding(get: { team.isActive }, set: { model.setActive(team, $0) }))
         .toggleStyle(.switch)
+        .labelsHidden()
         .controlSize(.small)
         .help(TeamsStrings.activeHelp)
+        .accessibilityLabel(TeamsStrings.active)
     }
     .padding(.vertical, 2)
     .onAppear(perform: resetFields)

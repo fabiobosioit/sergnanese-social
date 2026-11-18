@@ -23,7 +23,7 @@ enum MatchesStrings {
   static let columnTeam = "Squadra"
   static let columnHomeAway = "Casa/Fuori"
   static let columnOpponent = "Avversario"
-  static let columnVenue = "Campo"
+  static let columnVenue = "Luogo"
   static let columnRound = "Giornata"
   static let columnStatus = "Stato"
   static let columnWarnings = "Avvisi"
