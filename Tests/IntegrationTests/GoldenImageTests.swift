@@ -37,10 +37,10 @@ struct GoldenImageTests {
       var chosen: URL?
       for _ in 0..<40 where chosen == nil {
         let png = try await env.renderer.preview(templateID: templateID, matchIDs: [])
-        let current = try #require(decodePixels(png))
-        guard Self.hasCrest(current, templateID: templateID) else { continue }
+        let current = try #require(await Self.loadBitmap(png))
+        guard await Self.hasCrestOffMain(current, templateID: templateID) else { continue }
         kept.append((png, current))
-        let agreeing = kept.filter { Self.compare($0.image, current) == nil }.count
+        let agreeing = await Self.countAgreeing(kept.map(\.image), with: current)
         if agreeing >= Self.agreeingRenders { chosen = png }
       }
       try #require(chosen != nil, "renders of \(templateID) never settled; golden not written")
@@ -53,20 +53,21 @@ struct GoldenImageTests {
     try #require(
       FileManager.default.fileExists(atPath: golden.path),
       "Missing golden image \(golden.lastPathComponent). Run: UPDATE_GOLDEN=1 swift test --filter GoldenImageTests")
-    let expected = try #require(decodePixels(golden))
+    let expected = try #require(await Self.loadBitmap(golden))
 
     var last = "no render"
     for _ in 0..<Self.attempts {
       let png = try await env.renderer.preview(templateID: templateID, matchIDs: [])
-      let actual = try #require(decodePixels(png))
-      guard let difference = Self.compare(actual, expected) else { return }
+      let actual = try #require(await Self.loadBitmap(png))
+      guard let difference = await Self.compareOffMain(actual, expected) else { return }
       last = difference
     }
     Issue.record("\(templateID) never matched its golden image in \(Self.attempts) renders; last: \(last)")
   }
 
   /// The comparison must notice a blanked crest in every template.
-  @Test(arguments: templateIDs) func blankedCrestIsDetected(templateID: String) throws {
+  // Pure pixel work, so it runs off the main actor.
+  @Test(arguments: templateIDs) nonisolated func blankedCrestIsDetected(templateID: String) throws {
     let golden = Self.goldenFolder.appendingPathComponent("\(templateID).png")
     let expected = try #require(decodePixels(golden))
     #expect(Self.compare(expected, expected) == nil)
@@ -86,11 +87,32 @@ struct GoldenImageTests {
     #expect(!Self.hasCrest(blanked, templateID: templateID))
   }
 
+  // The pixel helpers are `nonisolated` and the `async` wrappers below hop off the main actor,
+  // so only the rendering call stays on it. Bitmaps are Sendable value types.
+
+  /// Decodes a PNG off the main actor.
+  nonisolated static func loadBitmap(_ url: URL) async -> Bitmap? { decodePixels(url) }
+
+  /// `compare`, off the main actor.
+  nonisolated static func compareOffMain(_ actual: Bitmap, _ expected: Bitmap) async -> String? {
+    compare(actual, expected)
+  }
+
+  /// `hasCrest`, off the main actor.
+  nonisolated static func hasCrestOffMain(_ image: Bitmap, templateID: String) async -> Bool {
+    hasCrest(image, templateID: templateID)
+  }
+
+  /// How many of `images` match `current` within the tolerance, off the main actor.
+  nonisolated static func countAgreeing(_ images: [Bitmap], with current: Bitmap) async -> Int {
+    images.filter { compare($0, current) == nil }.count
+  }
+
   /// Top of the 124 px crest box (x 68...192): y 83 in the post, 253 in the stories.
-  static func crestTop(_ templateID: String) -> Int { templateID == "post-prematch" ? 83 : 253 }
+  nonisolated static func crestTop(_ templateID: String) -> Int { templateID == "post-prematch" ? 83 : 253 }
 
   /// `true` when the crest box holds the crest's black outline (a blank box has no dark pixels).
-  static func hasCrest(_ image: Bitmap, templateID: String) -> Bool {
+  nonisolated static func hasCrest(_ image: Bitmap, templateID: String) -> Bool {
     let top = crestTop(templateID)
     var dark = 0
     for y in top..<(top + 124) {
@@ -103,7 +125,7 @@ struct GoldenImageTests {
   }
 
   /// `nil` when the images match within the tolerance, otherwise what differs.
-  static func compare(_ actual: Bitmap, _ expected: Bitmap) -> String? {
+  nonisolated static func compare(_ actual: Bitmap, _ expected: Bitmap) -> String? {
     guard actual.width == expected.width, actual.height == expected.height else {
       return "size \(actual.width)x\(actual.height), expected \(expected.width)x\(expected.height)"
     }
