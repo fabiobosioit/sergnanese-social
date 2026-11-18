@@ -18,6 +18,11 @@ public final class FakeRenderService: RenderService {
   public var delay: Duration
   /// Images of these templates fail with `.imageFailed` (for testing the failure path).
   public var failingTemplateIDs: Set<String>
+  /// Awaited before each image (1-based index), after `delay` and before the cancellation check.
+  /// Tests use it to hold a run at a known point instead of relying on timing.
+  public var beforeEachImage: (@MainActor @Sendable (_ index: Int) async -> Void)?
+  /// Render runs still going; each removes itself when it stops.
+  private var runs: [UUID: Task<Void, Never>] = [:]
 
   public init(
     templates: any TemplateStore, matches: any MatchRepository, renders: any RenderRepository,
@@ -112,7 +117,9 @@ public final class FakeRenderService: RenderService {
 
   public func render(_ request: RenderRequest) -> AsyncThrowingStream<RenderEvent, any Error> {
     AsyncThrowingStream { continuation in
+      let runID = UUID()
       let task = Task { @MainActor in
+        defer { self.runs[runID] = nil }
         do {
           let plan = try self.plan(request)
           let output = self.paths.outputFolder(for: try self.settings.load())
@@ -123,8 +130,9 @@ public final class FakeRenderService: RenderService {
           var failed = 0
           for (offset, image) in plan.images.enumerated() {
             try await Task.sleep(for: self.delay)
-            try Task.checkCancellation()
             let index = offset + 1
+            await self.beforeEachImage?(index)
+            try Task.checkCancellation()
             if self.failingTemplateIDs.contains(image.templateID) {
               failed += 1
               continuation.yield(
@@ -146,8 +154,15 @@ public final class FakeRenderService: RenderService {
           continuation.finish(throwing: error)
         }
       }
+      runs[runID] = task
       continuation.onTermination = { _ in task.cancel() }
     }
+  }
+
+  /// Returns when every render run started so far has stopped (finished, failed or cancelled), so
+  /// tests can check what a cancelled run left behind without waiting on the clock.
+  public func waitUntilIdle() async {
+    while let run = runs.values.first { await run.value }
   }
 
   private func write(_ image: PlannedImage, output: URL, accent: String) throws -> RenderRecord {

@@ -362,7 +362,13 @@ func isConflict(_ body: () throws -> Void) -> Bool {
   @Test func cancellationStopsAndKeepsImages() async throws {
     let services = try makeServices()
     let renderer = try #require(services.renderer as? FakeRenderService)
-    renderer.delay = .milliseconds(200)
+    // Image 2 waits on a gate that opens only after the consumer has been cancelled, so the outcome
+    // does not depend on how fast the machine is.
+    let (gate, openGate) = AsyncStream.makeStream(of: Void.self)
+    renderer.beforeEachImage = { index in
+      guard index > 1 else { return }
+      for await _ in gate {}
+    }
     let request = RenderRequest(weekend: thisWeekend)
     let (firstImage, firstImageSeen) = AsyncStream.makeStream(of: Void.self)
     let consumer = Task { @MainActor in
@@ -378,7 +384,8 @@ func isConflict(_ body: () throws -> Void) -> Bool {
     for await _ in firstImage { break }
     consumer.cancel()  // what "Annulla" does
     let seen = try await consumer.value
-    try await Task.sleep(for: .milliseconds(500))
+    openGate.finish()  // if cancellation did not reach the run, it would now go on and write more images
+    await renderer.waitUntilIdle()
     let stored = try services.renders.list(from: thisWeekend.saturday, to: thisWeekend.sunday).count
     #expect(seen == 1)
     #expect(stored == 1)
