@@ -1,0 +1,13 @@
+{
+  "id": "story-programme",
+  "name": "Story · Programma pre-partita",
+  "version": "1.0.0",
+  "format": "story",
+  "width": 1080,
+  "height": 1920,
+  "kind": "list",
+  "purpose": "programme",
+  "pageSize": 10,
+  "requires": ["time", "venue"],
+  "limits": { "teamName": 22, "venue": 14, "category": 16 }
+}
