@@ -26,9 +26,13 @@ public struct ArchiveView: View {
         }
       case .loaded:
         if model.isEmpty {
-          ContentUnavailableView(
-            ArchiveStrings.emptyTitle, systemImage: ArchiveStrings.placeholderSymbol,
-            description: Text(ArchiveStrings.emptyDescription))
+          ContentUnavailableView {
+            Label(ArchiveStrings.emptyTitle, systemImage: ArchiveStrings.placeholderSymbol)
+          } description: {
+            Text(ArchiveStrings.emptyDescription)
+          } actions: {
+            Button(ArchiveStrings.goToGenerate) { app.open(.generate) }
+          }
         } else {
           content
         }

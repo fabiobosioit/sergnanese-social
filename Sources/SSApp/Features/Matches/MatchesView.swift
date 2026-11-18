@@ -106,7 +106,7 @@ public struct MatchesView: View {
       TableColumn(MatchesStrings.columnHomeAway) { detail in
         HomeAwayMarker(isHome: detail.match.isHome).accessibilityHidden(true)
       }
-      .width(min: 36, ideal: 44, max: 60)
+      .width(min: 72, ideal: 84, max: 100)
 
       TableColumn(MatchesStrings.columnOpponent) { detail in
         OpponentCell(detail: detail, model: vm).accessibilityHidden(true)

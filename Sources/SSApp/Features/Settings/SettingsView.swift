@@ -78,7 +78,15 @@ private struct ImagesTab: View {
             Button(SettingsStrings.resetAccent) { model.resetAccentColor() }
           }
         }
-        if let message = model.problem(for: .accentColor) { ProblemText(message) }
+        if let message = model.problem(for: .accentColor) {
+          ProblemText(message)
+        } else if let warning = model.accentContrastWarning {
+          Label(warning, systemImage: "exclamationmark.triangle.fill")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .symbolRenderingMode(.multicolor)
+            .fixedSize(horizontal: false, vertical: true)
+        }
         Text(SettingsStrings.accentFooter).font(.caption).foregroundStyle(.secondary)
       }
       Section {

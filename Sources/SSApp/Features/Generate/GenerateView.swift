@@ -153,7 +153,7 @@ public struct GenerateView: View {
   private func rowSubtitle(_ row: MatchRow) -> String {
     let match = row.detail.match
     let day = formatDateShort(match.date)
-    let time = match.time.map(\.description) ?? "—"
+    let time = match.time.map(\.description) ?? GenerateStrings.timeToBeDefined
     let side = match.isHome ? GenerateStrings.homeMarker : GenerateStrings.awayMarker
     return "\(day), \(time), \(side)"
   }
@@ -288,7 +288,8 @@ public struct GenerateView: View {
     ToolbarItem(placement: .primaryAction) {
       Button(GenerateStrings.generate, systemImage: "wand.and.stars") { model.startGenerating() }
         .buttonStyle(.borderedProminent)
-        .keyboardShortcut(.defaultAction)
+        // With results on screen, Return belongs to the gallery (Quick Look), not to a new run.
+        .keyboardShortcut(model.results.isEmpty ? .defaultAction : nil)
         .disabled(!model.canGenerate)
         .help(model.disabledReason ?? GenerateStrings.generateHelp)
     }

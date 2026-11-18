@@ -46,7 +46,9 @@ public final class TemplateHTML: Sendable {
   }
 
   /// The context as plain Swift dictionaries, arrays, strings, integers and booleans. Optional values
-  /// that are `nil` are absent, so `{{#time}}` / `{{^time}}` sections work.
+  /// that are `nil` are absent, so `{{#time}}` / `{{^time}}` sections work. Strings that are empty
+  /// after trimming are absent too: swift-mustache treats every `String` as true, `""` included, so
+  /// without this `{{^match.venue}}` would never run for a match without a venue.
   static func mustacheValue(of context: TemplateContext) throws -> [String: Any] {
     let encoder = JSONEncoder()
     let data: Data
@@ -58,10 +60,12 @@ public final class TemplateHTML: Sendable {
     return plain(object) as? [String: Any] ?? [:]
   }
 
-  /// Converts Foundation JSON objects to native Swift values Mustache can walk.
+  /// Converts Foundation JSON objects to native Swift values Mustache can walk. Dictionary entries
+  /// whose value is a blank string are dropped (array elements are kept, so positions do not move).
   static func plain(_ value: Any) -> Any {
     switch value {
-    case let dictionary as [String: Any]: return dictionary.mapValues(plain)
+    case let dictionary as [String: Any]:
+      return dictionary.filter { !isBlankString($0.value) }.mapValues(plain)
     case let array as [Any]: return array.map(plain)
     case let number as NSNumber:
       if CFGetTypeID(number) == CFBooleanGetTypeID() { return number.boolValue }
@@ -70,5 +74,10 @@ public final class TemplateHTML: Sendable {
     case let string as String: return string
     default: return value
     }
+  }
+
+  private static func isBlankString(_ value: Any) -> Bool {
+    guard let string = value as? String else { return false }
+    return string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
   }
 }

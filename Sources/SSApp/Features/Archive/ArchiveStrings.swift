@@ -20,6 +20,7 @@ enum ArchiveStrings {
   static func imageCount(_ count: Int) -> String { count == 1 ? "1 immagine" : "\(count) immagini" }
   static let emptyTitle = "Archivio vuoto"
   static let emptyDescription = "Le immagini che generi compariranno qui, raggruppate per weekend."
+  static let goToGenerate = "Vai a Genera"
   static let emptyFilteredTitle = "Nessuna immagine con questi filtri"
   static let emptyFilteredDescription = "Cambia il periodo o il template per vedere altre immagini."
   static let loadFailedTitle = "Impossibile aprire l'archivio"

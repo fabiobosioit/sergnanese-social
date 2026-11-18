@@ -24,7 +24,7 @@ final class MatchesViewModel {
   private(set) var loadError: String?
   /// `true` when the database holds no matches at all (offers "Carica dati demo").
   private(set) var databaseIsEmpty = false
-  private(set) var teamNameLimit: Int?
+  private(set) var planWarnings: [EntityID: [RenderWarning]] = [:]
   private(set) var homeVenue = ""
 
   var searchText = ""
@@ -53,7 +53,7 @@ final class MatchesViewModel {
       teams = try services.teams.list()
       opponents = try services.opponents.list()
       databaseIsEmpty = try services.matches.count(source: nil) == 0
-      teamNameLimit = try services.templates.list().compactMap(\.manifest.limits.teamName).min()
+      planWarnings = defaultPlanWarnings(for: details, weekend: weekend, services: services)
       homeVenue = try services.settings.load().homeVenue
       loadError = nil
       let present = Set(details.map(\.id))
@@ -68,7 +68,7 @@ final class MatchesViewModel {
   // MARK: Warnings
 
   func warnings(for detail: MatchDetail) -> [RenderWarning] {
-    matchWarnings(for: detail, teamNameLimit: teamNameLimit)
+    planWarnings[detail.id] ?? matchWarnings(for: detail, teamNameLimit: nil)
   }
 
   var matchesWithWarnings: Int {
