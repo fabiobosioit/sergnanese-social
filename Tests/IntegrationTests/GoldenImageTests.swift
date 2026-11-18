@@ -22,7 +22,7 @@ struct GoldenImageTests {
   nonisolated static let goldenFolder = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     .appendingPathComponent(".golden", isDirectory: true)
   nonisolated static let templateIDs = ["post-prematch", "story-programme", "story-halftime", "story-fulltime"]
-  static let attempts = 8
+  static let attempts = 1
 
   @Test(arguments: templateIDs) func builtinMatchesGolden(templateID: String) async throws {
     let env = try Env()

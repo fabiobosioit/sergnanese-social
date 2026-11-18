@@ -17,6 +17,9 @@ import WebKit
 ///   that both block every remote request.
 /// - Before the snapshot it waits for the load event, `document.fonts.ready`, every `<img>` decoded
 ///   and `window.__ready` when present, within `timeout`.
+/// - Every `<img>` decodes synchronously at paint time (`decoding="sync"` set from document start),
+///   and the snapshot is repeated until two in a row match, so an image WebKit is still decoding in
+///   the background is never left out of the PNG (see `snapshot(_:page:until:)`).
 @MainActor
 public final class WebRenderer {
   /// One page to render.
@@ -52,6 +55,13 @@ public final class WebRenderer {
   /// The snapshot is taken at this many pixels per CSS pixel whatever the display, then scaled down
   /// to the exact size, so a Retina and a non-Retina Mac produce the same image.
   static let supersampling = 2
+  /// Pause between two snapshots of the settle loop (see `snapshot`): long enough for WebKit to
+  /// finish decoding a large image it started on the previous paint.
+  static let settleInterval: Duration = .milliseconds(25)
+  /// Most snapshots per image; a settled page needs two, a page that just finished decoding three.
+  static let maxSnapshots = 8
+  /// Snapshot requests WebKit may refuse (`WKErrorUnknown`) for one image before the render fails.
+  static let maxSnapshotFailures = 4
 
   private var engine: Engine?
   private let gate = SerialGate()
@@ -93,7 +103,7 @@ public final class WebRenderer {
       let metrics = try await waitUntilReady(engine, until: deadline)
       try check(metrics, page: page)
       let blocked = await blockedURLs(engine)
-      let png = try await snapshot(engine, page: page)
+      let png = try await snapshot(engine, page: page, until: deadline)
       return Output(png: png, blockedURLs: blocked)
     } catch let error as RenderFailure {
       // The page may be stuck (endless script, crashed process): start over with a new web view.
@@ -152,20 +162,55 @@ public final class WebRenderer {
     }
   }
 
-  private func snapshot(_ engine: Engine, page: Page) async throws -> Data {
+  /// Takes snapshots `settleInterval` apart until two in a row have identical pixels, and returns
+  /// the last one as the exact-size PNG.
+  ///
+  /// Why: WebKit decodes a large image asynchronously the first time a tile containing it is painted,
+  /// and paints nothing in its place until that decode lands. The page cannot see that decode
+  /// (`img.complete` and `img.decode()` are already settled), and `requestAnimationFrame` never runs
+  /// in a web view that is not on screen, so a single snapshot sometimes came back without the club
+  /// crest. `<img>` elements are made synchronous at document start (`Scripts.syncImageDecoding`);
+  /// this loop catches every other image (CSS backgrounds, SVG `<image>`, `border-image`, …).
+  ///
+  /// A page that keeps changing (a running CSS animation) never settles: after `maxSnapshots`, or at
+  /// the deadline, the last snapshot is used.
+  private func snapshot(_ engine: Engine, page: Page, until deadline: ContinuousClock.Instant) async throws -> Data {
     let configuration = WKSnapshotConfiguration()
     configuration.rect = CGRect(x: 0, y: 0, width: page.width, height: page.height)
     configuration.afterScreenUpdates = true
     let scale = max(engine.window.backingScaleFactor, 1)
     let factor = max(page.width, page.height) * Self.supersampling <= 8192 ? Self.supersampling : 1
     configuration.snapshotWidth = NSNumber(value: Double(page.width * factor) / Double(scale))
-    let image: NSImage
-    do {
-      image = try await engine.webView.takeSnapshot(configuration: configuration)
-    } catch {
-      throw AppError.render(message: RenderStrings.snapshotFailed)
+
+    var previous: Data?
+    var count = 0
+    var failures = 0
+    while true {
+      let image: NSImage
+      do {
+        image = try await engine.webView.takeSnapshot(configuration: configuration)
+      } catch {
+        // Now and then WebKit answers with `WKErrorUnknown`: the web process sent back no bitmap.
+        // The next request succeeds, so retry a few times before giving up.
+        failures += 1
+        guard failures < Self.maxSnapshotFailures, ContinuousClock.now < deadline else {
+          throw AppError.render(message: RenderStrings.snapshotFailed)
+        }
+        try? await Task.sleep(for: Self.settleInterval)
+        continue
+      }
+      count += 1
+      guard let bitmap = ExactImage.largestBitmap(of: image) else {
+        throw AppError.render(message: RenderStrings.snapshotFailed)
+      }
+      let pixels = bitmap.dataProvider?.data as Data?
+      let settled = pixels != nil && pixels == previous
+      if settled || count >= Self.maxSnapshots || ContinuousClock.now >= deadline {
+        return try ExactImage.exactPNG(from: bitmap, width: page.width, height: page.height)
+      }
+      previous = pixels
+      try? await Task.sleep(for: Self.settleInterval)
     }
-    return try ExactImage.exactPNG(from: image, width: page.width, height: page.height)
   }
 
   /// Waits for `start`'s callback, or throws `RenderFailure.timeout` at `deadline`.
@@ -236,6 +281,9 @@ private final class Engine {
     configuration.userContentController.add(ruleList)
     configuration.userContentController.addUserScript(
       WKUserScript(source: Scripts.recordBlocked, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: world))
+    configuration.userContentController.addUserScript(
+      WKUserScript(
+        source: Scripts.syncImageDecoding, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: world))
     configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
     configuration.preferences.isElementFullscreenEnabled = false
     configuration.mediaTypesRequiringUserActionForPlayback = .all
@@ -425,6 +473,32 @@ private enum Scripts {
         if (url) { window.__ssBlocked.push(String(url)); }
       }
     }, true);
+    """
+
+  /// Runs in the renderer's isolated world from document start: gives every `<img>` the attribute
+  /// `decoding="sync"` as soon as it enters the document, and puts it back if the template changes
+  /// it. Without it WebKit decodes a large image asynchronously on the first paint of its tile and
+  /// paints nothing until the decode lands, which a snapshot could catch (the missing-crest bug).
+  /// Mutation records are delivered at the microtask checkpoint, before any paint.
+  static let syncImageDecoding = """
+    (function () {
+      function sync(img) {
+        if (img.getAttribute('decoding') !== 'sync') { img.setAttribute('decoding', 'sync'); }
+      }
+      function visit(node) {
+        if (node.nodeType !== 1) { return; }
+        if (node.tagName === 'IMG') { sync(node); }
+        var images = node.getElementsByTagName('img');
+        for (var i = 0; i < images.length; i++) { sync(images[i]); }
+      }
+      new MutationObserver(function (records) {
+        for (var r = 0; r < records.length; r++) {
+          var record = records[r];
+          if (record.type === 'attributes') { visit(record.target); continue; }
+          for (var n = 0; n < record.addedNodes.length; n++) { visit(record.addedNodes[n]); }
+        }
+      }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['decoding'] });
+    })();
     """
 
   /// Body of an async function run in the page world: waits for load, fonts, images and
