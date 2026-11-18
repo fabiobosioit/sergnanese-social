@@ -4,5 +4,9 @@
   "lineLength": 120,
   "tabWidth": 2,
   "maximumBlankLines": 1,
-  "respectsExistingLineBreaks": true
+  "respectsExistingLineBreaks": true,
+  "rules": {
+    "DontRepeatTypeInStaticProperties": false,
+    "UseLetInEveryBoundCaseVariable": false
+  }
 }
