@@ -17,18 +17,13 @@ typealias Bitmap = (width: Int, height: Int, bytes: [UInt8])
 /// global: the mean absolute channel difference over the image must stay under 1.0 (of 255), fewer
 /// than 0.5% of pixels may differ by more than 24, and no 32x32 block may differ on average by more
 /// than 8. The block rule is what catches a missing crest, which is a small part of the image.
-///
-/// KNOWN ENGINE FLAKE: in a minority of renders (roughly 1 in 3 on the author's Mac) the club crest
-/// is missing from the snapshot although the page reported itself ready. Until the render engine is
-/// fixed, the comparison renders up to `attempts` times and passes when any render matches. A
-/// render that never matches still fails, so real layout regressions are caught.
 @MainActor
 @Suite(.serialized)
 struct GoldenImageTests {
   nonisolated static let goldenFolder = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     .appendingPathComponent(".golden", isDirectory: true)
   nonisolated static let templateIDs = ["post-prematch", "story-programme", "story-halftime", "story-fulltime"]
-  static let attempts = 8
+  static let attempts = 1
   static let agreeingRenders = 3
 
   @Test(arguments: templateIDs) func builtinMatchesGolden(templateID: String) async throws {
