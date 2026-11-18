@@ -1,17 +1,339 @@
+import SSCore
 import SwiftUI
 
-/// Placeholder (T1.6). The Wave 2 task for this feature replaces the contents of this folder;
-/// the shell only calls `MatchesView(app:)`.
+/// Partite: check and fix the weekend's matches before generating. The shell only calls
+/// `MatchesView(app:)`.
 public struct MatchesView: View {
   let app: AppModel
+  @ViewState private var model: MatchesViewModel
+  @ViewState private var isInspectorShown = false
+  @FocusState private var searchFocused: Bool
 
   public init(app: AppModel) {
     self.app = app
+    _model = ViewState(initialValue: MatchesViewModel(app: app))
   }
 
   public var body: some View {
-    ContentUnavailableView(
-      MatchesStrings.title, systemImage: MatchesStrings.placeholderSymbol,
-      description: Text(MatchesStrings.placeholderDescription))
+    @Bindable var vm = model
+    content(vm)
+      .safeAreaInset(edge: .bottom, spacing: 0) { summaryBar }
+      .inspector(isPresented: $isInspectorShown) {
+        inspector
+          .inspectorColumnWidth(min: 300, ideal: 340, max: 460)
+      }
+      .searchable(text: $vm.searchText, placement: .toolbar, prompt: MatchesStrings.searchPrompt)
+      .searchFocused($searchFocused)
+      .toolbar { toolbar(vm) }
+      .sheet(
+        isPresented: Binding(
+          get: { vm.newMatchForm != nil },
+          set: { if !$0 { vm.newMatchForm = nil } })
+      ) {
+        if let initial = vm.newMatchForm {
+          NewMatchSheet(initial: initial, model: vm)
+        }
+      }
+      .confirmDelete(vm.deleteTitle, isPresented: $vm.isConfirmingDelete, onConfirm: vm.confirmDelete)
+      .onAppear { vm.reload() }
+      .onChange(of: app.weekend) { vm.reload() }
+      .onChange(of: app.dataRevision) { vm.reload() }
+      .onChange(of: vm.selection) { isInspectorShown = vm.selection.count == 1 }
+      .publishCommand(.newMatch) { vm.beginNewMatch() }
+      .publishCommand(.duplicate, enabled: !vm.selection.isEmpty) { vm.duplicate(vm.selection) }
+      .publishCommand(.delete, enabled: !vm.selection.isEmpty) { vm.requestDelete(vm.selection) }
+      .publishCommand(.generate) { vm.openGenerate() }
+      .publishCommand(.find) { searchFocused = true }
+  }
+
+  // MARK: Content
+
+  @ViewBuilder
+  private func content(_ vm: MatchesViewModel) -> some View {
+    if let error = vm.loadError {
+      ContentUnavailableView {
+        Label(MatchesStrings.loadErrorTitle, systemImage: "exclamationmark.triangle")
+      } description: {
+        Text(error)
+      } actions: {
+        Button(MatchesStrings.retry) { vm.reload() }
+      }
+    } else if vm.details.isEmpty {
+      emptyWeekend(vm)
+    } else if vm.visibleMatches.isEmpty {
+      ContentUnavailableView {
+        Label(MatchesStrings.noResultsTitle, systemImage: "magnifyingglass")
+      } description: {
+        Text(MatchesStrings.noResultsDescription)
+      } actions: {
+        Button(MatchesStrings.filterReset) { vm.resetFilters() }
+      }
+    } else {
+      table(vm)
+    }
+  }
+
+  private func emptyWeekend(_ vm: MatchesViewModel) -> some View {
+    ContentUnavailableView {
+      Label(MatchesStrings.emptyTitle, systemImage: MatchesStrings.placeholderSymbol)
+    } description: {
+      Text(MatchesStrings.emptyDescription)
+    } actions: {
+      Button(MatchesStrings.addMatch) { vm.beginNewMatch() }
+        .buttonStyle(.borderedProminent)
+      if vm.databaseIsEmpty {
+        Button(MatchesStrings.loadDemo) { Task { await vm.loadDemoData() } }
+      }
+    }
+  }
+
+  private func table(_ vm: MatchesViewModel) -> some View {
+    @Bindable var vm = vm
+    return Table(of: MatchDetail.self, selection: $vm.selection) {
+      TableColumn(MatchesStrings.columnTime) { detail in
+        Text(detail.match.time?.value ?? MatchesStrings.noTime)
+          .monospacedDigit()
+          .foregroundStyle(detail.match.time == nil ? .secondary : .primary)
+          .accessibilityLabel(vm.rowSentence(for: detail))
+      }
+      .width(min: 48, ideal: 56, max: 72)
+
+      TableColumn(MatchesStrings.columnTeam) { detail in
+        Text(detail.team.shortLabel).accessibilityHidden(true)
+      }
+      .width(min: 70, ideal: 110)
+
+      TableColumn(MatchesStrings.columnHomeAway) { detail in
+        HomeAwayMarker(isHome: detail.match.isHome).accessibilityHidden(true)
+      }
+      .width(min: 36, ideal: 44, max: 60)
+
+      TableColumn(MatchesStrings.columnOpponent) { detail in
+        OpponentCell(detail: detail, model: vm).accessibilityHidden(true)
+      }
+      .width(min: 160, ideal: 240)
+
+      TableColumn(MatchesStrings.columnVenue) { detail in
+        Text(detail.match.venue)
+          .lineLimit(1)
+          .foregroundStyle(.secondary)
+          .accessibilityHidden(true)
+      }
+      .width(min: 100, ideal: 160)
+
+      TableColumn(MatchesStrings.columnRound) { detail in
+        Text(detail.match.round.map { String($0) } ?? "")
+          .monospacedDigit()
+          .foregroundStyle(.secondary)
+          .accessibilityHidden(true)
+      }
+      .width(min: 40, ideal: 60, max: 80)
+
+      TableColumn(MatchesStrings.columnStatus) { detail in
+        StatusBadge(detail.match.status).accessibilityHidden(true)
+      }
+      .width(min: 70, ideal: 90, max: 110)
+
+      TableColumn(MatchesStrings.columnWarnings) { detail in
+        WarningsCell(warnings: vm.warnings(for: detail)).accessibilityHidden(true)
+      }
+      .width(min: 44, ideal: 56, max: 80)
+
+      TableColumn(MatchesStrings.columnFlags) { detail in
+        FlagsCell(match: detail.match).accessibilityHidden(true)
+      }
+      .width(min: 40, ideal: 56, max: 80)
+    } rows: {
+      ForEach(vm.daySections) { section in
+        Section(section.title) {
+          ForEach(section.matches) { TableRow($0) }
+        }
+      }
+    }
+    .contextMenu(forSelectionType: MatchDetail.ID.self) { ids in
+      contextMenu(for: ids, vm)
+    } primaryAction: { ids in
+      vm.selection = ids
+      isInspectorShown = ids.count == 1
+    }
+    .onDeleteCommand { vm.requestDelete(vm.selection) }
+  }
+
+  // MARK: Context menu
+
+  @ViewBuilder
+  private func contextMenu(for ids: Set<EntityID>, _ vm: MatchesViewModel) -> some View {
+    if !ids.isEmpty {
+      if ids.count == 1 {
+        Button(MatchesStrings.edit, systemImage: "pencil") {
+          vm.selection = ids
+          isInspectorShown = true
+        }
+      }
+      Button(MatchesStrings.duplicate, systemImage: "plus.square.on.square") { vm.duplicate(ids) }
+        .keyboardShortcut("d", modifiers: .command)
+      Button(
+        vm.shouldLock(ids) ? MatchesStrings.lock : MatchesStrings.unlock,
+        systemImage: vm.shouldLock(ids) ? "lock" : "lock.open"
+      ) { vm.toggleLock(ids) }
+      Button(MatchesStrings.postpone, systemImage: "calendar.badge.clock") { vm.postpone(ids) }
+      Divider()
+      Button(MatchesStrings.delete, systemImage: "trash", role: .destructive) { vm.requestDelete(ids) }
+    }
+  }
+
+  // MARK: Inspector
+
+  @ViewBuilder
+  private var inspector: some View {
+    if let detail = model.singleSelected {
+      MatchInspector(detail: detail, model: model)
+        .id(detail.id)
+    } else {
+      ContentUnavailableView(
+        MatchesStrings.nothingSelected, systemImage: "sidebar.trailing",
+        description: Text(MatchesStrings.nothingSelectedDescription))
+    }
+  }
+
+  // MARK: Toolbar and summary
+
+  @ToolbarContentBuilder
+  private func toolbar(_ vm: MatchesViewModel) -> some ToolbarContent {
+    @Bindable var vm = vm
+    ToolbarItem(placement: .navigation) {
+      WeekendSwitcher(model: app)
+    }
+    ToolbarItem {
+      Button {
+        vm.beginNewMatch()
+      } label: {
+        Label(MatchesStrings.add, systemImage: "plus")
+      }
+      .help(MatchesStrings.addHelp)
+    }
+    ToolbarItem {
+      Menu {
+        Picker(MatchesStrings.filterTeam, selection: $vm.teamFilter) {
+          Text(MatchesStrings.filterAll).tag(EntityID?.none)
+          ForEach(vm.teams) { Text($0.name).tag(EntityID?.some($0.id)) }
+        }
+        Picker(MatchesStrings.filterStatus, selection: $vm.statusFilter) {
+          Text(MatchesStrings.filterAll).tag(MatchStatus?.none)
+          ForEach(MatchStatus.allCases, id: \.self) {
+            Text(StatusBadge.title(for: $0)).tag(MatchStatus?.some($0))
+          }
+        }
+        if vm.isFiltering {
+          Divider()
+          Button(MatchesStrings.filterReset) { vm.resetFilters() }
+        }
+      } label: {
+        Label(
+          MatchesStrings.filter,
+          systemImage: vm.teamFilter != nil || vm.statusFilter != nil
+            ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+      }
+    }
+    ToolbarItem(placement: .primaryAction) {
+      Button {
+        vm.openGenerate()
+      } label: {
+        Label(MatchesStrings.generate, systemImage: "wand.and.stars")
+      }
+      .buttonStyle(.borderedProminent)
+      .help(MatchesStrings.generateHelp)
+    }
+  }
+
+  @ViewBuilder
+  private var summaryBar: some View {
+    if model.loadError == nil, !model.details.isEmpty {
+      HStack {
+        Text(model.summary)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+        Spacer()
+      }
+      .padding(.horizontal, 12)
+      .padding(.vertical, 6)
+      .background(.bar)
+    }
+  }
+}
+
+// MARK: - Cells
+
+/// Opponent name with a small logo (or initials when there is none).
+private struct OpponentCell: View {
+  let detail: MatchDetail
+  let model: MatchesViewModel
+
+  var body: some View {
+    HStack(spacing: 8) {
+      logo
+        .frame(width: 22, height: 22)
+      Text(detail.opponent.name)
+        .lineLimit(1)
+        .truncationMode(.tail)
+    }
+  }
+
+  @ViewBuilder
+  private var logo: some View {
+    if let file = detail.opponent.logoFile {
+      ThumbnailView(url: model.app.services.logos.url(for: file), maxPixel: 64)
+    } else {
+      Text(initials(detail.opponent.name))
+        .font(.system(size: 9, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .frame(width: 22, height: 22)
+        .background(.quaternary, in: Circle())
+    }
+  }
+}
+
+private struct WarningsCell: View {
+  let warnings: [RenderWarning]
+
+  var body: some View {
+    if !warnings.isEmpty {
+      HStack(spacing: 3) {
+        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+        Text("\(warnings.count)").monospacedDigit().foregroundStyle(.secondary)
+      }
+      .help(warnings.map(\.message).joined(separator: "\n"))
+    }
+  }
+}
+
+/// Lock and source as small icons, each with a help text and an accessibility label.
+private struct FlagsCell: View {
+  let match: Match
+
+  var body: some View {
+    HStack(spacing: 6) {
+      if match.isLocked {
+        Image(systemName: "lock.fill")
+          .help(MatchesStrings.lockedHelp)
+          .accessibilityLabel(MatchesStrings.locked)
+      }
+      if match.source != .manual {
+        Image(systemName: sourceSymbol)
+          .help(MatchesViewModel.sourceTitle(match.source))
+          .accessibilityLabel(MatchesViewModel.sourceTitle(match.source))
+      }
+    }
+    .foregroundStyle(.secondary)
+  }
+
+  private var sourceSymbol: String {
+    switch match.source {
+    case .manual: "hand.point.up.left"
+    case .seed: "testtube.2"
+    case .csv: "tablecells"
+    case .scrape: "globe"
+    case .pdf: "doc.richtext"
+    }
   }
 }
