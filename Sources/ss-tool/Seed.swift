@@ -11,16 +11,30 @@ func wouldBeDataFolder(environment: [String: String]) -> URL {
   return AppPaths.standardDataFolder(isDebugBuild: AppPaths.isDebugBuild)
 }
 
-/// `true` when `folder` is the user's real (release) data folder. `SS_RELEASE_DATA_DIR` replaces
-/// that folder, so a test can prove the refusal without pointing at the real one.
-func isReleaseFolder(_ folder: URL, environment: [String: String]) -> Bool {
-  let release: URL
-  if let override = environment["SS_RELEASE_DATA_DIR"], !override.isEmpty {
-    release = URL(fileURLWithPath: override, isDirectory: true)
-  } else {
-    release = AppPaths.standardDataFolder(isDebugBuild: false)
+/// A comparable form of `url`: symlinks resolved as far as the path exists (the rest appended as
+/// is), standardised and lower-cased, since the Mac's file system is case-insensitive.
+func comparablePath(_ url: URL) -> String {
+  var existing = url.standardizedFileURL
+  var rest: [String] = []
+  while !FileManager.default.fileExists(atPath: existing.path), existing.pathComponents.count > 1 {
+    rest.insert(existing.lastPathComponent, at: 0)
+    existing = existing.deletingLastPathComponent()
   }
-  return folder.standardizedFileURL.path == release.standardizedFileURL.path
+  var resolved = existing.resolvingSymlinksInPath()
+  for component in rest { resolved.appendPathComponent(component) }
+  return resolved.standardizedFileURL.path.lowercased()
+}
+
+/// `true` when `folder` is the user's real (release) data folder, or the folder named by
+/// `SS_RELEASE_DATA_DIR`. The variable only adds a protected folder (tests use it to prove the
+/// refusal without pointing at the real one); it never replaces the real check.
+func isReleaseFolder(_ folder: URL, environment: [String: String]) -> Bool {
+  var protected = [AppPaths.standardDataFolder(isDebugBuild: false)]
+  if let override = environment["SS_RELEASE_DATA_DIR"], !override.isEmpty {
+    protected.append(URL(fileURLWithPath: override, isDirectory: true))
+  }
+  let target = comparablePath(folder)
+  return protected.contains { comparablePath($0) == target }
 }
 
 /// `ss-tool seed`: loads the fake matches for the coming weekends into the Dev data folder (or
@@ -35,6 +49,12 @@ func runSeed(_ args: [String]) async -> Int32 {
   }
   do {
     let paths = try AppPaths.resolve()
+    // Second line of defence, after the folder is resolved.
+    if paths.isReleaseDataFolder || isReleaseFolder(paths.dataFolder, environment: environment) {
+      FileHandle.standardError.write(
+        Data("seed: refused, \(paths.dataFolder.path) is the release data folder\n".utf8))
+      return 1
+    }
     let database = try AppDatabase.open(paths: paths)
     let loader = SeedLoader(
       seedFolder: paths.seed, teams: database.teams, opponents: database.opponents, matches: database.matches,

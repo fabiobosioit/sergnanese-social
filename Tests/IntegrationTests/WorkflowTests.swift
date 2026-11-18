@@ -147,11 +147,18 @@ struct WorkflowTests {
     #expect(dark > 300, "no initials found in the logo place (\(dark) dark pixels)")
   }
 
-  @Test func seedRefusesTheReleaseFolderBeforeCreatingAnything() throws {
-    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-      .deletingLastPathComponent()
-    let tool = repo.appendingPathComponent(".build/debug/ss-tool")
-    try #require(FileManager.default.isExecutableFile(atPath: tool.path), "build ss-tool first")
+  /// `ss-tool` is built by `swift build` (as `Scripts/check.sh` does before testing). Building it from
+  /// inside a running `swift test` would fight over the build lock, so the test is skipped with this
+  /// message when the binary is missing.
+  nonisolated static let seedToolURL = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    .deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(".build/debug/ss-tool")
+
+  @Test(
+    .enabled(
+      if: FileManager.default.isExecutableFile(atPath: WorkflowTests.seedToolURL.path),
+      "ss-tool is not built: run `swift build` first"))
+  func seedRefusesTheReleaseFolderBeforeCreatingAnything() throws {
+    let tool = Self.seedToolURL
     let root = FileManager.default.temporaryDirectory.appendingPathComponent("ss-seed-\(UUID().uuidString)")
     defer { try? FileManager.default.removeItem(at: root) }
     let fakeRelease = root.appendingPathComponent("release")
@@ -174,6 +181,9 @@ struct WorkflowTests {
 
     #expect(try run(dataDir: fakeRelease) == 1)
     #expect(!FileManager.default.fileExists(atPath: fakeRelease.path))
+    // Case differences and a trailing-slash spelling still name the protected folder.
+    let shouting = URL(fileURLWithPath: fakeRelease.path.uppercased() + "/")
+    #expect(try run(dataDir: shouting) == 1)
     #expect(try run(dataDir: dev) == 0)  // control: another folder is seeded
     #expect(FileManager.default.fileExists(atPath: dev.appendingPathComponent("db.sqlite").path))
   }
