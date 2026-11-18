@@ -134,5 +134,47 @@ struct WorkflowTests {
     #expect(images.count == 1)
     let size = try #require(pngSize(images[0].record.fileURL))
     #expect(size.width == 1080 && size.height == 1350)
+    // The fallback is a dashed circle with the initials in dark grey, drawn where the logo would be
+    // (at home the opponent is on the right, circle centre 850,702): the box holds dark text pixels.
+    let pixels = try #require(decodePixels(images[0].record.fileURL))
+    var dark = 0
+    for y in 650..<760 {
+      for x in 780..<920 {
+        let index = (y * pixels.width + x) * 4
+        if pixels.bytes[index] < 140 && pixels.bytes[index + 1] < 140 && pixels.bytes[index + 2] < 140 { dark += 1 }
+      }
+    }
+    #expect(dark > 300, "no initials found in the logo place (\(dark) dark pixels)")
+  }
+
+  @Test func seedRefusesTheReleaseFolderBeforeCreatingAnything() throws {
+    let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let tool = repo.appendingPathComponent(".build/debug/ss-tool")
+    try #require(FileManager.default.isExecutableFile(atPath: tool.path), "build ss-tool first")
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("ss-seed-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: root) }
+    let fakeRelease = root.appendingPathComponent("release")
+    let dev = root.appendingPathComponent("dev")
+
+    func run(dataDir: URL) throws -> Int32 {
+      let process = Process()
+      process.executableURL = tool
+      process.arguments = ["seed"]
+      // SS_RELEASE_DATA_DIR stands in for the real release folder, which no test may touch.
+      process.environment = [
+        "SS_DATA_DIR": dataDir.path, "SS_RELEASE_DATA_DIR": fakeRelease.path, "PATH": "/usr/bin:/bin",
+      ]
+      process.standardOutput = Pipe()
+      process.standardError = Pipe()
+      try process.run()
+      process.waitUntilExit()
+      return process.terminationStatus
+    }
+
+    #expect(try run(dataDir: fakeRelease) == 1)
+    #expect(!FileManager.default.fileExists(atPath: fakeRelease.path))
+    #expect(try run(dataDir: dev) == 0)  // control: another folder is seeded
+    #expect(FileManager.default.fileExists(atPath: dev.appendingPathComponent("db.sqlite").path))
   }
 }

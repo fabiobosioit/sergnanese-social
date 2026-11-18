@@ -16,7 +16,10 @@ func launchModel() -> AppModel {
   if CommandLine.arguments.contains("--mock") {
     return AppModel(services: AppServices.fake(), isDemo: true)
   }
-  var dataFolder: URL?
+  var dataFolder = AppPaths.standardDataFolder(isDebugBuild: AppPaths.isDebugBuild)
+  if let custom = ProcessInfo.processInfo.environment["SS_DATA_DIR"], !custom.isEmpty {
+    dataFolder = URL(fileURLWithPath: custom, isDirectory: true)
+  }
   do {
     let paths = try AppPaths.resolve()
     dataFolder = paths.dataFolder
@@ -29,16 +32,18 @@ func launchModel() -> AppModel {
 }
 
 @MainActor
-func showStartupFailure(_ error: any Error, dataFolder: URL?) {
+func showStartupFailure(_ error: any Error, dataFolder: URL) {
   _ = NSApplication.shared
   let alert = NSAlert()
   alert.alertStyle = .critical
   alert.messageText = StartupStrings.title
   alert.informativeText = StartupStrings.detail(error.localizedDescription)
-  if dataFolder != nil { alert.addButton(withTitle: StartupStrings.showDataFolder) }
+  alert.addButton(withTitle: StartupStrings.showDataFolder)
   alert.addButton(withTitle: StartupStrings.quit)
-  if alert.runModal() == .alertFirstButtonReturn, let dataFolder {
-    NSWorkspace.shared.open(dataFolder)
+  if alert.runModal() == .alertFirstButtonReturn {
+    // The folder may not exist yet (the failure can be creating it): show its parent then.
+    let exists = FileManager.default.fileExists(atPath: dataFolder.path)
+    NSWorkspace.shared.open(exists ? dataFolder : dataFolder.deletingLastPathComponent())
   }
 }
 
