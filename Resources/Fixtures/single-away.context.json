@@ -44,6 +44,8 @@
     },
     "isPostponed": false,
     "isCancelled": false,
+    "hasScore": false,
+    "hasHalfTime": false,
     "time": "16:30"
   }
 }

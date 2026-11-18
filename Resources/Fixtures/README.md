@@ -10,6 +10,7 @@ logos, people and the social handle are fake. Load the files with `SSCoreFakes.F
 | `single-no-logo.context.json` | An opponent without a logo: no `opponent.logo`, so the template shows the initials. |
 | `single-away.context.json` | An away match (`match.away` is us). |
 | `single-no-time.context.json` | A match with no time (`match.time` is absent). |
+| `single-goalless.context.json` | A played match, 0–0 at half time and at full time. Templates must show the zeros: wrap score blocks in `{{#match.hasScore}}` / `{{#match.hasHalfTime}}`, never in a section on the score itself (Mustache treats 0 as false). |
 | `list.context.json` | `ListContext` with 10 programme rows for one day, page 1/1. |
 | `list-23.context.json` | `ListContext` with 23 rows, **not** paginated: input for pagination tests and for checking overflow. |
 | `matches.json` | The `FakeDataSet` behind `AppServices.fake()`: 13 teams, 14 opponents, 26 matches over three weekends, 4 archive records. |

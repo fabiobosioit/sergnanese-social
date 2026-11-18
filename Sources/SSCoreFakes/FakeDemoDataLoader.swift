@@ -29,7 +29,11 @@ public struct FakeDemoDataLoader: DemoDataLoader {
       if let found = existingTeams.first(where: { searchKey($0.name) == searchKey(team.name) }) {
         teamIDs[team.id] = found.id
       } else {
-        let created = try teams.create(TeamDraft(team))
+        // Never take the flag from an existing first team; `create` gives it to the first team
+        // created when there is none.
+        var draft = TeamDraft(team)
+        draft.isFirstTeam = false
+        let created = try teams.create(draft)
         existingTeams.append(created)
         teamIDs[team.id] = created.id
       }

@@ -9,16 +9,25 @@ import Foundation
 // - `get` and every method taking an id throw `AppError.notFound` for an unknown id.
 // - Errors are always `AppError`.
 
+/// First-team rule: whenever at least one team exists, **exactly one** team has `isFirstTeam == true`.
+/// - `create` with `isFirstTeam == true` moves the flag to the new team; the first team ever created
+///   gets the flag even when the draft does not ask for it.
+/// - `update` with `isFirstTeam == true` moves the flag to that team (every other team loses it).
+/// - `update` with `isFirstTeam == false` on the current first team throws
+///   `AppError.firstTeamRequired`: choose another first team instead.
+/// - `delete` of the first team throws `AppError.firstTeamCannotBeDeleted` while other teams exist
+///   (deleting the only team is allowed).
 public protocol TeamRepository: Sendable {
   /// All teams, ordered by `sortOrder`.
   func list() throws -> [Team]
   func get(id: EntityID) throws -> Team
-  /// Appends the team at the end (`sortOrder` = current count). When the draft has
-  /// `isFirstTeam == true`, every other team loses the flag.
+  /// Appends the team at the end: `sortOrder` = highest existing `sortOrder` + 1 (0 for the first
+  /// team). Follows the first-team rule.
   func create(_ draft: TeamDraft) throws -> Team
-  /// Keeps `id` and `sortOrder`. Same first-team rule as `create`.
+  /// Keeps `id` and `sortOrder`. Follows the first-team rule.
   func update(id: EntityID, with draft: TeamDraft) throws -> Team
-  /// Throws `AppError.conflict` (Italian message) when the team has matches.
+  /// Throws `AppError.conflict` (Italian message) when the team has matches, and
+  /// `AppError.firstTeamCannotBeDeleted` per the first-team rule.
   func delete(id: EntityID) throws
   /// `ids` in the new order; each team's `sortOrder` becomes its index. Must list every team.
   func reorder(ids: [EntityID]) throws

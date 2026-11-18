@@ -55,6 +55,12 @@ These are deliberate. They were made in T0.2 and the plan text still shows the e
 - `RenderRecord.date` was added (the match date, or the first date for list images), so Archivio can
   group by weekend.
 - `SideContext.halfTimeScore` was added, so the half-time story can print scores in home/away order.
+- `MatchContext.hasScore` and `hasHalfTime` were added. Templates wrap score blocks in
+  `{{#match.hasScore}}`, because a section on the score itself hides a 0 (Mustache treats 0 as false).
+- The first-team rule (exactly one first team) is part of `TeamRepository`, with the shared errors
+  `AppError.firstTeamRequired` (field `.isFirstTeam`) and `AppError.firstTeamCannotBeDeleted`.
+- This README lives in `SSCore.docc/` because SwiftPM rejects a bare `README.md` inside a target folder
+  and `Package.swift` declares no excludes.
 - Repositories take drafts (`create(_:)`, `update(id:with:)`) rather than whole entities.
 - `RenderRequest` lists the templates to render, each with its own matches (`TemplateSelection`), so the
   default "programme for everyone, post for the first team" plan can be expressed and edited.

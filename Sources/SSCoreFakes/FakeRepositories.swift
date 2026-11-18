@@ -97,10 +97,11 @@ public struct FakeTeamRepository: TeamRepository {
   public func create(_ draft: TeamDraft) throws -> Team {
     let draft = try draft.validated()
     return database.write { state in
-      if draft.isFirstTeam { clearFirstTeam(in: &state) }
+      let isFirstTeam = draft.isFirstTeam || !state.teams.contains(where: \.isFirstTeam)
+      if isFirstTeam { clearFirstTeam(in: &state) }
       let team = Team(
         id: newEntityID(), name: draft.name, shortLabel: draft.shortLabel,
-        sortOrder: (state.teams.map(\.sortOrder).max() ?? -1) + 1, isFirstTeam: draft.isFirstTeam,
+        sortOrder: (state.teams.map(\.sortOrder).max() ?? -1) + 1, isFirstTeam: isFirstTeam,
         isActive: draft.isActive)
       state.teams.append(team)
       return team
@@ -111,6 +112,7 @@ public struct FakeTeamRepository: TeamRepository {
     let draft = try draft.validated()
     return try database.write { state in
       guard let index = state.teams.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+      if state.teams[index].isFirstTeam && !draft.isFirstTeam { throw AppError.firstTeamRequired }
       if draft.isFirstTeam { clearFirstTeam(in: &state) }
       state.teams[index].name = draft.name
       state.teams[index].shortLabel = draft.shortLabel
@@ -126,6 +128,7 @@ public struct FakeTeamRepository: TeamRepository {
       if state.matches.contains(where: { $0.teamID == id }) {
         throw AppError.conflict(message: FakeStrings.teamHasMatches)
       }
+      if state.teams[index].isFirstTeam && state.teams.count > 1 { throw AppError.firstTeamCannotBeDeleted }
       state.teams.remove(at: index)
     }
   }

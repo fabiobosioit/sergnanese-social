@@ -28,11 +28,19 @@ public enum AppError: Error, Sendable, Equatable, LocalizedError {
   }
 }
 
+extension AppError {
+  /// Thrown by `TeamRepository.update` when it would leave no first team (see the first-team rule).
+  public static let firstTeamRequired = AppError.validation(
+    field: .isFirstTeam, message: CoreStrings.firstTeamRequired)
+  /// Thrown by `TeamRepository.delete` for the first team while other teams exist.
+  public static let firstTeamCannotBeDeleted = AppError.conflict(message: CoreStrings.firstTeamCannotBeDeleted)
+}
+
 /// The fields a validation problem can point at. Forms use it to show the message next to the
 /// right control.
 public enum ValidationField: String, Sendable, Codable, CaseIterable {
   // Team
-  case name, shortLabel
+  case name, shortLabel, isFirstTeam
   // Opponent
   case shortName, aliases, logo
   // Match

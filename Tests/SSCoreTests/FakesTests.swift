@@ -64,11 +64,55 @@ func isConflict(_ body: () throws -> Void) -> Bool {
     try services.teams.reorder(ids: Array(reversed))
     #expect(try services.teams.list().map(\.id) == Array(reversed))
     #expect(throws: AppError.self) { try services.teams.reorder(ids: [created.id]) }
-    try services.teams.delete(id: created.id)
     let withMatches = try #require(try services.teams.list().first { $0.isActive && $0.name == "Juniores" })
     #expect(isConflict { try services.teams.delete(id: withMatches.id) })
     #expect(throws: AppError.notFound) { try services.teams.get(id: "missing") }
     #expect(throws: AppError.self) { try services.teams.create(TeamDraft()) }
+  }
+
+  @Test func sortOrderIsMaxPlusOne() throws {
+    let first = try services.teams.create(TeamDraft(name: "A", shortLabel: "A"))
+    let second = try services.teams.create(TeamDraft(name: "B", shortLabel: "B"))
+    #expect(second.sortOrder == first.sortOrder + 1)
+    try services.teams.delete(id: first.id)  // leaves a gap: count is now below max + 1
+    let third = try services.teams.create(TeamDraft(name: "C", shortLabel: "C"))
+    #expect(third.sortOrder == second.sortOrder + 1)
+    #expect(third.sortOrder == (try services.teams.list().map(\.sortOrder).max()))
+  }
+
+  @Test func firstTeamRule() throws {
+    let first = try #require(try services.teams.list().first(where: \.isFirstTeam))
+    // Clearing the flag on the only first team is refused.
+    var cleared = TeamDraft(first)
+    cleared.isFirstTeam = false
+    #expect(throws: AppError.firstTeamRequired) { try services.teams.update(id: first.id, with: cleared) }
+    // Deleting the first team is refused while other teams exist.
+    let spare = try services.teams.create(TeamDraft(name: "Spare", shortLabel: "Spare"))
+    #expect(!spare.isFirstTeam)
+    try services.teams.delete(id: spare.id)
+    let emptyFirst = try services.teams.create(TeamDraft(name: "Nuova prima", shortLabel: "NP", isFirstTeam: true))
+    #expect(throws: AppError.firstTeamCannotBeDeleted) { try services.teams.delete(id: emptyFirst.id) }
+    // Setting it on another team moves the flag.
+    var promoted = TeamDraft(first)
+    promoted.isFirstTeam = true
+    _ = try services.teams.update(id: first.id, with: promoted)
+    #expect(try services.teams.list().filter(\.isFirstTeam).map(\.id) == [first.id])
+    try services.teams.delete(id: emptyFirst.id)  // no longer the first team
+    // Updating the first team without touching the flag still works.
+    promoted.name = "Prima Squadra 1"
+    #expect(try services.teams.update(id: first.id, with: promoted).isFirstTeam)
+  }
+
+  @Test func firstTeamRuleOnAnEmptyDatabase() throws {
+    let services = try AppServices.fake(dataSet: .empty(today: today))
+    let only = try services.teams.create(TeamDraft(name: "Prima", shortLabel: "Prima"))
+    #expect(only.isFirstTeam)  // the first team ever created gets the flag
+    let other = try services.teams.create(TeamDraft(name: "Altra", shortLabel: "Altra"))
+    #expect(!other.isFirstTeam)
+    #expect(throws: AppError.firstTeamCannotBeDeleted) { try services.teams.delete(id: only.id) }
+    try services.teams.delete(id: other.id)
+    try services.teams.delete(id: only.id)  // the only team can go
+    #expect(try services.teams.list().isEmpty)
   }
 
   @Test func opponentRules() throws {
@@ -167,6 +211,44 @@ func isConflict(_ body: () throws -> Void) -> Bool {
     #expect(throws: AppError.notFound) { try services.templates.restoreBuiltin(id: "custom") }
   }
 
+  @Test func zipImportInMockMode() throws {
+    let zip = services.paths.dataFolder.appendingPathComponent("Story · Programma pre-partita-html.zip")
+    try (Data([0x50, 0x4B, 0x03, 0x04]) + Data(repeating: 0, count: 26)).write(to: zip)
+    guard case .installed(let template) = try services.templates.install(from: zip, replace: false) else {
+      Issue.record("expected an install")
+      return
+    }
+    #expect(template.id == "story-programma-pre-partita-html")
+    #expect(isValidTemplateID(template.id))
+    #expect(template.manifest.format == .story && template.manifest.height == 1920)
+    #expect(template.manifest.kind == .list && template.manifest.pageSize == 10)
+    #expect(!template.isBuiltin)
+    #expect(try services.templates.list().contains { $0.id == template.id })
+    guard case .alreadyExists = try services.templates.install(from: zip, replace: false) else {
+      Issue.record("expected a clash")
+      return
+    }
+    guard case .installed = try services.templates.install(from: zip, replace: true) else {
+      Issue.record("expected a replacement")
+      return
+    }
+  }
+
+  @Test func nonTemplateInputIsInvalid() throws {
+    let fakeZip = services.paths.dataFolder.appendingPathComponent("not-really.zip")
+    try Data("hello".utf8).write(to: fakeZip)
+    let text = services.paths.dataFolder.appendingPathComponent("notes.txt")
+    try Data("hello".utf8).write(to: text)
+    let missing = services.paths.dataFolder.appendingPathComponent("missing.zip")
+    for url in [fakeZip, text, missing] {
+      guard case .invalid(let problems) = try services.templates.install(from: url, replace: false) else {
+        Issue.record("expected .invalid for \(url.lastPathComponent)")
+        continue
+      }
+      #expect(!problems.isEmpty)
+    }
+  }
+
   @Test func logoStore() async throws {
     let png = try Data(contentsOf: try Fixtures.logosFolder().appendingPathComponent("fixture-lucia.png"))
     let first = try await services.logos.importLogo(data: png, replacing: nil)
@@ -191,12 +273,15 @@ func isConflict(_ body: () throws -> Void) -> Bool {
     #expect(try services.matches.count(source: .seed) == summary.matches)
     try services.demoData.remove()
     #expect(try !services.demoData.hasDemoData())
-    // The fixture's one manual match survives, and so do its team and opponent.
+    // The fixture's one manual match survives, and so do its team and opponent. The first team stays
+    // too: it cannot be deleted while another team exists.
     let remaining = try services.matches.list(
       from: thisWeekend.previous.saturday, to: thisWeekend.next.sunday, teamID: nil)
     #expect(remaining.map(\.match.source) == [.manual])
     #expect(try services.opponents.list().map(\.id) == remaining.map(\.opponent.id))
-    #expect(try services.teams.list().map(\.id) == remaining.map(\.team.id))
+    let teams = try services.teams.list()
+    #expect(Set(teams.map(\.id)) == Set(remaining.map(\.team.id)).union(teams.filter(\.isFirstTeam).map(\.id)))
+    #expect(teams.count == 2 && teams.filter(\.isFirstTeam).count == 1)
   }
 }
 

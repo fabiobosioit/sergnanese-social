@@ -44,6 +44,8 @@
     },
     "isPostponed": false,
     "isCancelled": false,
+    "hasScore": false,
+    "hasHalfTime": false,
     "round": 10,
     "competition": "Juniores Regionali",
     "time": "10:30"

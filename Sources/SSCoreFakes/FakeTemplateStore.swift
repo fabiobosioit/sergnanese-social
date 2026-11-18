@@ -3,8 +3,10 @@ import SSCore
 import Synchronization
 
 /// An in-memory template list. Each template gets a folder under `folder` holding its
-/// `manifest.json` (so "Mostra nel Finder" has something to show). `install(from:replace:)` accepts
-/// folders only and validates their `manifest.json` with `TemplateManifest.decode(from:)`.
+/// `manifest.json` (so "Mostra nel Finder" has something to show). `install(from:replace:)` validates
+/// a folder's `manifest.json` with `TemplateManifest.decode(from:)` and requires `template.html`; for
+/// a `.zip` it checks the zip signature and installs a template made up from the file name, so the
+/// import can be demonstrated under `--mock`. Anything else is `.invalid`.
 public final class FakeTemplateStore: TemplateStore {
   /// The four built-ins of v0.1.0, with the limits used throughout the fixtures.
   public static let builtinManifests: [TemplateManifest] = [
@@ -59,7 +61,16 @@ public final class FakeTemplateStore: TemplateStore {
   }
 
   public func install(from url: URL, replace: Bool) throws -> TemplateInstallOutcome {
-    if url.pathExtension.lowercased() == "zip" { return .invalid(problems: [FakeStrings.zipNotSupported]) }
+    var isDirectory: ObjCBool = false
+    guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
+      return .invalid(problems: [FakeStrings.notFolderOrZip])
+    }
+    if !isDirectory.boolValue {
+      guard url.pathExtension.lowercased() == "zip" else { return .invalid(problems: [FakeStrings.notFolderOrZip]) }
+      guard let manifest = Self.manifest(forZipAt: url) else { return .invalid(problems: [FakeStrings.zipNotValid]) }
+      if let existing = templates.withLock({ $0[manifest.id] }), !replace { return .alreadyExists(existing) }
+      return .installed(try put(manifest, isBuiltin: false))
+    }
     let manifestURL = url.appendingPathComponent("manifest.json")
     guard let data = try? Data(contentsOf: manifestURL) else {
       return .invalid(problems: [FakeStrings.manifestMissing])
@@ -87,6 +98,26 @@ public final class FakeTemplateStore: TemplateStore {
   public func restoreBuiltin(id: String) throws -> InstalledTemplate {
     guard let manifest = Self.builtinManifests.first(where: { $0.id == id }) else { throw AppError.notFound }
     return try put(manifest, isBuiltin: true)
+  }
+
+  /// The fake does not unzip. For a file that really is a zip (`PK\u{3}\u{4}` signature) it makes up
+  /// a plausible manifest from the file name: id = slug of the name, "story" in the name → story
+  /// 1080×1920, "programm" in the name → list template with `pageSize` 10. `nil` when not a zip.
+  static func manifest(forZipAt url: URL) -> TemplateManifest? {
+    guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+    defer { try? handle.close() }
+    guard let head = try? handle.read(upToCount: 4), head == Data([0x50, 0x4B, 0x03, 0x04]) else { return nil }
+    let name = url.deletingPathExtension().lastPathComponent
+    var id = String(slug(name).prefix(64))
+    while id.hasSuffix("-") { id.removeLast() }
+    if id.isEmpty { id = "template-importato" }
+    let key = searchKey(name)
+    let isStory = key.contains("story")
+    let isList = key.contains("programm")
+    return TemplateManifest(
+      id: id, name: name, version: "1.0.0", format: isStory ? .story : .post, width: 1080,
+      height: isStory ? 1920 : 1350, kind: isList ? .list : .single, purpose: isList ? .programme : .other,
+      pageSize: isList ? 10 : nil, limits: TemplateLimits(teamName: 16, venue: 14, category: 22))
   }
 
   @discardableResult

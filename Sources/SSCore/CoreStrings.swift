@@ -23,6 +23,10 @@ enum CoreStrings {
   static let invalidColor = "Colore non valido: usa il formato #CF3326."
   static let invalidHandle = "Account non valido: niente spazi, al massimo 40 caratteri."
   static let invalidFolder = "Cartella non valida."
+  static let firstTeamRequired =
+    "Deve esserci una prima squadra: per cambiarla, segna come prima squadra un'altra squadra."
+  static let firstTeamCannotBeDeleted =
+    "Impossibile eliminare la prima squadra: prima segna come prima squadra un'altra squadra."
 
   // Manifest
   static let manifestNotJSON = "manifest.json non è un oggetto JSON valido."

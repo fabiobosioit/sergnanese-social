@@ -1,0 +1,65 @@
+{
+  "club": {
+    "name": "ASD Sergnanese",
+    "shortName": "Sergnanese",
+    "logo": "assets/club-logo.png",
+    "accent": "#CF3326",
+    "season": "2026/27",
+    "handle": "@sergnanese.demo"
+  },
+  "match": {
+    "category": "Juniores",
+    "dateLong": "Sabato 14 novembre",
+    "dateShort": "Sab 14 nov",
+    "venue": "Campo Comunale",
+    "isHome": true,
+    "isAway": false,
+    "home": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true,
+      "score": 0,
+      "halfTimeScore": 0
+    },
+    "away": {
+      "name": "Unione Calcio Brolo Verde",
+      "displayName": "Unione Calcio…",
+      "initials": "UCB",
+      "isUs": false,
+      "logo": "_logos/fixture-brolo.png",
+      "score": 0,
+      "halfTimeScore": 0
+    },
+    "us": {
+      "name": "ASD Sergnanese",
+      "displayName": "Sergnanese",
+      "logo": "assets/club-logo.png",
+      "initials": "SE",
+      "isUs": true,
+      "score": 0,
+      "halfTimeScore": 0
+    },
+    "opponent": {
+      "name": "Unione Calcio Brolo Verde",
+      "displayName": "Unione Calcio…",
+      "initials": "UCB",
+      "isUs": false,
+      "logo": "_logos/fixture-brolo.png",
+      "score": 0,
+      "halfTimeScore": 0
+    },
+    "isPostponed": false,
+    "isCancelled": false,
+    "hasScore": true,
+    "hasHalfTime": true,
+    "round": 9,
+    "competition": "Juniores Regionali",
+    "time": "15:00",
+    "halfTime": {
+      "us": 0,
+      "them": 0
+    }
+  }
+}

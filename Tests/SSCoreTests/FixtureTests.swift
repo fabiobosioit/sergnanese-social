@@ -14,6 +14,8 @@ import Testing
     #expect([match.home, match.away].contains(match.us) && [match.home, match.away].contains(match.opponent))
     #expect(match.us.isUs && !match.opponent.isUs)
     #expect(match.opponent.initials == initials(match.opponent.name))
+    #expect(match.hasScore == (match.us.score != nil && match.opponent.score != nil))
+    #expect(match.hasHalfTime == (match.us.halfTimeScore != nil && match.opponent.halfTimeScore != nil))
   }
 
   @Test(arguments: Fixtures.listNames)
@@ -36,6 +38,11 @@ import Testing
     #expect(try Fixtures.singleContext("single-no-logo").match.opponent.logo == nil)
     #expect(try Fixtures.singleContext("single-away").match.isAway)
     #expect(try Fixtures.singleContext("single-no-time").match.time == nil)
+    let goalless = try Fixtures.singleContext("single-goalless").match
+    #expect(goalless.hasScore && goalless.hasHalfTime)
+    #expect(goalless.home.score == 0 && goalless.away.score == 0)
+    #expect(goalless.home.halfTimeScore == 0 && goalless.away.halfTimeScore == 0)
+    #expect(try !Fixtures.singleContext("single-no-time").match.hasScore)
     let standard = try Fixtures.singleContext().match
     #expect(standard.isHome && standard.time != nil && standard.opponent.logo != nil && standard.round != nil)
     #expect(standard.us.score != nil && standard.us.halfTimeScore != nil && standard.halfTime != nil)

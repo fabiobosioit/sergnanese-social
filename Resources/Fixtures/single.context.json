@@ -52,6 +52,8 @@
     },
     "isPostponed": false,
     "isCancelled": false,
+    "hasScore": true,
+    "hasHalfTime": true,
     "round": 12,
     "competition": "Prima Categoria · Girone C",
     "time": "14:30",

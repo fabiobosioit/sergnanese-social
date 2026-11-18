@@ -55,7 +55,10 @@ Ownership means: only the listed task may create or edit files there during its 
 │   │   ├── RenderContext.swift        data handed to templates
 │   │   ├── TemplateManifest.swift     manifest schema
 │   │   ├── Text.swift                 truncate / prefix-strip / slug / initials / dates (pure functions)
-│   │   └── AppPaths.swift             data, logos, templates, output, resources folders
+│   │   ├── AppPaths.swift             data, logos, templates, output, resources folders
+│   │   ├── Warnings.swift, CoreStrings.swift   RenderWarning + matchWarnings; Italian messages
+│   │   └── SSCore.docc/README.md      freeze rule, how to request a change, deviations from this file
+│   │                                  (inside a DocC catalog: SwiftPM rejects a bare README.md in a target)
 │   ├── SSCoreFakes/                   T0.2 — FROZEN. In-memory repositories, fake render service, fixture loader
 │   ├── SSData/                        T1.1 (GRDB)
 │   ├── SSTemplates/                   T1.3 (template store, zip install, validation)
@@ -120,19 +123,21 @@ Generated images go to `~/Pictures/Sergnanese Social/<YYYY-MM-DD>/` by default; 
 ## 3. Data model
 
 ```swift
-typealias ID = String                    // UUID string
+typealias EntityID = String              // UUID string; not `ID`, which would shadow Identifiable.ID
+// The code in SSCore is the reference: Sources/SSCore/SSCore.docc/README.md lists where it differs from
+// the sketch below (drafts, RenderRecord.date, SideContext.halfTimeScore, MatchContext.hasScore, …).
 
 struct DayDate   { let value: String }   // "YYYY-MM-DD", validated; Comparable. No time zone involved.
 struct ClockTime { let value: String }   // "15:30", validated; Comparable
 
 struct Team {                            // one of OUR teams
-  var id: ID; var name: String           // "Prima Squadra", "Juniores", "Under 15"
+  var id: EntityID; var name: String           // "Prima Squadra", "Juniores", "Under 15"
   var shortLabel: String                 // label used in programme rows
   var sortOrder: Int; var isFirstTeam: Bool; var isActive: Bool
 }
 
 struct Opponent {
-  var id: ID; var name: String           // full official name
+  var id: EntityID; var name: String           // full official name
   var shortName: String?                 // manual override for display
   var aliases: [String]                  // name variants (used by imports in Wave 4)
   var logoFile: String?                  // file name inside the logos folder
@@ -143,7 +148,7 @@ enum MatchSource: String { case manual, seed, csv, scrape, pdf }
 struct Score { var us: Int; var them: Int }
 
 struct Match {
-  var id: ID; var teamID: ID; var opponentID: ID
+  var id: EntityID; var teamID: EntityID; var opponentID: EntityID
   var date: DayDate; var time: ClockTime?
   var isHome: Bool; var venue: String
   var competition: String?; var round: Int?        // "Giornata N"
@@ -165,8 +170,8 @@ struct ClubSettings {
 }
 
 struct RenderRecord {
-  var id: ID; var templateID: String; var templateVersion: String
-  var matchIDs: [ID]; var page: PageInfo?          // PageInfo { index, total }
+  var id: EntityID; var templateID: String; var templateVersion: String
+  var matchIDs: [EntityID]; var page: PageInfo?          // PageInfo { index, total }
   var file: String; var width: Int; var height: Int
   var warnings: [String]; var createdAt: Date
 }

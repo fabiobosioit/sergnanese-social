@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Generates Resources/Fixtures/*.json. Mirrors SSCore's Text.swift rules (checked by SSCoreTests)."""
+"""Generates Resources/Fixtures/*.json.
+Usage: python3 Resources/Fixtures/generator/gen_fixtures.py Resources/Fixtures
+ Mirrors SSCore's Text.swift rules (checked by SSCoreTests)."""
 import datetime as dt
 import json
 import os
@@ -262,7 +264,8 @@ def mctx(m, *, list_row=False, team_limit=16, venue_limit=14, cat_limit=22):
          "dateLong": dlong(m["date"]), "dateShort": dshort(m["date"]),
          "venue": trunc(m["venue"], venue_limit)[0], "isHome": m["isHome"], "isAway": not m["isHome"],
          "home": us if m["isHome"] else them, "away": them if m["isHome"] else us, "us": us, "opponent": them,
-         "isPostponed": m["status"] == "postponed", "isCancelled": m["status"] == "cancelled"}
+         "isPostponed": m["status"] == "postponed", "isCancelled": m["status"] == "cancelled",
+         "hasScore": "score" in m, "hasHalfTime": "halfTime" in m}
     for k in ("round", "competition", "time", "halfTime", "notes"):
         if k in m:
             c[k] = m[k]
@@ -292,6 +295,8 @@ files = {
     "single-no-logo.context.json": single(M[uid("match", "r3")]),
     "single-away.context.json": single(M[uid("match", "r2")]),
     "single-no-time.context.json": single(M[uid("match", "r4")]),
+    # 0-0 at half time and full time: templates must show the zeros (use match.hasScore, not score).
+    "single-goalless.context.json": single(M[uid("match", "p2")]),
 }
 sunday29 = [m for m in matches if m["date"] == "2026-11-29"]
 ten = sorted(sunday29, key=order)[:10]

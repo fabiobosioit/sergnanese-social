@@ -43,6 +43,8 @@
       "logo": "_logos/fixture-pratofiorito.png"
     },
     "isPostponed": false,
-    "isCancelled": false
+    "isCancelled": false,
+    "hasScore": false,
+    "hasHalfTime": false
   }
 }

@@ -47,6 +47,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "09:30"
     },
     {
@@ -86,6 +88,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "09:30"
     },
     {
@@ -125,6 +129,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "10:00"
     },
     {
@@ -164,6 +170,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "10:00"
     },
     {
@@ -203,6 +211,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "10:30"
     },
     {
@@ -242,6 +252,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "11:00"
     },
     {
@@ -281,6 +293,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "11:00"
     },
     {
@@ -320,6 +334,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "round": 13,
       "competition": "Prima Categoria · Girone C",
       "time": "14:30"
@@ -359,6 +375,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "16:00"
     },
     {
@@ -398,6 +416,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "18:00"
     }
   ],

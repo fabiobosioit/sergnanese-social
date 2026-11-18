@@ -100,10 +100,18 @@ public struct MatchContext: Sendable, Codable, Equatable, Hashable {
   public var opponent: SideContext
   /// From our point of view (`us` / `them`).
   public var halfTime: Score?
+  /// `true` when both sides have a final score. Use `{{#match.hasScore}}…{{/match.hasScore}}` to show
+  /// or hide a score block: a section on `score` itself would hide a score of 0, because Mustache
+  /// treats 0 as false.
+  public var hasScore: Bool
+  /// `true` when both sides have a half-time score; same reason as `hasScore`.
+  public var hasHalfTime: Bool
   public var notes: String?
   public var isPostponed: Bool
   public var isCancelled: Bool
 
+  /// `isAway`, `hasScore` and `hasHalfTime` are derived: `!isHome`, both sides' `score` present, both
+  /// sides' `halfTimeScore` present.
   public init(
     category: String, round: Int?, competition: String?, dateLong: String, dateShort: String, time: String?,
     venue: String, isHome: Bool, home: SideContext, away: SideContext, us: SideContext, opponent: SideContext,
@@ -123,6 +131,8 @@ public struct MatchContext: Sendable, Codable, Equatable, Hashable {
     self.us = us
     self.opponent = opponent
     self.halfTime = halfTime
+    self.hasScore = us.score != nil && opponent.score != nil
+    self.hasHalfTime = us.halfTimeScore != nil && opponent.halfTimeScore != nil
     self.notes = notes
     self.isPostponed = isPostponed
     self.isCancelled = isCancelled

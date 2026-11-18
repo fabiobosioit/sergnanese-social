@@ -16,7 +16,8 @@ enum FakeStrings {
   static let logoTooLarge = "Il logo è troppo grande: al massimo 5 MB."
   static let logoNotImage = "Il file non è un'immagine supportata (PNG, JPEG, WebP, HEIC o SVG)."
   static let builtinCannotBeRemoved = "I template integrati non si possono eliminare: puoi solo ripristinarli."
-  static let zipNotSupported = "Il servizio finto non apre i file zip: usa una cartella."
+  static let notFolderOrZip = "Scegli la cartella di un template o un file .zip."
+  static let zipNotValid = "Il file non è un archivio .zip valido."
   static let manifestMissing = "manifest.json non trovato."
   static let templateHTMLMissing = "template.html non trovato."
   static func fakeRenderFailure(_ templateID: String) -> String { "Errore simulato nel template \(templateID)." }

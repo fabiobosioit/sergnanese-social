@@ -10,13 +10,14 @@ import SSCore
 /// | `single-no-logo.context.json` | opponent without a logo |
 /// | `single-away.context.json` | away match |
 /// | `single-no-time.context.json` | match without a time |
+/// | `single-goalless.context.json` | played 0–0, half time 0–0: zeros must show (`hasScore`) |
 /// | `list.context.json` | 10 programme rows, page 1/1 |
 /// | `list-23.context.json` | 23 rows, not paginated (input for pagination and overflow checks) |
 /// | `matches.json` | `FakeDataSet` behind `AppServices.fake()` |
 /// | `logos/` | fake opponent crests named by `Opponent.logoFile`; served as `TemplateURLs.logosPrefix` |
 public enum Fixtures {
   public static let singleNames = [
-    "single", "single-long-name", "single-no-logo", "single-away", "single-no-time",
+    "single", "single-long-name", "single-no-logo", "single-away", "single-no-time", "single-goalless",
   ]
   public static let listNames = ["list", "list-23"]
 

@@ -55,6 +55,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": true,
       "round": 9,
       "competition": "Juniores Regionali",
       "time": "15:00",
@@ -100,6 +102,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "round": 10,
       "time": "15:00"
     },
@@ -138,6 +142,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "15:00"
     },
     {
@@ -177,6 +183,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "16:30"
     },
     {
@@ -215,7 +223,9 @@
         "logo": "_logos/fixture-pratofiorito.png"
       },
       "isPostponed": false,
-      "isCancelled": false
+      "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false
     },
     {
       "category": "Giov. U14",
@@ -254,6 +264,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "09:30"
     },
     {
@@ -293,6 +305,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "10:00"
     },
     {
@@ -332,6 +346,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "round": 10,
       "competition": "Juniores Regionali",
       "time": "10:30"
@@ -371,6 +387,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "11:00"
     },
     {
@@ -410,6 +428,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "round": 12,
       "competition": "Prima Categoria · Girone C",
       "time": "14:30"
@@ -451,6 +471,8 @@
       },
       "isPostponed": true,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "18:00"
     },
     {
@@ -490,6 +512,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "20:30"
     },
     {
@@ -529,6 +553,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "09:30"
     },
     {
@@ -568,6 +594,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "09:30"
     },
     {
@@ -607,6 +635,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "10:00"
     },
     {
@@ -646,6 +676,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "10:00"
     },
     {
@@ -685,6 +717,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "10:30"
     },
     {
@@ -724,6 +758,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "11:00"
     },
     {
@@ -763,6 +799,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "11:00"
     },
     {
@@ -802,6 +840,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "round": 13,
       "competition": "Prima Categoria · Girone C",
       "time": "14:30"
@@ -841,6 +881,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "16:00"
     },
     {
@@ -880,6 +922,8 @@
       },
       "isPostponed": false,
       "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
       "time": "18:00"
     },
     {
@@ -918,7 +962,9 @@
         "logo": "_logos/fixture-valdorso.png"
       },
       "isPostponed": false,
-      "isCancelled": false
+      "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false
     }
   ],
   "page": {
