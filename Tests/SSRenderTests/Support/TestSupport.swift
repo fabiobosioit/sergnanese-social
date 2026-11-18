@@ -55,6 +55,15 @@ func makeTemporaryFolder(_ name: String = "SSRenderTests") throws -> URL {
   return folder
 }
 
+/// Keeps the main actor (the main thread) busy for `duration` without suspending, like a long
+/// synchronous computation elsewhere in the app or in a test running in parallel. Every suite of
+/// this test process shares the main actor, so keep `duration` short: it delays them all.
+@MainActor
+func blockMainActor(for duration: Duration) {
+  let end = ContinuousClock.now + duration
+  while ContinuousClock.now < end {}
+}
+
 /// The bundle id of the frontmost app and the visible windows of this process, to check that
 /// rendering never shows a window or changes focus.
 @MainActor

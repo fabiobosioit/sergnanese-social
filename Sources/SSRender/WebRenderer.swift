@@ -16,7 +16,9 @@ import WebKit
 ///   only the template folder and the logos folder, a Content-Security-Policy and a content rule list
 ///   that both block every remote request.
 /// - Before the snapshot it waits for the load event, `document.fonts.ready`, every `<img>` decoded
-///   and `window.__ready` when present, within `timeout`.
+///   and `window.__ready` when present, within `timeout` of time the renderer could run
+///   (`RenderDeadline`: neither the Mac asleep nor a blocked main actor counts). On a timeout the
+///   error names the conditions still pending.
 /// - Every `<img>` decodes synchronously at paint time (`decoding="sync"` set from document start),
 ///   and the snapshot is repeated until two in a row match, so an image WebKit is still decoding in
 ///   the background is never left out of the PNG (see `snapshot(_:page:until:)`).
@@ -50,8 +52,10 @@ public final class WebRenderer {
     public var blockedURLs: [String]
   }
 
-  /// Longest wait for a page to load and become ready.
+  /// Longest wait for a page to load and become ready, in time the renderer could run.
   public let timeout: Duration
+  /// Longest wait for the diagnostic script that explains a timeout.
+  static let diagnosisTimeout: Duration = .seconds(1)
   /// The snapshot is taken at this many pixels per CSS pixel whatever the display, then scaled down
   /// to the exact size, so a Retina and a non-Retina Mac produce the same image.
   static let supersampling = 2
@@ -96,38 +100,92 @@ public final class WebRenderer {
       templateFolder: page.templateFolder, logosFolder: page.logosFolder)
     engine.handler.site = site
     engine.navigation.blockedNavigations = []
-    let deadline = ContinuousClock.now.advanced(by: timeout)
+    let deadline = RenderDeadline(timeout)
+    defer { deadline.cancel() }
+    var stage = Stage.loading
 
     do {
       try await load(site.pageURL, in: engine, until: deadline)
+      stage = .waitingUntilReady
       let metrics = try await waitUntilReady(engine, until: deadline)
       try check(metrics, page: page)
       let blocked = await blockedURLs(engine)
       let png = try await snapshot(engine, page: page, until: deadline)
       return Output(png: png, blockedURLs: blocked)
     } catch let error as RenderFailure {
+      var message = error.message(timeout: timeout)
+      if case .timeout = error {
+        let pending = await pendingConditions(engine, stage: stage)
+        message = RenderStrings.timeout(seconds: Int(timeout.components.seconds), pending: pending)
+      }
       // The page may be stuck (endless script, crashed process): start over with a new web view.
       reset()
-      throw AppError.render(message: error.message(timeout: timeout))
+      throw AppError.render(message: message)
     }
   }
 
   // MARK: Steps
 
-  private func load(_ url: URL, in engine: Engine, until deadline: ContinuousClock.Instant) async throws {
+  /// Where a render is when its deadline passes.
+  private enum Stage {
+    /// Waiting for the navigation to finish (`didFinish`).
+    case loading
+    /// Waiting for `Scripts.waitUntilReady` to answer.
+    case waitingUntilReady
+  }
+
+  private func load(_ url: URL, in engine: Engine, until deadline: RenderDeadline) async throws {
     _ = try await callback(until: deadline) { (done: @escaping @MainActor (Result<Bool, any Error>) -> Void) in
       engine.navigation.onFinish = { result in done(result.map { true }) }
       engine.navigation.expected = engine.webView.load(URLRequest(url: url))
     }
   }
 
-  private func waitUntilReady(_ engine: Engine, until deadline: ContinuousClock.Instant) async throws -> RootMetrics {
+  private func waitUntilReady(_ engine: Engine, until deadline: RenderDeadline) async throws -> RootMetrics {
     try await callback(until: deadline) { (done: @escaping @MainActor (Result<RootMetrics, any Error>) -> Void) in
       engine.webView.callAsyncJavaScript(Scripts.waitUntilReady, arguments: [:], in: nil, in: .page) { result in
         switch result {
         case .success(let value): done(.success(RootMetrics(value)))
         case .failure(let error): done(.failure(RenderFailure.script(error.localizedDescription)))
         }
+      }
+    }
+  }
+
+  /// Explains a timeout: the readiness conditions still pending, as Italian phrases for
+  /// `RenderStrings.timeout`. The page is asked with `Scripts.diagnose` within `diagnosisTimeout`; a
+  /// page that does not answer is stuck in a script.
+  private func pendingConditions(_ engine: Engine, stage: Stage) async -> [String] {
+    if stage == .loading && !engine.handler.pageRequested { return [RenderStrings.pendingPageRequest] }
+    let expectedURL = engine.handler.site?.pageURL.absoluteString
+    let deadline = RenderDeadline(Self.diagnosisTimeout)
+    defer { deadline.cancel() }
+    let state: PageState
+    do {
+      state = try await callback(until: deadline) {
+        (done: @escaping @MainActor (Result<PageState, any Error>) -> Void) in
+        engine.webView.callAsyncJavaScript(Scripts.diagnose, arguments: [:], in: nil, in: .page) { result in
+          done(result.map { PageState($0) })
+        }
+      }
+    } catch {
+      return [RenderStrings.pendingUnresponsive]
+    }
+    // Before the navigation commits, the web view still shows the previous page.
+    guard state.href == expectedURL else { return [RenderStrings.pendingNavigation] }
+    let loadEvent =
+      [RenderStrings.pendingLoadEvent] + (state.images.isEmpty ? [] : [RenderStrings.pendingImages(state.images)])
+    switch stage {
+    case .loading:
+      return state.loaded ? [RenderStrings.pendingNavigationFinished] : loadEvent
+    case .waitingUntilReady:
+      switch state.waitingFor {
+      case "load": return loadEvent
+      case "fonts": return [RenderStrings.pendingFonts(state.fonts)]
+      case "images": return [RenderStrings.pendingImages(state.images)]
+      case "ready": return [RenderStrings.pendingReady]
+      case "layout": return [RenderStrings.pendingLayout]
+      default: return [RenderStrings.pendingReply]
       }
     }
   }
@@ -174,7 +232,7 @@ public final class WebRenderer {
   ///
   /// A page that keeps changing (a running CSS animation) never settles: after `maxSnapshots`, or at
   /// the deadline, the last snapshot is used.
-  private func snapshot(_ engine: Engine, page: Page, until deadline: ContinuousClock.Instant) async throws -> Data {
+  private func snapshot(_ engine: Engine, page: Page, until deadline: RenderDeadline) async throws -> Data {
     let configuration = WKSnapshotConfiguration()
     configuration.rect = CGRect(x: 0, y: 0, width: page.width, height: page.height)
     configuration.afterScreenUpdates = true
@@ -193,7 +251,7 @@ public final class WebRenderer {
         // Now and then WebKit answers with `WKErrorUnknown`: the web process sent back no bitmap.
         // The next request succeeds, so retry a few times before giving up.
         failures += 1
-        guard failures < Self.maxSnapshotFailures, ContinuousClock.now < deadline else {
+        guard failures < Self.maxSnapshotFailures, !deadline.isExpired else {
           throw AppError.render(message: RenderStrings.snapshotFailed)
         }
         try? await Task.sleep(for: Self.settleInterval)
@@ -205,7 +263,7 @@ public final class WebRenderer {
       }
       let pixels = bitmap.dataProvider?.data as Data?
       let settled = pixels != nil && pixels == previous
-      if settled || count >= Self.maxSnapshots || ContinuousClock.now >= deadline {
+      if settled || count >= Self.maxSnapshots || deadline.isExpired {
         return try ExactImage.exactPNG(from: bitmap, width: page.width, height: page.height)
       }
       previous = pixels
@@ -213,19 +271,20 @@ public final class WebRenderer {
     }
   }
 
-  /// Waits for `start`'s callback, or throws `RenderFailure.timeout` at `deadline`.
+  /// Waits for `start`'s callback, or throws `RenderFailure.timeout` when `deadline` expires.
   private func callback<Value: Sendable>(
-    until deadline: ContinuousClock.Instant,
+    until deadline: RenderDeadline,
     _ start: (@escaping @MainActor (Result<Value, any Error>) -> Void) -> Void
   ) async throws -> Value {
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Value, any Error>) in
       let once = ResumeOnce(continuation)
-      let timer = Task { @MainActor in
-        try? await Task.sleep(until: deadline, clock: .continuous)
+      guard !deadline.isExpired else {
         once.resume(with: .failure(RenderFailure.timeout))
+        return
       }
+      let expiry = deadline.onExpiry { once.resume(with: .failure(RenderFailure.timeout)) }
       start { result in
-        timer.cancel()
+        deadline.removeExpiry(expiry)
         once.resume(with: result)
       }
     }
@@ -392,7 +451,7 @@ private enum RenderFailure: Error {
 
   func message(timeout: Duration) -> String {
     switch self {
-    case .timeout: return RenderStrings.timeout(seconds: Int(timeout.components.seconds))
+    case .timeout: return RenderStrings.timeout(seconds: Int(timeout.components.seconds), pending: [])
     case .loadFailed(let detail): return RenderStrings.loadFailed(detail)
     case .script(let detail): return RenderStrings.templateScriptFailed(detail)
     case .crashed: return RenderStrings.webProcessCrashed
@@ -416,6 +475,29 @@ private struct RootMetrics: Sendable {
     y = number("y")
     width = number("width")
     height = number("height")
+  }
+}
+
+/// What the page was waiting for when a render timed out, from `Scripts.diagnose`.
+private struct PageState: Sendable {
+  /// `location.href`, to tell the new page from the previous one still in the web view.
+  var href: String
+  /// `document.readyState == "complete"`.
+  var loaded: Bool
+  /// The step of `Scripts.waitUntilReady` in progress (`load`, `fonts`, `images`, `ready`, `layout`).
+  var waitingFor: String
+  /// Families of the font faces still loading.
+  var fonts: [String]
+  /// `src` of the first `<img>` elements not yet complete.
+  var images: [String]
+
+  init(_ value: Any?) {
+    let object = value as? [String: Any] ?? [:]
+    href = object["href"] as? String ?? ""
+    loaded = object["loaded"] as? Bool ?? false
+    waitingFor = object["waitingFor"] as? String ?? ""
+    fonts = object["fonts"] as? [String] ?? []
+    images = object["images"] as? [String] ?? []
   }
 }
 
@@ -503,11 +585,16 @@ private enum Scripts {
 
   /// Body of an async function run in the page world: waits for load, fonts, images and
   /// `window.__ready`, then measures the root element (the only rendered element child of body).
+  /// `window.__ssWaitingFor` records the step in progress for `diagnose`.
   static let waitUntilReady = """
+    function step(name) { window.__ssWaitingFor = name; }
+    step('load');
     if (document.readyState !== 'complete') {
       await new Promise(function (resolve) { window.addEventListener('load', resolve, { once: true }); });
     }
+    step('fonts');
     await document.fonts.ready;
+    step('images');
     await Promise.all(Array.from(document.images, function (img) {
       var settled = img.complete ? Promise.resolve() : new Promise(function (resolve) {
         img.addEventListener('load', resolve, { once: true });
@@ -518,15 +605,38 @@ private enum Scripts {
       });
     }));
     var ready = window.__ready;
-    if (ready && typeof ready.then === 'function') { await ready; }
+    if (ready && typeof ready.then === 'function') {
+      step('ready');
+      await ready;
+    }
+    step('fonts');
     await document.fonts.ready;
+    step('layout');
     await new Promise(function (resolve) { setTimeout(resolve, 0); });
+    step('done');
     var skip = ['SCRIPT', 'STYLE', 'LINK', 'META', 'TEMPLATE', 'NOSCRIPT', 'TITLE'];
     var roots = Array.from(document.body ? document.body.children : []).filter(function (el) {
       return skip.indexOf(el.tagName) < 0 && el.getClientRects().length > 0;
     });
     var rect = roots.length === 1 ? roots[0].getBoundingClientRect() : { x: 0, y: 0, width: 0, height: 0 };
     return { count: roots.length, x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    """
+
+  /// Body of an async function run in the page world after a timeout: what `waitUntilReady` is
+  /// still waiting for (`PageState`). Synchronous, so it answers at once unless a script is stuck.
+  static let diagnose = """
+    var fonts = [];
+    document.fonts.forEach(function (face) {
+      var family = String(face.family).replace(/^["']|["']$/g, '');
+      if (face.status === 'loading' && fonts.indexOf(family) < 0) { fonts.push(family); }
+    });
+    var images = Array.from(document.images).filter(function (img) { return !img.complete; })
+      .map(function (img) { return String(img.getAttribute('src') || '').slice(0, 120); })
+      .slice(0, 5);
+    return {
+      href: String(location.href), loaded: document.readyState === 'complete',
+      waitingFor: String(window.__ssWaitingFor || ''), fonts: fonts, images: images
+    };
     """
 
   /// Content rule list: block everything, then let the template scheme and inline data through.

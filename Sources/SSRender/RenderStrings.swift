@@ -3,9 +3,28 @@ import Foundation
 /// Italian messages produced by the render engine (errors and warnings shown to the user).
 enum RenderStrings {
   // Errors
-  static func timeout(seconds: Int) -> String {
-    "Il template non è pronto dopo \(seconds) secondi: font, immagini o window.__ready non hanno finito di caricare."
+  /// `pending`: what the page was still waiting for (the `pending…` phrases below).
+  static func timeout(seconds: Int, pending: [String]) -> String {
+    let base = "Il template non è pronto dopo \(seconds) secondi"
+    guard !pending.isEmpty else {
+      return base + ": font, immagini o window.__ready non hanno finito di caricare."
+    }
+    return base + ". In attesa di: " + pending.joined(separator: "; ") + "."
   }
+  static let pendingPageRequest = "la richiesta della pagina da parte del motore di rendering"
+  static let pendingNavigation = "l'apertura della pagina"
+  static let pendingNavigationFinished = "la notifica di fine caricamento della pagina"
+  static let pendingLoadEvent = "l'evento load (risorse della pagina ancora in caricamento)"
+  static func pendingFonts(_ families: [String]) -> String {
+    families.isEmpty ? "i font" : "i font " + families.joined(separator: ", ")
+  }
+  static func pendingImages(_ sources: [String]) -> String {
+    sources.isEmpty ? "le immagini" : "le immagini " + sources.joined(separator: ", ")
+  }
+  static let pendingReady = "window.__ready, che non si è mai risolta"
+  static let pendingLayout = "l'impaginazione finale"
+  static let pendingReply = "la risposta del motore di rendering"
+  static let pendingUnresponsive = "il template, che non risponde (uno script non termina?)"
   static func loadFailed(_ detail: String) -> String { "Impossibile caricare il template: \(detail)" }
   static func templateScriptFailed(_ detail: String) -> String {
     "Il template ha segnalato un errore mentre si preparava: \(detail)"
