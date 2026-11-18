@@ -3,37 +3,42 @@ import ImageIO
 import SwiftUI
 
 /// Small cached thumbnails of image files, decoded off the main thread with ImageIO.
+///
+/// Only a `CGImage` (Sendable) crosses the actor boundary; the `NSImage` is created and cached on the
+/// main actor, because `NSImage` is not `Sendable` in older SDKs.
 enum ThumbnailLoader {
-  // NSCache is thread-safe; the box only exists to hold it in a global.
-  private final class Cache: @unchecked Sendable {  // safe: NSCache does its own locking
-    let storage = NSCache<NSString, NSImage>()
-  }
-  private static let cache = Cache()
+  @MainActor private static let cache = NSCache<NSString, NSImage>()
 
   static func key(_ url: URL, maxPixel: Int) -> NSString { "\(url.path)@\(maxPixel)" as NSString }
 
   @MainActor
   static func cached(_ url: URL, maxPixel: Int) -> NSImage? {
-    cache.storage.object(forKey: key(url, maxPixel: maxPixel))
+    cache.object(forKey: key(url, maxPixel: maxPixel))
   }
 
   /// Decodes at most `maxPixel` pixels on the longest side. Returns `nil` when the file is missing or
   /// is not an image.
+  @MainActor
   static func load(_ url: URL, maxPixel: Int) async -> NSImage? {
     let cacheKey = key(url, maxPixel: maxPixel)
-    if let hit = cache.storage.object(forKey: cacheKey) { return hit }
-    let image: NSImage? = await Task.detached(priority: .userInitiated) {
-      guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-      let options: [CFString: Any] = [
-        kCGImageSourceCreateThumbnailFromImageAlways: true,
-        kCGImageSourceCreateThumbnailWithTransform: true,
-        kCGImageSourceThumbnailMaxPixelSize: maxPixel,
-      ]
-      guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
-      return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    if let hit = cache.object(forKey: cacheKey) { return hit }
+    let decoded: CGImage? = await Task.detached(priority: .userInitiated) {
+      decode(url, maxPixel: maxPixel)
     }.value
-    if let image { cache.storage.setObject(image, forKey: cacheKey) }
+    guard let cg = decoded else { return nil }
+    let image = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    cache.setObject(image, forKey: cacheKey)
     return image
+  }
+
+  private nonisolated static func decode(_ url: URL, maxPixel: Int) -> CGImage? {
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+    let options: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+    ]
+    return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
   }
 }
 
