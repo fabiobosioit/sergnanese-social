@@ -522,7 +522,12 @@ final class SerialGate {
   private var busy = false
   private var waiters: [CheckedContinuation<Void, Never>] = []
 
-  func run<Value>(_ operation: () async throws -> Value) async throws -> Value {
+  /// `operation` is `@MainActor` on purpose: a plain `() async throws -> Value` is a nonisolated
+  /// async function, which Swift 6.1 runs off the main actor (SE-0338), so its non-Sendable
+  /// result would have to cross back into the main actor and the compiler rejects it. Pinning the
+  /// closure to the main actor keeps the whole call on one actor, which is also what the renderer
+  /// needs (every caller touches `WKWebView`).
+  func run<Value>(_ operation: @MainActor () async throws -> Value) async throws -> Value {
     if busy {
       await withCheckedContinuation { waiters.append($0) }
     } else {
