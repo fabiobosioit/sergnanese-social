@@ -101,7 +101,7 @@ public struct MatchesView: View {
       TableColumn(MatchesStrings.columnTeam) { detail in
         Text(detail.team.shortLabel).accessibilityHidden(true)
       }
-      .width(min: 70, ideal: 110)
+      .width(min: 70, ideal: 90)
 
       TableColumn(MatchesStrings.columnHomeAway) { detail in
         HomeAwayMarker(isHome: detail.match.isHome).accessibilityHidden(true)
@@ -111,7 +111,7 @@ public struct MatchesView: View {
       TableColumn(MatchesStrings.columnOpponent) { detail in
         OpponentCell(detail: detail, model: vm).accessibilityHidden(true)
       }
-      .width(min: 160, ideal: 240)
+      .width(min: 140, ideal: 200)
 
       TableColumn(MatchesStrings.columnVenue) { detail in
         Text(detail.match.venue)
@@ -119,7 +119,7 @@ public struct MatchesView: View {
           .foregroundStyle(.secondary)
           .accessibilityHidden(true)
       }
-      .width(min: 100, ideal: 160)
+      .width(min: 90, ideal: 130)
 
       TableColumn(MatchesStrings.columnRound) { detail in
         Text(detail.match.round.map { String($0) } ?? "")
