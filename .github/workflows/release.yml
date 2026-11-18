@@ -1,0 +1,80 @@
+name: Release
+
+# Builds the ad-hoc signed app and the .dmg, proves the packaged app runs from a copied location
+# with .build deleted, then attaches the .dmg to a GitHub Release.
+#   tag v*                  -> published release (the tag must equal v<VERSION> in version.env)
+#   manual / release-trial/** -> DRAFT release, never published automatically
+# Only the built-in GITHUB_TOKEN is used.
+
+on:
+  push:
+    tags: ["v*"]
+    branches: ["release-trial/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, smoke test, package
+    runs-on: macos-15 # standard GitHub-hosted Apple silicon runner
+    timeout-minutes: 60
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: swift --version
+      - name: Tag matches version.env
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          source version.env
+          if [[ "$GITHUB_REF_NAME" != "v$VERSION" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match version.env (v$VERSION)" >&2
+            exit 1
+          fi
+      - name: Scripts/check.sh
+        run: Scripts/check.sh
+      - name: Package (.app and .dmg)
+        run: Scripts/package_app.sh release
+      - name: Smoke test from a copied app with .build deleted
+        run: Scripts/package_app.sh smoke
+      - name: Upload the .dmg
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dmg
+          path: build/*.dmg
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # actions/download-artifact v4.3.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: dmg
+          path: dist
+      - name: Create the release
+        run: |
+          set -euo pipefail
+          ls -l dist
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            gh release create "$GITHUB_REF_NAME" dist/*.dmg \
+              --title "Sergnanese Social ${GITHUB_REF_NAME#v}" --generate-notes
+          else
+            gh release create "trial-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" dist/*.dmg \
+              --draft --target "$GITHUB_SHA" \
+              --title "Trial build ${GITHUB_RUN_NUMBER} (${GITHUB_SHA::7})" \
+              --notes "Draft from ${GITHUB_REF_NAME}. Not a release."
+          fi
