@@ -1,13 +1,13 @@
 import AppKit
+import CoreGraphics
 import Foundation
-import GRDB
+import ImageIO
 import SSCore
-import WebKit
 
-/// Self-contained packaging check, run by `--smoke` (T1.5). It proves that a packaged app, copied
-/// away from the build machine, can: find its bundled resources, open a SQLite database, and
-/// snapshot HTML in an off-screen `WKWebView` to a PNG of the exact size asked for.
-/// T3.1 switches this to the real engine. Returns the process exit code.
+/// Self-contained packaging check, run by `--smoke`. It proves that a packaged app, copied away
+/// from the build machine, runs the real engine: resources are found, the database opens in a
+/// temporary data folder, the seed loads, a built-in template renders to a PNG of the exact size and
+/// the accent colour reads back unchanged. Returns the process exit code.
 func runSmoke() -> Int32 {
   MainActor.assumeIsolated {
     NSApplication.shared.setActivationPolicy(.prohibited)
@@ -22,7 +22,7 @@ func runSmoke() -> Int32 {
         outcome = .failure(SmokeFailure(message: "\(error)"))
       }
     }
-    let deadline = Date().addingTimeInterval(60)
+    let deadline = Date().addingTimeInterval(90)
     while outcome == nil && Date() < deadline {
       RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.05))
     }
@@ -34,7 +34,7 @@ func runSmoke() -> Int32 {
       print("SMOKE FAILED: \(failure.message)")
       return 1
     case nil:
-      print("SMOKE FAILED: timed out after 60 s")
+      print("SMOKE FAILED: timed out after 90 s")
       return 1
     }
   }
@@ -46,76 +46,66 @@ private struct SmokeFailure: Error {
 
 @MainActor
 private func smokeChecks() async throws {
-  // 1. Resources resolve to plain folders (never Bundle.module).
-  guard let resources = AppPaths.resolveResources() else {
-    throw SmokeFailure(message: "resources folder not found")
-  }
-  let fileManager = FileManager.default
-  var isFolder: ObjCBool = false
-  let hasFolder = ["Templates", "Fixtures"].contains {
-    fileManager.fileExists(atPath: resources.appendingPathComponent($0).path, isDirectory: &isFolder)
-      && isFolder.boolValue
-  }
-  guard hasFolder else { throw SmokeFailure(message: "no Templates or Fixtures in \(resources.path)") }
-  print("smoke: resources \(resources.path)")
-
-  // 2. SQLite through GRDB, in a temporary folder.
-  let temp = fileManager.temporaryDirectory.appendingPathComponent(
+  // Temporary data folder: the user's real folders are never opened.
+  let temp = FileManager.default.temporaryDirectory.appendingPathComponent(
     "ss-smoke-\(UUID().uuidString)", isDirectory: true)
-  try fileManager.createDirectory(at: temp, withIntermediateDirectories: true)
-  defer { try? fileManager.removeItem(at: temp) }
-  let queue = try DatabaseQueue(path: temp.appendingPathComponent("smoke.sqlite").path)
-  let answer = try await queue.write { db -> Int in
-    try db.execute(sql: "CREATE TABLE t (n INTEGER)")
-    try db.execute(sql: "INSERT INTO t (n) VALUES (42)")
-    return try Int.fetchOne(db, sql: "SELECT n FROM t") ?? -1
-  }
-  guard answer == 42 else { throw SmokeFailure(message: "database returned \(answer)") }
-  print("smoke: database ok")
+  try FileManager.default.createDirectory(at: temp, withIntermediateDirectories: true)
+  defer { try? FileManager.default.removeItem(at: temp) }
+  var environment = ProcessInfo.processInfo.environment
+  environment["SS_DATA_DIR"] = temp.path
+  let paths = try AppPaths.resolve(environment: environment)
+  print("smoke: resources \(paths.resources.path)")
 
-  // 3. Off-screen WKWebView snapshot of a tiny inline page, exact pixel size.
-  let width = 270
-  let height = 480
-  let web = WKWebView(frame: CGRect(x: 0, y: 0, width: width, height: height))
-  let loader = NavigationWaiter()
-  web.navigationDelegate = loader
-  try await loader.load(
-    "<html><body style=\"margin:0;background:#c00\"><h1 style=\"color:white\">Smoke</h1></body></html>", in: web)
-  let config = WKSnapshotConfiguration()
-  config.rect = CGRect(x: 0, y: 0, width: width, height: height)
-  config.snapshotWidth = NSNumber(value: width)
-  let image = try await web.takeSnapshot(configuration: config)
-  guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-    throw SmokeFailure(message: "snapshot has no bitmap")
-  }
-  let rep = NSBitmapImageRep(cgImage: cgImage)
-  guard let png = rep.representation(using: .png, properties: [:]), !png.isEmpty else {
-    throw SmokeFailure(message: "could not encode PNG")
-  }
-  guard cgImage.width >= width, cgImage.height >= height, cgImage.width * height == cgImage.height * width else {
-    throw SmokeFailure(message: "unexpected snapshot size \(cgImage.width)x\(cgImage.height)")
-  }
-  print("smoke: snapshot \(cgImage.width)x\(cgImage.height), \(png.count) bytes")
-}
+  let services = try Composition.makeServices(paths: paths)
+  print("smoke: services ready")
 
-@MainActor
-private final class NavigationWaiter: NSObject, WKNavigationDelegate {
-  private var continuation: CheckedContinuation<Void, Error>?
+  let today = DayDate.today()
+  let summary = try await services.demoData.load(today: today)
+  guard summary.matches > 0 else { throw SmokeFailure(message: "seed loaded no matches") }
+  print("smoke: seed \(summary.matches) matches")
 
-  func load(_ html: String, in web: WKWebView) async throws {
-    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-      self.continuation = continuation
-      web.loadHTMLString(html, baseURL: nil)
+  let weekend = nextWeekend(from: today)
+  let details = try services.matches.list(from: weekend.saturday, to: weekend.sunday, teamID: nil)
+  guard let match = details.first(where: { $0.team.isFirstTeam && $0.match.status == .scheduled }) else {
+    throw SmokeFailure(message: "no first-team match in the next weekend")
+  }
+  let request = RenderRequest(
+    weekend: weekend, selections: [TemplateSelection(templateID: "post-prematch", matchIDs: [match.match.id])])
+  var image: RenderedImage?
+  for try await event in services.renderer.render(request) {
+    switch event {
+    case .imageDone(let done, _, _): image = done
+    case .imageFailed(_, let message, _, _): throw SmokeFailure(message: "render failed: \(message)")
+    default: break
     }
   }
-
-  func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-    continuation?.resume()
-    continuation = nil
+  guard let image else { throw SmokeFailure(message: "nothing was rendered") }
+  let data = try Data(contentsOf: image.record.fileURL)
+  guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+    let png = CGImageSourceCreateImageAtIndex(source, 0, nil)
+  else { throw SmokeFailure(message: "output is not a PNG") }
+  guard png.width == 1080, png.height == 1350 else {
+    throw SmokeFailure(message: "unexpected PNG size \(png.width)x\(png.height)")
   }
+  let accent = try accentHex(of: png, x: 20, y: 1340)
+  guard accent == "#CF3326" else { throw SmokeFailure(message: "accent pixel is \(accent), expected #CF3326") }
+  print("smoke: rendered \(png.width)x\(png.height), accent pixel \(accent)")
+}
 
-  func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-    continuation?.resume(throwing: error)
-    continuation = nil
+/// Colour of one pixel, read back in sRGB.
+private func accentHex(of image: CGImage, x: Int, y: Int) throws -> String {
+  var pixel = [UInt8](repeating: 0, count: 4)
+  guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { throw SmokeFailure(message: "no sRGB") }
+  let drawn = pixel.withUnsafeMutableBytes { raw -> Bool in
+    guard
+      let context = CGContext(
+        data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4, space: space,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    else { return false }
+    context.interpolationQuality = .none
+    context.draw(image, in: CGRect(x: -x, y: -(image.height - 1 - y), width: image.width, height: image.height))
+    return true
   }
+  guard drawn else { throw SmokeFailure(message: "cannot read pixel") }
+  return String(format: "#%02X%02X%02X", pixel[0], pixel[1], pixel[2])
 }
