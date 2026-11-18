@@ -154,11 +154,9 @@ final class GenerateViewModel {
 
   // MARK: Rows
 
-  private var teamNameLimit: Int? { templates.compactMap(\.manifest.limits.teamName).min() }
-
   var matchRows: [MatchRow] {
     details.map { detail in
-      var warnings = matchWarnings(for: detail, teamNameLimit: teamNameLimit)
+      var warnings = matchWarnings(for: detail, teamNameLimit: nil)
       for warning in plan?.warnings ?? [] where warning.matchID == detail.id && !warnings.contains(warning) {
         warnings.append(warning)
       }

@@ -18,7 +18,7 @@ enum TemplatesStrings {
   static let importHelp = "Importa un template da una cartella o da un file .zip (⌘O)"
   static let guideLink = "Guida ai template"
   static let guideURL = URL(
-    string: "https://github.com/fabiobosioit/sergnanese-social/blob/main/docs/plan/01-architecture.md")!
+    string: "https://github.com/fabiobosioit/sergnanese-social/blob/main/docs/TEMPLATES.md")!
   static let showInspector = "Mostra dettagli"
   static let preview = "Anteprima"
   static let revealInFinder = "Mostra nel Finder"

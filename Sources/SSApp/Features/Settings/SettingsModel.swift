@@ -36,6 +36,29 @@ final class SettingsModel {
   /// The accent colour to show in the colour well: the draft if valid, else the saved value.
   var effectiveAccent: String { normalizedHexColor(draft.accentColor) ?? saved.accentColor }
 
+  /// WCAG contrast ratio of white text on `hex` (1 to 21); `nil` when `hex` is not a valid colour.
+  static func contrastWithWhite(_ hex: String) -> Double? {
+    guard let normalized = normalizedHexColor(hex), let value = Int(normalized.dropFirst(), radix: 16) else {
+      return nil
+    }
+    func linear(_ channel: Int) -> Double {
+      let c = Double(channel) / 255
+      return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+    let luminance =
+      0.2126 * linear((value >> 16) & 0xFF) + 0.7152 * linear((value >> 8) & 0xFF) + 0.0722 * linear(value & 0xFF)
+    return 1.05 / (luminance + 0.05)
+  }
+
+  /// Minimum contrast with white that the templates' white-on-accent text needs (WCAG large text).
+  static let minimumAccentContrast = 3.0
+
+  /// A warning when the accent is too light for the white text the templates put on it.
+  var accentContrastWarning: String? {
+    guard let ratio = Self.contrastWithWhite(effectiveAccent), ratio < Self.minimumAccentContrast else { return nil }
+    return SettingsStrings.accentTooLight
+  }
+
   func problem(for field: ValidationField) -> String? { problems.message(for: field) }
 
   // MARK: Saving

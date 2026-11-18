@@ -55,8 +55,8 @@ struct AppModelTests {
     let model = makeModel()
     let details = try model.services.matches.list(
       from: model.weekend.saturday, to: model.weekend.sunday, teamID: nil)
-    let limit = try model.services.templates.list().compactMap(\.manifest.limits.teamName).min()
-    let expected = details.filter { !matchWarnings(for: $0, teamNameLimit: limit).isEmpty }.count
+    let warnings = defaultPlanWarnings(for: details, weekend: model.weekend, services: model.services)
+    let expected = details.filter { !(warnings[$0.id] ?? []).isEmpty }.count
     #expect(model.matchesWithWarnings == expected)
   }
 

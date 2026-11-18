@@ -76,8 +76,8 @@ public final class AppModel {
   public func refreshWarningBadge() {
     do {
       let details = try services.matches.list(from: weekend.saturday, to: weekend.sunday, teamID: nil)
-      let limit = try services.templates.list().compactMap(\.manifest.limits.teamName).min()
-      matchesWithWarnings = details.filter { !matchWarnings(for: $0, teamNameLimit: limit).isEmpty }.count
+      let warnings = defaultPlanWarnings(for: details, weekend: weekend, services: services)
+      matchesWithWarnings = details.filter { !(warnings[$0.id] ?? []).isEmpty }.count
     } catch {
       matchesWithWarnings = 0
     }

@@ -154,8 +154,10 @@ private struct LogoCell: View {
         ThumbnailView(url: url, maxPixel: 64)
       } else {
         Text(initials)
-          .font(.caption.weight(.semibold))
+          .font(.caption2.weight(.semibold))
           .foregroundStyle(.secondary)
+          .frame(width: 22, height: 22)
+          .background(.quaternary, in: Circle())
       }
     }
     .frame(width: 24, height: 24)

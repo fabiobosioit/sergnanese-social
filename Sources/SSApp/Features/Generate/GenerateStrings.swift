@@ -15,6 +15,7 @@ enum GenerateStrings {
   static let edit = "Modifica"
   static let editHelp = "Apri la partita in Partite"
   static let skipped = "Rinviata o annullata: esclusa dal piano standard"
+  static let timeToBeDefined = "orario da definire"
   static let homeMarker = "in casa"
   static let awayMarker = "in trasferta"
   static func matchLabel(_ team: String, _ opponent: String) -> String { "\(team) – \(opponent)" }

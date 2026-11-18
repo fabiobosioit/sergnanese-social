@@ -14,6 +14,7 @@ enum TeamsStrings {
   static let namePrompt = "Prima Squadra"
   static let shortLabelPrompt = "1ª Sq."
   static let active = "Attiva"
+  static let deactivate = "Disattiva"
   static let activeHelp = "Le squadre non attive non compaiono nei nuovi inserimenti."
   static let firstTeam = "Prima squadra"
   static let makeFirstTeam = "Imposta come prima squadra"
