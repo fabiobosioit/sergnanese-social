@@ -1,0 +1,22 @@
+[
+  { "id": "seed-opponent-1", "name": "A.S.D. Olmo Verde", "shortName": null, "aliases": [], "logoFile": "crest-01.png" },
+  { "id": "seed-opponent-2", "name": "Pol. Stella Alpina della Valle Vecchia", "shortName": null, "aliases": [], "logoFile": "crest-02.png" },
+  { "id": "seed-opponent-3", "name": "Associazione Sportiva Dilettantistica Monte Serenata", "shortName": null, "aliases": ["Monte Serenata"], "logoFile": "crest-03.png" },
+  { "id": "seed-opponent-4", "name": "Gruppo Sportivo Ricreativo Fontanelle Alte", "shortName": "Fontanelle", "aliases": [], "logoFile": "crest-04.png" },
+  { "id": "seed-opponent-5", "name": "Virtus Sant'Ilàrio", "shortName": null, "aliases": [], "logoFile": "crest-05.png" },
+  { "id": "seed-opponent-6", "name": "Unione Calcio Castelpiano", "shortName": null, "aliases": [], "logoFile": "crest-06.png" },
+  { "id": "seed-opponent-7", "name": "Club Sportivo Riva dei Pioppi", "shortName": null, "aliases": [], "logoFile": "crest-07.png" },
+  { "id": "seed-opponent-8", "name": "Atletico Campo Sereno", "shortName": null, "aliases": [], "logoFile": "crest-08.png" },
+  { "id": "seed-opponent-9", "name": "Sporting Valle Lunga", "shortName": null, "aliases": [], "logoFile": "crest-09.png" },
+  { "id": "seed-opponent-10", "name": "Nuova Fattoria Lupi", "shortName": null, "aliases": [], "logoFile": "crest-10.png" },
+  { "id": "seed-opponent-11", "name": "Audace Monte Bianchetto", "shortName": null, "aliases": [], "logoFile": "crest-11.png" },
+  { "id": "seed-opponent-12", "name": "Fulgor Prato Lungo", "shortName": null, "aliases": [], "logoFile": "crest-12.png" },
+  { "id": "seed-opponent-13", "name": "Stella Cadente Mezzana", "shortName": null, "aliases": [], "logoFile": "crest-13.png" },
+  { "id": "seed-opponent-14", "name": "Olimpia Bosco Chiaro", "shortName": null, "aliases": [], "logoFile": "crest-14.png" },
+  { "id": "seed-opponent-15", "name": "Costa Azzurra Ponte Vecchio", "shortName": null, "aliases": [], "logoFile": "crest-15.png" },
+  { "id": "seed-opponent-16", "name": "Libertas Colle Fiorito", "shortName": null, "aliases": ["Colle Fiorito"], "logoFile": "crest-16.png" },
+  { "id": "seed-opponent-17", "name": "Borgo Ginestra", "shortName": null, "aliases": [], "logoFile": null },
+  { "id": "seed-opponent-18", "name": "Torre del Vento", "shortName": null, "aliases": [], "logoFile": null },
+  { "id": "seed-opponent-19", "name": "Canottieri Isola Verde", "shortName": "Isola Verde", "aliases": [], "logoFile": null },
+  { "id": "seed-opponent-20", "name": "Ardita Monte Ferrato", "shortName": null, "aliases": [], "logoFile": null }
+]

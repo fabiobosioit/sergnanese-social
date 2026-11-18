@@ -1,0 +1,12 @@
+[
+  { "id": "seed-team-1", "name": "Prima Squadra", "shortLabel": "Prima Squadra", "sortOrder": 0, "isFirstTeam": true, "isActive": true },
+  { "id": "seed-team-2", "name": "Juniores", "shortLabel": "Juniores", "sortOrder": 1, "isFirstTeam": false, "isActive": true },
+  { "id": "seed-team-3", "name": "Allievi U17", "shortLabel": "Allievi U17", "sortOrder": 2, "isFirstTeam": false, "isActive": true },
+  { "id": "seed-team-4", "name": "Allievi U16", "shortLabel": "Allievi U16", "sortOrder": 3, "isFirstTeam": false, "isActive": true },
+  { "id": "seed-team-5", "name": "Giovanissimi U15", "shortLabel": "Giovanissimi U15", "sortOrder": 4, "isFirstTeam": false, "isActive": true },
+  { "id": "seed-team-6", "name": "Giovanissimi U14", "shortLabel": "Giovanissimi U14", "sortOrder": 5, "isFirstTeam": false, "isActive": true },
+  { "id": "seed-team-7", "name": "Esordienti", "shortLabel": "Esordienti", "sortOrder": 6, "isFirstTeam": false, "isActive": true },
+  { "id": "seed-team-8", "name": "Pulcini", "shortLabel": "Pulcini", "sortOrder": 7, "isFirstTeam": false, "isActive": true },
+  { "id": "seed-team-9", "name": "Primi Calci", "shortLabel": "Primi Calci", "sortOrder": 8, "isFirstTeam": false, "isActive": true },
+  { "id": "seed-team-10", "name": "Femminile", "shortLabel": "Femminile", "sortOrder": 9, "isFirstTeam": false, "isActive": true }
+]
