@@ -1,0 +1,33 @@
+name: Update goldens
+
+# Regenerates the golden images of the CI environment (Tests/IntegrationTests/.golden/ci/).
+# Run by hand: Actions > Update goldens > Run workflow. Download the artifact and commit the PNGs.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  goldens:
+    name: Render CI goldens
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      CI: "true"
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: swift --version
+      - name: Render goldens
+        run: UPDATE_GOLDEN=1 swift test --filter GoldenImageTests
+      - name: Upload goldens
+        # actions/upload-artifact v4.6.2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-goldens
+          path: Tests/IntegrationTests/.golden/ci/*.png
+          if-no-files-found: error

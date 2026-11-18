@@ -6,9 +6,19 @@ typealias Bitmap = (width: Int, height: Int, bytes: [UInt8])
 
 /// Golden images of the four built-in templates, rendered from the fixture contexts.
 ///
-/// Update them on purpose, after a deliberate template change (macOS only):
+/// Two golden sets, because text anti-aliasing differs between macOS/WebKit versions and the
+/// tolerance below is deliberately not loosened: `.golden/` for local machines and `.golden/ci/`
+/// for the GitHub runner (used when the environment variable CI is "true"). A set is only ever
+/// written by the environment it belongs to. The CI set must come from the runner: run the
+/// "Update goldens" workflow (.github/workflows/update-goldens.yml, workflow_dispatch), download
+/// its artifact and commit the PNGs into `Tests/IntegrationTests/.golden/ci/`. With no image there
+/// the test fails and says so; it never passes silently.
+///
+/// Update the local set on purpose, after a deliberate template change (macOS only):
 ///
 ///     UPDATE_GOLDEN=1 swift test --filter GoldenImageTests
+///
+/// (and the CI set through the workflow; locally `CI=true` would write `.golden/ci/`).
 ///
 /// The update keeps only renders that show the crest and writes one when `agreeingRenders` of them
 /// agree, so a render with a missing crest cannot become a golden.
@@ -20,8 +30,16 @@ typealias Bitmap = (width: Int, height: Int, bytes: [UInt8])
 @MainActor
 @Suite(.serialized)
 struct GoldenImageTests {
-  nonisolated static let goldenFolder = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-    .appendingPathComponent(".golden", isDirectory: true)
+  nonisolated static let runsOnCI = ProcessInfo.processInfo.environment["CI"] == "true"
+  nonisolated static let goldenFolder: URL = {
+    let base = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+      .appendingPathComponent(".golden", isDirectory: true)
+    return runsOnCI ? base.appendingPathComponent("ci", isDirectory: true) : base
+  }()
+  nonisolated static let missingGoldenHelp =
+    runsOnCI
+    ? "Run the \"Update goldens\" workflow on GitHub (Actions, workflow_dispatch), download the artifact and commit the PNGs into Tests/IntegrationTests/.golden/ci/."
+    : "Run: UPDATE_GOLDEN=1 swift test --filter GoldenImageTests"
   nonisolated static let templateIDs = ["post-prematch", "story-programme", "story-halftime", "story-fulltime"]
   static let attempts = 1
   static let agreeingRenders = 3
@@ -52,7 +70,7 @@ struct GoldenImageTests {
 
     try #require(
       FileManager.default.fileExists(atPath: golden.path),
-      "Missing golden image \(golden.lastPathComponent). Run: UPDATE_GOLDEN=1 swift test --filter GoldenImageTests")
+      "Missing golden image \(golden.lastPathComponent) in \(Self.goldenFolder.path). \(Self.missingGoldenHelp)")
     let expected = try #require(await Self.loadBitmap(golden))
 
     var last = "no render"
@@ -69,6 +87,9 @@ struct GoldenImageTests {
   // Pure pixel work, so it runs off the main actor.
   @Test(arguments: templateIDs) nonisolated func blankedCrestIsDetected(templateID: String) throws {
     let golden = Self.goldenFolder.appendingPathComponent("\(templateID).png")
+    try #require(
+      FileManager.default.fileExists(atPath: golden.path),
+      "Missing golden image \(golden.lastPathComponent) in \(Self.goldenFolder.path). \(Self.missingGoldenHelp)")
     let expected = try #require(decodePixels(golden))
     #expect(Self.compare(expected, expected) == nil)
     // The crest sits at x 68...174; y 83 in the post, 253 in the stories (124 px box).
