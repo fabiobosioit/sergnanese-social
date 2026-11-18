@@ -45,10 +45,10 @@ struct Sidebar: View {
   var body: some View {
     List(selection: selection) {
       Section(AppStrings.sidebarWeekend) {
-        ForEach(AppSection.weekendSections) { row(for: $0) }
+        ForEach(AppSection.weekendSections, id: \.self) { row(for: $0).tag($0) }
       }
       Section(AppStrings.sidebarLibrary) {
-        ForEach(AppSection.librarySections) { row(for: $0) }
+        ForEach(AppSection.librarySections, id: \.self) { row(for: $0).tag($0) }
       }
     }
     .listStyle(.sidebar)
@@ -63,7 +63,7 @@ struct Sidebar: View {
 
   @ViewBuilder
   private func row(for section: AppSection) -> some View {
-    let label = Label(section.title, systemImage: section.symbol).tag(section)
+    let label = Label(section.title, systemImage: section.symbol)
     if section == .matches {
       label.badge(model.matchesWithWarnings)
         .accessibilityValue(
