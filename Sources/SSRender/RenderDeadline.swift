@@ -15,6 +15,10 @@ import Foundation
 /// (which stops while the Mac sleeps), and that counts at most `longestCountedGap` between two of its
 /// runs: a longer gap means the main actor was not available, and that time is not the template's
 /// fault. A page that is really stuck still fails after `budget` of available time.
+///
+/// Because of that, how long a deadline takes to expire in wall-clock time has no upper bound: on a
+/// loaded machine whose main actor is busy for seconds it takes as long as the main actor needs to
+/// become free. Tests check the accounting (`count(gap:)`, `didCount`), never a wall-clock limit.
 @MainActor
 final class RenderDeadline {
   typealias Clock = SuspendingClock
@@ -27,16 +31,25 @@ final class RenderDeadline {
   /// Budget not spent yet.
   private(set) var remaining: Duration
   private(set) var isExpired = false
+  /// Gaps passed to `count(gap:)` so far, one per run of the ticker. Lets tests wait for "the ticker
+  /// has run again" instead of for an amount of wall-clock time.
+  private(set) var countedGaps = 0
+  /// Called with the time counted at each gap, after it is spent. For tests only.
+  var didCount: (@MainActor (Duration) -> Void)?
   private var action: (id: Int, run: @MainActor () -> Void)?
   private var lastID = 0
   private var ticker: Task<Void, Never>?
+  private var isCancelled = false
 
-  init(_ budget: Duration) {
+  /// - Parameter startsTicker: `false` only in tests that drive the deadline with `count(gap:)`
+  ///   themselves, so their result never depends on how fast the machine is.
+  init(_ budget: Duration, startsTicker: Bool = true) {
     remaining = budget
     guard budget > .zero else {
       isExpired = true
       return
     }
+    guard startsTicker else { return }
     ticker = Task { [weak self] in
       let clock = Clock()
       var last = clock.now
@@ -48,7 +61,7 @@ final class RenderDeadline {
         }
         guard let self else { return }
         let now = clock.now
-        if self.spend(min(now - last, Self.longestCountedGap)) { return }
+        if self.count(gap: now - last) { return }
         last = now
       }
     }
@@ -74,14 +87,22 @@ final class RenderDeadline {
 
   /// Stops the ticker; the deadline never expires afterwards.
   func cancel() {
+    isCancelled = true
     ticker?.cancel()
     ticker = nil
     action = nil
   }
 
-  /// Spends `duration`; returns `true` when the budget is gone.
-  private func spend(_ duration: Duration) -> Bool {
-    remaining -= duration
+  /// Counts `gap`, the time since the ticker last ran, capped at `longestCountedGap`; returns `true`
+  /// when the budget is gone. Does nothing once expired or cancelled.
+  @discardableResult
+  func count(gap: Duration) -> Bool {
+    guard !isExpired else { return true }
+    guard !isCancelled else { return false }
+    countedGaps += 1
+    let counted = min(gap, Self.longestCountedGap)
+    remaining -= counted
+    didCount?(counted)
     guard remaining <= .zero else { return false }
     isExpired = true
     ticker = nil
