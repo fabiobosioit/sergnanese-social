@@ -183,7 +183,9 @@ struct WebRendererTests {
       in: try makeTemporaryFolder(), id: "stuck", width: 200, height: 200, html: html)
     let renderer = WebRenderer(timeout: .seconds(1))
     let start = ContinuousClock.now
-    await #expect(throws: AppError.render(message: RenderStrings.timeout(seconds: 1))) {
+    await #expect(
+      throws: AppError.render(message: RenderStrings.timeout(seconds: 1, pending: [RenderStrings.pendingReady]))
+    ) {
       _ = try await renderer.render(page(folder, width: 200, height: 200))
     }
     #expect(ContinuousClock.now - start < .seconds(5))
@@ -192,6 +194,36 @@ struct WebRendererTests {
       in: try makeTemporaryFolder(), id: "ok", width: 200, height: 200,
       html: "<!doctype html><div style='width:200px;height:200px;background:#00FF00'></div>")
     #expect(try Pixels(png: await renderer.render(page(ok, width: 200, height: 200)).png).centreHex == "#00FF00")
+  }
+
+  /// The `check.sh` flake: `GoldenImageTests` compared bitmaps synchronously on the main actor for
+  /// seconds while `WorkflowTests` rendered in parallel. The render could not progress meanwhile (the
+  /// scheme handler, the navigation delegate and every WebKit completion run on the main actor), and
+  /// a wall-clock deadline passed while it was blocked. Before `RenderDeadline` this failed every
+  /// time with the timeout. In this serialized suite so that it never overlaps the timeout test.
+  @Test func blockedMainActorDoesNotFailARender() async throws {
+    // The page is ready only after a file it asks for 150 ms after loading: the scheme handler can
+    // answer that request only once the main actor is free again, so the render is surely in flight
+    // during the whole block.
+    let html = """
+      <!doctype html><div id="root" style="width:300px;height:200px;background:#FF0000"></div>
+      <script>window.__ready = new Promise(function (resolve) { setTimeout(resolve, 150); })
+        .then(function () { return fetch('colour.txt'); }).then(function (r) { return r.text(); })
+        .then(function (colour) { document.getElementById('root').style.background = colour.trim(); });</script>
+      """
+    let folder = try FixtureTemplates.custom(
+      in: try makeTemporaryFolder(), id: "blocked-main", width: 300, height: 200, html: html)
+    try Data("#00FF00".utf8).write(to: folder.appendingPathComponent("colour.txt"))
+    let renderer = WebRenderer(timeout: .seconds(1))
+    let page = WebRenderer.Page(html: html, templateFolder: folder, logosFolder: nil, width: 300, height: 200)
+    _ = try await renderer.render(page)  // the rule list and the web view exist: the next render starts at once
+    let render = Task { try await renderer.render(page) }
+    try await Task.sleep(for: .milliseconds(50))
+    blockMainActor(for: .milliseconds(1600))
+    let output = try await render.value
+    #expect(ExactImage.pixelSize(of: output.png)?.width == 300)
+    #expect(ExactImage.pixelSize(of: output.png)?.height == 200)
+    #expect(try Pixels(png: output.png).centreHex == "#00FF00")
   }
 
   @Test func wrongRootSizeIsRefused() async throws {

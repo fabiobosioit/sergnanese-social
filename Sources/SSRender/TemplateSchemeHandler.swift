@@ -88,7 +88,11 @@ struct TemplateSite: Sendable {
 /// the main actor; `stop` therefore never finds a task still running.
 @MainActor
 final class TemplateSchemeHandler: NSObject, WKURLSchemeHandler {
-  var site: TemplateSite?
+  var site: TemplateSite? {
+    didSet { pageRequested = false }
+  }
+  /// The web view asked for the page of `site` (diagnostics of a timeout).
+  private(set) var pageRequested = false
 
   func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
     guard let url = urlSchemeTask.request.url else {
@@ -97,6 +101,7 @@ final class TemplateSchemeHandler: NSObject, WKURLSchemeHandler {
     }
     switch site?.resolve(url) ?? .notFound {
     case .page:
+      pageRequested = true
       respond(urlSchemeTask, url: url, status: 200, mimeType: "text/html; charset=utf-8", body: site?.page ?? Data())
     case .file(let file):
       guard let data = try? Data(contentsOf: file) else {
