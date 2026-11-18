@@ -158,7 +158,7 @@ private struct DataTab: View {
       confirmTitle: SettingsStrings.removeDemo
     ) {
       model.removeDemoData()
-      app.refreshWarningBadge()
+      app.didChangeData()
     }
   }
 

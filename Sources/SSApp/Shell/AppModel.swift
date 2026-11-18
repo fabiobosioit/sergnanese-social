@@ -83,6 +83,13 @@ public final class AppModel {
     }
   }
 
+  /// Tells the other screens that data changed behind their back (for example demo data removed
+  /// from Settings), so they reload.
+  public func didChangeData() {
+    dataRevision += 1
+    refreshWarningBadge()
+  }
+
   /// "Carica dati demo".
   public func loadDemoData() async {
     do {
