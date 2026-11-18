@@ -67,7 +67,7 @@ struct GallerySelectionTests {
     #expect(selection.isEmpty)
   }
 
-  @Test func columnCountFollowsWidth() {
+  @MainActor @Test func columnCountFollowsWidth() {
     #expect(ImageGallery<EmptyViewAlias>.columnCount(width: 100) == 1)
     #expect(ImageGallery<EmptyViewAlias>.columnCount(width: 900) > 3)
   }
