@@ -168,6 +168,11 @@ final class TemplatesViewModel {
     "\(formatDateShort(detail.match.date)) · \(detail.team.shortLabel) – \(detail.opponent.name)"
   }
 
+  /// Waits for the preview started by `refreshPreview()` to end.
+  func waitForPreview() async {
+    await previewTask?.value
+  }
+
   /// Renders the selected template with the chosen data. Newer requests win over older ones.
   func refreshPreview() {
     previewTask?.cancel()

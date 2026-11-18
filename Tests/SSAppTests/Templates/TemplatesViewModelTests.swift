@@ -150,9 +150,7 @@ struct TemplatesViewModelTests {
     #expect(model.previewMatchIDs.count == model.candidates.count)
     model.refreshPreview()
     #expect(model.isGeneratingPreview)
-    for _ in 0..<100 where model.previewURL == nil {
-      try await Task.sleep(for: .milliseconds(50))
-    }
+    await model.waitForPreview()
     #expect(model.previewURL != nil)
     #expect(!model.isGeneratingPreview)
     model.previewSource = .match(model.candidates[0].id)

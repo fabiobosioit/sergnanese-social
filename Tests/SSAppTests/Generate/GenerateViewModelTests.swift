@@ -12,6 +12,8 @@ struct GenerateViewModelTests {
   final class Probe {
     var updates: [(Int, Int)] = []
     var finished = 0
+    /// Called after each progress update; lets a test wait for "image n is in the model" without polling.
+    var onUpdate: ((Int, Int) -> Void)?
   }
 
   func makeModel(
@@ -23,7 +25,12 @@ struct GenerateViewModelTests {
       services: services, isDemo: true, defaults: UserDefaults(suiteName: "test.\(UUID().uuidString)")!,
       today: { Self.today })
     let model = GenerateViewModel(
-      app: app, progress: { probe.updates.append(($0, $1)) }, progressDone: { probe.finished += 1 })
+      app: app,
+      progress: {
+        probe.updates.append(($0, $1))
+        probe.onUpdate?($0, $1)
+      },
+      progressDone: { probe.finished += 1 })
     model.reload()
     return (model, app)
   }
@@ -131,25 +138,33 @@ struct GenerateViewModelTests {
 
   @Test func cancellingKeepsTheImagesAlreadyMade() async throws {
     let probe = Probe()
-    let (model, app) = try makeModel(delay: .milliseconds(40), probe: probe)
+    let (model, app) = try makeModel(probe: probe)
+    let renderer = try #require(app.services.renderer as? FakeRenderService)
     let total = model.totalImages
-    model.startGenerating()
-    for _ in 0..<200 where model.results.isEmpty {
-      try await Task.sleep(for: .milliseconds(10))
+    #expect(total > 1)
+    // Images after the first wait on a gate that opens only after the cancel, so the outcome does
+    // not depend on how fast the machine is.
+    let (gate, openGate) = AsyncStream.makeStream(of: Void.self)
+    renderer.beforeEachImage = { index in
+      guard index > 1 else { return }
+      for await _ in gate {}
     }
+    let (firstImage, firstImageSeen) = AsyncStream.makeStream(of: Void.self)
+    probe.onUpdate = { done, _ in if done == 1 { firstImageSeen.yield() } }
+    model.startGenerating()
+    for await _ in firstImage { break }
     model.cancel()
+    openGate.finish()  // if cancellation did not reach the run, it would now go on and make more images
     await model.waitForRun()
-    let made = model.results.count
-    #expect(made >= 1)
-    #expect(made < total)
-    #expect(model.run == .cancelled(produced: made))
+    await renderer.waitUntilIdle()
+    #expect(model.results.count == 1)
+    #expect(model.results.count < total)
+    #expect(model.run == .cancelled(produced: 1))
     #expect(probe.finished == 1)
-    // The records of the finished images are stored; no more arrive afterwards.
+    // The record of the finished image is stored; no more arrive afterwards.
     let stored = try app.services.renders.list(from: nil, to: nil)
     let newOnes = stored.filter { record in model.results.contains { $0.id == record.id } }
-    #expect(newOnes.count == made)
-    try await Task.sleep(for: .milliseconds(150))
-    #expect(model.results.count == made)
+    #expect(newOnes.count == 1)
     #expect(model.canGenerate)
   }
 
