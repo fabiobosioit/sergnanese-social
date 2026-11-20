@@ -19,7 +19,7 @@
 
 ### Primo avvio
 
-L'app non e' notarizzata da Apple, quindi macOS la blocca la prima volta. Si approva una volta sola:
+L'app non è notarizzata da Apple, quindi macOS la blocca la prima volta. Si approva una volta sola:
 
 1. Apri **Sergnanese Social** dalla cartella Applicazioni. macOS mostra un avviso e non la apre.
 2. Vai in **Impostazioni di Sistema > Privacy e sicurezza**, scorri fino alla sezione "Sicurezza".
@@ -33,7 +33,7 @@ xattr -cr "/Applications/Sergnanese Social.app"
 
 ### Aggiornare
 
-Scarica il `.dmg` della versione piu' recente dalla pagina Releases (o dal menu Aiuto > "Scarica aggiornamenti...") e trascinalo in Applicazioni, sostituendo la versione precedente. I dati non vengono toccati. La prima apertura puo' richiedere di nuovo l'approvazione.
+Scarica il `.dmg` della versione più recente dalla pagina Releases (o dal menu Aiuto > "Scarica aggiornamenti...") e trascinalo in Applicazioni, sostituendo la versione precedente. I dati non vengono toccati. La prima apertura può richiedere di nuovo l'approvazione.
 
 ### Dove sono i dati
 
@@ -41,7 +41,7 @@ Scarica il `.dmg` della versione piu' recente dalla pagina Releases (o dal menu 
 
 ### Disinstallare
 
-Sposta **Sergnanese Social** dalla cartella Applicazioni nel Cestino. Per cancellare anche i dati, sposta nel Cestino la cartella dei dati indicata sopra (e' irreversibile: fai prima una copia se serve).
+Sposta **Sergnanese Social** dalla cartella Applicazioni nel Cestino. Per cancellare anche i dati, sposta nel Cestino la cartella dei dati indicata sopra (è irreversibile: fai prima una copia se serve).
 
 ## English
 
