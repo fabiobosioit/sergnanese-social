@@ -230,3 +230,14 @@ To be filled in by the user (T3.2 acceptance requires this before the task close
 | U3 | | | |
 | U4 | | | |
 | U5 | | | |
+
+## User test of v0.1.0 (2026-11-20)
+
+Done by the user on their Mac (macOS 27) with the `.dmg` downloaded from the GitHub release in the browser:
+
+| Step | Result |
+|---|---|
+| Install and first launch | Blocked by Gatekeeper as expected, then unblocked from System Settings. Worked. |
+| Load demo data, generate the weekend images | Worked. |
+| AirDrop one image to the phone | Worked. |
+| U1–U5 (menus, drag-out, Return in Genera, VoiceOver, Full Keyboard Access) | **Not reported.** Still open; M1, M5, M6 and M11 stay open until checked. |

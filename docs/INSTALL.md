@@ -1,7 +1,7 @@
 # Installare Sergnanese Social / Installing Sergnanese Social
 
-> Stato: i passaggi del primo avvio (Gatekeeper) non sono ancora stati verificati su macOS 27 con un `.dmg` scaricato dal browser. Vanno controllati e questo file corretto.
-> Status: the first-launch (Gatekeeper) steps have not yet been checked on macOS 27 with a browser-downloaded `.dmg`. They must be verified and this file corrected.
+> Stato: i passaggi del primo avvio (Gatekeeper) sono stati verificati su macOS 27 con il `.dmg` della versione 0.1.0 scaricato dal browser (2026-11-20): macOS blocca la prima apertura, poi l'app si sblocca da Impostazioni di Sistema.
+> Status: the first-launch (Gatekeeper) steps were verified on macOS 27 with the browser-downloaded 0.1.0 `.dmg` (2026-11-20): macOS blocks the first open, then the app is unblocked from System Settings.
 
 ## Italiano
 
