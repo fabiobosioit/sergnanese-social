@@ -65,13 +65,23 @@ jobs:
         with:
           name: dmg
           path: dist
+      # actions/checkout v4.2.2 (for CHANGELOG.md and the install notes)
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
       - name: Create the release
         run: |
           set -euo pipefail
           ls -l dist
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            # The CHANGELOG section for this version (from its "## <version>" heading to the next one),
+            # followed by the install steps.
+            awk -v v="$version" '/^## /{p=($2==v)} p' CHANGELOG.md | sed '1d' > notes.md
+            if [[ ! -s notes.md ]]; then echo "No CHANGELOG.md section for $version" >&2; exit 1; fi
+            { echo "## Novità / Changes"; echo; cat notes.md; echo; sed "s|\${GH_REPO}|$GH_REPO|" .github/release-install.md; } > release-notes.md
             gh release create "$GITHUB_REF_NAME" dist/*.dmg \
-              --title "Sergnanese Social ${GITHUB_REF_NAME#v}" --generate-notes
+              --title "Sergnanese Social $version" --notes-file release-notes.md
           else
             gh release create "trial-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" dist/*.dmg \
               --draft --target "$GITHUB_SHA" \
