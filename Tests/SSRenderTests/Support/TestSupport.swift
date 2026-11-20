@@ -3,6 +3,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import SSCore
+import SSRender
 
 /// Decoded pixels of a PNG, in sRGB, row 0 at the top.
 struct Pixels {
@@ -79,4 +80,21 @@ struct FocusSnapshot: Equatable {
       visibleWindows: NSApplication.shared.windows.filter(\.isVisible).count,
       isActive: NSApplication.shared.isActive)
   }
+}
+
+/// A renderer whose web view exists and has finished one render, for the timeout tests. The first
+/// render launches WebKit's processes, which on a busy CI runner can take longer than a short
+/// timeout; a timeout test would then time out while loading and name the wrong pending condition.
+/// A timeout resets the web view, so a failed warm-up is retried with a fresh one.
+@MainActor
+func warmedUpRenderer(timeout: Duration) async throws -> WebRenderer {
+  let html = "<!doctype html><div style=\"width:200px;height:200px\"></div>"
+  let folder = try FixtureTemplates.custom(
+    in: try makeTemporaryFolder(), id: "warm-up", width: 200, height: 200, html: html)
+  let renderer = WebRenderer(timeout: timeout)
+  let page = WebRenderer.Page(html: html, templateFolder: folder, logosFolder: nil, width: 200, height: 200)
+  for _ in 0..<3 {
+    if (try? await renderer.render(page)) != nil { break }
+  }
+  return renderer
 }

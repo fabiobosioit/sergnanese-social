@@ -181,22 +181,6 @@ struct RenderDeadlineTests {
 
   // MARK: Timeout messages
 
-  /// A renderer whose web view exists and has finished one render. The first render launches
-  /// WebKit's processes, which on a busy CI runner can take longer than the short timeout of the
-  /// tests below; they would then time out while loading and name the wrong pending condition.
-  /// A timeout resets the web view, so a failed warm-up is retried with a fresh one.
-  func warmedUpRenderer(timeout: Duration) async throws -> WebRenderer {
-    let html = "<!doctype html><div style=\"width:200px;height:200px\"></div>"
-    let folder = try FixtureTemplates.custom(
-      in: try makeTemporaryFolder(), id: "warm-up", width: 200, height: 200, html: html)
-    let renderer = WebRenderer(timeout: timeout)
-    let page = WebRenderer.Page(html: html, templateFolder: folder, logosFolder: nil, width: 200, height: 200)
-    for _ in 0..<3 {
-      if (try? await renderer.render(page)) != nil { break }
-    }
-    return renderer
-  }
-
   /// A page that never becomes ready still fails, and the message says what it was waiting for.
   @Test func timeoutNamesThePendingCondition() async throws {
     let html = """
