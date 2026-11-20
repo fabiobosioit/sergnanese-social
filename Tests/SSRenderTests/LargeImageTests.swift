@@ -48,6 +48,16 @@ struct LargeImageTests {
     return misses
   }
 
+  /// Control for `changingPageStillRenders`: a page that does not change settles.
+  @Test func staticPageSettles() async throws {
+    let folder = try folder(id: "static", body: "")
+    let html = try String(contentsOf: folder.appendingPathComponent("template.html"), encoding: .utf8)
+    let renderer = WebRenderer(timeout: .seconds(60))
+    _ = try await renderer.render(
+      WebRenderer.Page(html: html, templateFolder: folder, logosFolder: nil, width: 1080, height: 1350))
+    #expect(renderer.lastSettle == .settled)
+  }
+
   @Test func largeImgIsAlwaysInTheSnapshot() async throws {
     let folder = try folder(id: "large-img", body: "<img class='crest' src='assets/crest.png' alt=''>")
     #expect(try await misses(folder) == 0)
@@ -77,23 +87,76 @@ struct LargeImageTests {
     #expect(try await misses(folder(id: "large-bg", body: body)) == 0)
   }
 
-  /// A page that never stops changing (a running CSS animation) still renders, without waiting for
-  /// the timeout, and at the exact size.
-  @Test func animatedPageStillRenders() async throws {
+  // MARK: The settle loop, without WebKit
+
+  @Test func settleLoopStopsAtTheSnapshotLimit() {
+    var loop = WebRenderer.SettleLoop(maxSnapshots: 8)
+    for index in 1..<8 {
+      #expect(loop.add(Data([UInt8(index)]), deadlineExpired: false) == nil)
+    }
+    #expect(loop.add(Data([8]), deadlineExpired: false) == .snapshotLimit)
+    #expect(loop.count == 8)
+  }
+
+  @Test func settleLoopStopsAtTwoIdenticalSnapshots() {
+    var loop = WebRenderer.SettleLoop(maxSnapshots: 8)
+    #expect(loop.add(Data([1]), deadlineExpired: false) == nil)
+    #expect(loop.add(Data([2]), deadlineExpired: false) == nil)
+    #expect(loop.add(Data([2]), deadlineExpired: false) == .settled)
+    #expect(loop.count == 3)
+  }
+
+  @Test func settleLoopNeverSettlesOnUnreadablePixels() {
+    var loop = WebRenderer.SettleLoop(maxSnapshots: 3)
+    #expect(loop.add(nil, deadlineExpired: false) == nil)
+    #expect(loop.add(nil, deadlineExpired: false) == nil)
+    #expect(loop.add(nil, deadlineExpired: false) == .snapshotLimit)
+  }
+
+  @Test func settleLoopStopsAtTheDeadline() {
+    var loop = WebRenderer.SettleLoop(maxSnapshots: 8)
+    #expect(loop.add(Data([1]), deadlineExpired: false) == nil)
+    #expect(loop.add(Data([2]), deadlineExpired: true) == .deadline)
+    #expect(loop.count == 2)
+  }
+
+  // MARK: A page that keeps changing
+
+  /// A page that never stops changing still renders, without waiting for the timeout, and at the
+  /// exact size.
+  ///
+  /// The page changes through a `MessageChannel` loop: in the hidden web view CSS animations are
+  /// paused and timers are throttled, so a page animated with those settles after all. Each message
+  /// writes a larger number into the box, so two snapshots usually differ and the settle loop stops
+  /// at `maxSnapshots` (`.snapshotLimit`).
+  ///
+  /// No wall-clock bound (it failed on loaded CI runners, like 5e8876f and a16f551). The renderer
+  /// reports how its settle loop stopped: at most `maxSnapshots` snapshots and an outcome other than
+  /// `.deadline` prove it did not wait for the timeout. `.settled` is accepted, since WebKit does
+  /// not guarantee that a hidden page runs a message between two snapshots. The cap itself is proved
+  /// with pixels that always differ, without WebKit, by `settleLoopStopsAtTheSnapshotLimit`. The
+  /// generous timeout keeps a slow runner from reaching the deadline first.
+  @Test func changingPageStillRenders() async throws {
     let html = """
       <!doctype html><html><head><style>
-      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       #root { position: relative; width: 400px; height: 300px; background: #FFFFFF; }
       #box { position: absolute; left: 150px; top: 100px; width: 100px; height: 100px; background: #0000FF;
-        animation: spin 0.3s linear infinite; }
-      </style></head><body><div id="root"><div id="box"></div></div></body></html>
+        color: #FFFFFF; font: 24px sans-serif; }
+      </style></head><body><div id="root"><div id="box"></div></div>
+      <script>
+      var n = 0, box = document.getElementById('box'), channel = new MessageChannel();
+      channel.port1.onmessage = function () { n += 1; box.textContent = n; channel.port2.postMessage(0); };
+      channel.port2.postMessage(0);
+      </script></body></html>
       """
     let folder = try FixtureTemplates.custom(
-      in: try makeTemporaryFolder(), id: "animated", width: 400, height: 300, html: html)
+      in: try makeTemporaryFolder(), id: "changing", width: 400, height: 300, html: html)
     let page = WebRenderer.Page(html: html, templateFolder: folder, logosFolder: nil, width: 400, height: 300)
-    let start = ContinuousClock.now
-    let output = try await Self.renderer.render(page)
-    #expect(ContinuousClock.now - start < .seconds(3))
+    let renderer = WebRenderer(timeout: .seconds(60))
+    let output = try await renderer.render(page)
+    let outcome = try #require(renderer.lastSettle)
+    #expect(outcome != .deadline)
+    #expect(renderer.lastSnapshotCount <= WebRenderer.maxSnapshots)
     #expect(ExactImage.pixelSize(of: output.png)?.width == 400)
     #expect(ExactImage.pixelSize(of: output.png)?.height == 300)
     #expect(try Pixels(png: output.png).hex(x: 10, y: 10) == "#FFFFFF")

@@ -67,6 +67,45 @@ public final class WebRenderer {
   /// Snapshot requests WebKit may refuse (`WKErrorUnknown`) for one image before the render fails.
   static let maxSnapshotFailures = 4
 
+  /// How the settle loop of the last successful snapshot ended (see `snapshot`). Lets tests tell a
+  /// page that stopped at `maxSnapshots` from one that ran into the deadline, without timing it.
+  private(set) var lastSettle: SettleOutcome?
+  /// Snapshots the settle loop took for the last successful image (failed requests not counted).
+  private(set) var lastSnapshotCount = 0
+
+  /// Why the settle loop stopped taking snapshots.
+  enum SettleOutcome: Equatable {
+    /// Two snapshots in a row had identical pixels.
+    case settled
+    /// The page kept changing until `maxSnapshots` were taken.
+    case snapshotLimit
+    /// The deadline passed before either of the above.
+    case deadline
+  }
+
+  /// The settle loop's decision, apart from WebKit so that tests can feed it pixels.
+  struct SettleLoop {
+    let maxSnapshots: Int
+    private var previous: Data?
+    /// Snapshots added so far.
+    private(set) var count = 0
+
+    init(maxSnapshots: Int) {
+      self.maxSnapshots = maxSnapshots
+    }
+
+    /// Adds the pixels of one snapshot (`nil` when unreadable, never equal to anything) and returns
+    /// why the loop stops now, or `nil` to take another snapshot.
+    mutating func add(_ pixels: Data?, deadlineExpired: Bool) -> SettleOutcome? {
+      count += 1
+      defer { previous = pixels }
+      if pixels != nil && pixels == previous { return .settled }
+      if count >= maxSnapshots { return .snapshotLimit }
+      if deadlineExpired { return .deadline }
+      return nil
+    }
+  }
+
   private var engine: Engine?
   private let gate = SerialGate()
   private var loadCounter = 0
@@ -240,8 +279,7 @@ public final class WebRenderer {
     let factor = max(page.width, page.height) * Self.supersampling <= 8192 ? Self.supersampling : 1
     configuration.snapshotWidth = NSNumber(value: Double(page.width * factor) / Double(scale))
 
-    var previous: Data?
-    var count = 0
+    var loop = SettleLoop(maxSnapshots: Self.maxSnapshots)
     var failures = 0
     while true {
       let image: NSImage
@@ -257,16 +295,16 @@ public final class WebRenderer {
         try? await Task.sleep(for: Self.settleInterval)
         continue
       }
-      count += 1
       guard let bitmap = ExactImage.largestBitmap(of: image) else {
         throw AppError.render(message: RenderStrings.snapshotFailed)
       }
       let pixels = bitmap.dataProvider?.data as Data?
-      let settled = pixels != nil && pixels == previous
-      if settled || count >= Self.maxSnapshots || deadline.isExpired {
-        return try ExactImage.exactPNG(from: bitmap, width: page.width, height: page.height)
+      if let outcome = loop.add(pixels, deadlineExpired: deadline.isExpired) {
+        let png = try ExactImage.exactPNG(from: bitmap, width: page.width, height: page.height)
+        lastSettle = outcome
+        lastSnapshotCount = loop.count
+        return png
       }
-      previous = pixels
       try? await Task.sleep(for: Self.settleInterval)
     }
   }
