@@ -174,6 +174,11 @@ struct WebRendererTests {
     #expect(try Pixels(png: output.png).centreHex == "#00FF00")
   }
 
+  /// A page that never becomes ready fails with the timeout error instead of hanging, and the
+  /// renderer works again afterwards. No wall-clock bound: the deadline deliberately does not count
+  /// time in which the main actor is busy, so on a loaded CI runner a 2 s timeout can take far longer
+  /// to pass (see `RenderDeadline`; its accounting is tested in `RenderDeadlineTests`). The timeout
+  /// error itself is the proof that the deadline expired: nothing else produces it.
   @Test func neverReadyFailsWithAClearTimeout() async throws {
     let html = """
       <!doctype html><div style="width:200px;height:200px"></div>
@@ -181,14 +186,14 @@ struct WebRendererTests {
       """
     let folder = try FixtureTemplates.custom(
       in: try makeTemporaryFolder(), id: "stuck", width: 200, height: 200, html: html)
-    let renderer = WebRenderer(timeout: .seconds(1))
-    let start = ContinuousClock.now
+    // Warmed up, so that a slow first WebKit launch cannot use up the budget while loading and change
+    // the pending condition the message names.
+    let renderer = try await warmedUpRenderer(timeout: .seconds(2))
     await #expect(
-      throws: AppError.render(message: RenderStrings.timeout(seconds: 1, pending: [RenderStrings.pendingReady]))
+      throws: AppError.render(message: RenderStrings.timeout(seconds: 2, pending: [RenderStrings.pendingReady]))
     ) {
       _ = try await renderer.render(page(folder, width: 200, height: 200))
     }
-    #expect(ContinuousClock.now - start < .seconds(5))
     // The renderer recovers with a new web view.
     let ok = try FixtureTemplates.custom(
       in: try makeTemporaryFolder(), id: "ok", width: 200, height: 200,
