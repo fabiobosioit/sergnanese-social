@@ -341,7 +341,7 @@ Errors: one `AppError` enum (`validation(field, message)`, `conflict(message)`, 
 
 ## 8. Security notes
 
-- No network listener of any kind. The app makes no network request in v0.1.0 except opening the Releases page in the browser when the user asks.
+- No network listener of any kind. The app makes no network request in v0.1.0. It only opens pages in the browser when the user asks: the Releases page, the user guide and the template guide on github.com.
 - Template web views: custom scheme limited to two folders, all remote requests blocked, non-persistent store, no script message handlers (template JavaScript cannot call into the app).
 - Template imports: reject absolute paths, `..` and symlinks; cap size and file count.
 - Logos: SVG files are rasterised to PNG on import, so no script-bearing SVG is ever stored.

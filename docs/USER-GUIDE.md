@@ -76,7 +76,7 @@ e puoi premere **Rigenera** su quella immagine.
 
 ### 5. Controlla il risultato
 
-Clicca un'immagine e premi **Spazio** (oppure **Invio**, o ⌘Y) per aprire l'**Anteprima rapida** a schermo intero.
+Clicca un'immagine e premi **Spazio** (oppure **Invio**, o ⌘Y) per aprire l'**Anteprima rapida**, un pannello con l'immagine ingrandita.
 Con ⇧ o ⌘ puoi selezionarne più d'una. Con le frecce ti sposti tra le immagini.
 
 Controlla in particolare:
@@ -89,13 +89,13 @@ Se qualcosa non va, torna in **Partite**, correggi il dato e genera di nuovo sol
 
 ### 6. Manda le immagini al telefono
 
-Seleziona le immagini, poi scegli **Condividi…** (dal pulsante della barra, dal menu **Immagini** o dal menu
+Seleziona le immagini, poi scegli **Condividi…** (dal menu **Immagini** o dal menu
 che compare col tasto destro). Si apre il foglio di condivisione di macOS.
 
 **Per il telefono usa AirDrop**: scegli il nome del telefono nell'elenco AirDrop. Sul telefono accetta il trasferimento:
 le immagini finiscono in **Foto**, da lì si pubblicano su Instagram o Facebook.
 
-Puoi anche condividere tutte le immagini di una generazione con **Condividi tutte**, nella sezione Risultato.
+Puoi anche condividere tutte le immagini di una generazione con **Condividi tutte**, il pulsante nella barra degli strumenti di Genera.
 
 Le immagini restano sul disco anche dopo la condivisione. Nel menu **Immagini** c'è **Mostra nel Finder** (⇧⌘R)
 per aprirle nella cartella in cui sono state salvate. Con **Immagini › Copia immagine** puoi copiarle negli appunti.
