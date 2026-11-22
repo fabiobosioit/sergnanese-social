@@ -3,6 +3,10 @@ import Testing
 
 @testable import SSData
 
+private let idA = "aaaaaaaa-1111-2222-3333-444444444444"
+private let idAUpper = idA.uppercased()
+private let idB = "bbbbbbbb-1111-2222-3333-444444444444"
+
 @Suite struct TeamRepositoryTests {
   @Test func firstTeamEverCreatedGetsTheFlagAndSortOrderCountsUp() throws {
     let db = try AppDatabase.inMemory()
@@ -88,5 +92,60 @@ import Testing
     #expect(teams.map(\.sortOrder) == [0, 1])
     #expect(throws: AppError.self) { try f.db.teams.reorder(ids: [f.first.id]) }
     #expect(throws: AppError.self) { try f.db.teams.reorder(ids: [f.first.id, f.first.id]) }
+  }
+
+  @Test func widgetIDIsStoredUpdatedAndCleared() throws {
+    let db = try AppDatabase.inMemory()
+    let a = try db.teams.create(TeamDraft(name: "A", shortLabel: "A", tuttocampoWidgetID: idA))
+    #expect(a.tuttocampoWidgetID == idA)
+    #expect(try db.teams.get(id: a.id).tuttocampoWidgetID == idA)
+    let moved = try db.teams.update(
+      id: a.id, with: TeamDraft(name: "A", shortLabel: "A", isFirstTeam: true, tuttocampoWidgetID: idB))
+    #expect(moved.tuttocampoWidgetID == idB)
+    let cleared = try db.teams.update(
+      id: a.id, with: TeamDraft(name: "A", shortLabel: "A", isFirstTeam: true, tuttocampoWidgetID: ""))
+    #expect(cleared.tuttocampoWidgetID == nil)
+    #expect(try db.teams.get(id: a.id).tuttocampoWidgetID == nil)
+  }
+
+  @Test func pastedWidgetAddressIsStoredAsTheBareID() throws {
+    let db = try AppDatabase.inMemory()
+    let a = try db.teams.create(
+      TeamDraft(
+        name: "A", shortLabel: "A",
+        tuttocampoWidgetID: "https://www.tuttocampo.it/WidgetV2/Risultati/\(idA)"))
+    #expect(a.tuttocampoWidgetID == idA)
+  }
+
+  @Test func duplicateWidgetIDIgnoringCaseIsRefusedNamingTheOtherTeam() throws {
+    let db = try AppDatabase.inMemory()
+    _ = try db.teams.create(TeamDraft(name: "Prima Squadra", shortLabel: "P", tuttocampoWidgetID: idA))
+    let b = try db.teams.create(TeamDraft(name: "B", shortLabel: "B"))
+    let expected = AppError.widgetIDInUse(by: "Prima Squadra")
+    #expect(throws: expected) {
+      try db.teams.create(TeamDraft(name: "C", shortLabel: "C", tuttocampoWidgetID: idAUpper))
+    }
+    #expect(throws: expected) {
+      try db.teams.update(id: b.id, with: TeamDraft(name: "B", shortLabel: "B", tuttocampoWidgetID: idAUpper))
+    }
+    #expect(try db.teams.list().count == 2)
+  }
+
+  @Test func aTeamMaySaveItsOwnWidgetIDAgain() throws {
+    let db = try AppDatabase.inMemory()
+    let a = try db.teams.create(TeamDraft(name: "A", shortLabel: "A", tuttocampoWidgetID: idA))
+    let saved = try db.teams.update(
+      id: a.id, with: TeamDraft(name: "A2", shortLabel: "A", isFirstTeam: true, tuttocampoWidgetID: idAUpper))
+    #expect(saved.tuttocampoWidgetID == idAUpper)
+  }
+
+  @Test func invalidWidgetIDIsAValidationError() throws {
+    let db = try AppDatabase.inMemory()
+    do {
+      _ = try db.teams.create(TeamDraft(name: "A", shortLabel: "A", tuttocampoWidgetID: "not an id!"))
+      Issue.record("expected a validation error")
+    } catch AppError.validation(let field, _) {
+      #expect(field == .tuttocampoWidgetID)
+    }
   }
 }

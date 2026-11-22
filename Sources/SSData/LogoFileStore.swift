@@ -28,6 +28,13 @@ public struct LogoFileStore: LogoStore {
     try store(data, replacing: replacing)
   }
 
+  public func importLogo(data: Data, fileName: String, replacing: String?) async throws -> String {
+    guard isValidImportedLogoFileName(fileName) else {
+      throw AppError.validation(field: .logo, message: DataStrings.invalidLogoFileName(fileName))
+    }
+    return try store(data, replacing: replacing, as: fileName)
+  }
+
   public func remove(fileName: String) throws {
     // A stored name never contains a path; refuse anything that does, so a bad value cannot reach
     // outside the logos folder.
@@ -45,14 +52,14 @@ public struct LogoFileStore: LogoStore {
 
   // MARK: Conversion
 
-  private func store(_ data: Data, replacing: String?) throws -> String {
+  private func store(_ data: Data, replacing: String?, as chosenName: String? = nil) throws -> String {
     guard data.count <= Self.maxBytes else {
       throw AppError.validation(field: .logo, message: DataStrings.logoTooLarge)
     }
     guard let png = Self.pngData(from: data) else {
       throw AppError.validation(field: .logo, message: DataStrings.logoNotImage)
     }
-    let name = "\(newEntityID().lowercased()).png"
+    let name = chosenName ?? "\(newEntityID().lowercased()).png"
     let target = url(for: name)
     do {
       try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

@@ -131,6 +131,15 @@ public final class AppDatabase: Sendable {
           CREATE INDEX renders_date ON renders(date);
           """)
     }
+    // T4.2: the tuttocampo.it widget of a team. Unique ignoring case; many teams may have none.
+    migrator.registerMigration("v2") { db in
+      try db.execute(
+        sql: """
+          ALTER TABLE teams ADD COLUMN tuttocampo_widget_id TEXT;
+          CREATE UNIQUE INDEX teams_tuttocampo_widget_id
+            ON teams(tuttocampo_widget_id COLLATE NOCASE) WHERE tuttocampo_widget_id IS NOT NULL;
+          """)
+    }
     return migrator
   }
 

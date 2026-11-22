@@ -28,7 +28,7 @@ import Testing
     let migrationsBefore = try first.queue.read { db in
       try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations")
     }
-    #expect(migrationsBefore == ["v1"])
+    #expect(migrationsBefore == ["v1", "v2"])
 
     let second = try AppDatabase.open(at: url)
     let schemaAfter = try second.queue.read { db in
@@ -37,7 +37,9 @@ import Testing
     #expect(schemaAfter == schemaBefore)
     #expect(try second.teams.list() == [team])
     #expect(
-      try second.queue.read { db in try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations") } == ["v1"])
+      try second.queue.read { db in try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations") } == [
+        "v1", "v2",
+      ])
   }
 
   @Test func foreignKeysAreOn() throws {
@@ -88,5 +90,41 @@ import Testing
     _ = try AppDatabase.open(paths: paths)
     #expect(AppDatabase.backupFiles(in: paths.backups).count == 1)
     #expect(paths.latestBackupDate() != nil)
+  }
+
+  @Test func previousSchemaMigratesKeepingDataAndReopeningChangesNothing() throws {
+    let folder = try makeTempFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let url = folder.appendingPathComponent("db.sqlite")
+    let legacy = try DatabaseQueue(path: url.path, configuration: AppDatabase.configuration)
+    try AppDatabase.migrator.migrate(legacy, upTo: "v1")
+    try legacy.write { db in
+      try db.execute(
+        sql:
+          "INSERT INTO teams (id, name, short_label, sort_order, is_first_team, is_active) VALUES ('t1', 'Prima', 'P', 0, 1, 1)"
+      )
+      try db.execute(sql: "INSERT INTO opponents (id, name) VALUES ('o1', 'Rossi')")
+      try db.execute(
+        sql: """
+          INSERT INTO matches (id, team_id, opponent_id, date, is_home, status, source, created_at, updated_at)
+          VALUES ('m1', 't1', 'o1', '2026-11-21', 1, 'scheduled', 'manual', 0, 0)
+          """)
+    }
+    try legacy.close()
+
+    let db = try AppDatabase.open(at: url)
+    let teams = try db.teams.list()
+    #expect(teams.map(\.id) == ["t1"])
+    #expect(teams.allSatisfy { $0.tuttocampoWidgetID == nil })
+    #expect(try db.matches.get(id: "m1").match.teamID == "t1")
+    let schema = try db.queue.read { db in
+      try String.fetchAll(db, sql: "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY name")
+    }
+    let again = try AppDatabase.open(at: url)
+    let schemaAgain = try again.queue.read { db in
+      try String.fetchAll(db, sql: "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY name")
+    }
+    #expect(schema == schemaAgain)
+    #expect(try again.teams.list() == teams)
   }
 }

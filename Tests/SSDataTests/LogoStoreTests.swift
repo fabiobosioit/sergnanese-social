@@ -113,4 +113,38 @@ import UniformTypeIdentifiers
     let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
     #expect(leftovers.isEmpty)
   }
+
+  @Test func namedImportIsAPNGReplacesSameNameAndRemovesReplaced() async throws {
+    let folder = try makeTempFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let store = LogoFileStore(folder: folder)
+    let old = try await store.importLogo(data: jpeg(width: 100, height: 100), replacing: nil)
+    let name = try await store.importLogo(data: jpeg(width: 3000, height: 2000), fileName: "917410.png", replacing: old)
+    #expect(name == "917410.png")
+    let size = try assertPNG(store, name)
+    #expect(size.width == 1024)
+    #expect(!FileManager.default.fileExists(atPath: store.url(for: old).path))
+
+    let again = try await store.importLogo(
+      data: jpeg(width: 200, height: 200), fileName: "917410.png", replacing: "917410.png")
+    #expect(again == "917410.png")
+    #expect(try assertPNG(store, again).width == 200)
+    #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path) == ["917410.png"])
+  }
+
+  @Test func namedImportRefusesBadNamesAndWritesNothing() async throws {
+    let folder = try makeTempFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let store = LogoFileStore(folder: folder.appendingPathComponent("logos"))
+    for bad in ["../x.png", "917410.jpg", "abc.png"] {
+      do {
+        _ = try await store.importLogo(data: jpeg(width: 50, height: 50), fileName: bad, replacing: nil)
+        Issue.record("expected \(bad) to be refused")
+      } catch AppError.validation(let field, _) {
+        #expect(field == .logo)
+      }
+    }
+    #expect(!FileManager.default.fileExists(atPath: folder.appendingPathComponent("logos").path))
+    #expect(!FileManager.default.fileExists(atPath: folder.appendingPathComponent("x.png").path))
+  }
 }

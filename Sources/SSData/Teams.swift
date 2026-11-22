@@ -7,7 +7,8 @@ extension Team {
     self.init(
       id: row[prefix + "id"], name: row[prefix + "name"], shortLabel: row[prefix + "short_label"],
       sortOrder: row[prefix + "sort_order"], isFirstTeam: row[prefix + "is_first_team"],
-      isActive: row[prefix + "is_active"])
+      isActive: row[prefix + "is_active"],
+      tuttocampoWidgetID: row[prefix + "tuttocampo_widget_id"])
   }
 }
 
@@ -25,6 +26,7 @@ struct TeamStore: TeamRepository {
   func create(_ draft: TeamDraft) throws -> Team {
     let draft = try draft.validated()
     return try database.write { db in
+      try Self.checkWidgetID(db, draft.tuttocampoWidgetID, excluding: nil)
       let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM teams") ?? 0
       let maxOrder = try Int.fetchOne(db, sql: "SELECT MAX(sort_order) FROM teams")
       // The first team ever created is the first team, whatever the draft says.
@@ -32,13 +34,16 @@ struct TeamStore: TeamRepository {
       if isFirst { try db.execute(sql: "UPDATE teams SET is_first_team = 0") }
       let team = Team(
         id: newEntityID(), name: draft.name, shortLabel: draft.shortLabel, sortOrder: (maxOrder ?? -1) + 1,
-        isFirstTeam: isFirst, isActive: draft.isActive)
+        isFirstTeam: isFirst, isActive: draft.isActive, tuttocampoWidgetID: draft.tuttocampoWidgetID)
       try db.execute(
         sql: """
-          INSERT INTO teams (id, name, short_label, sort_order, is_first_team, is_active)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO teams (id, name, short_label, sort_order, is_first_team, is_active, tuttocampo_widget_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
           """,
-        arguments: [team.id, team.name, team.shortLabel, team.sortOrder, team.isFirstTeam, team.isActive])
+        arguments: [
+          team.id, team.name, team.shortLabel, team.sortOrder, team.isFirstTeam, team.isActive,
+          team.tuttocampoWidgetID,
+        ])
       return team
     }
   }
@@ -48,12 +53,18 @@ struct TeamStore: TeamRepository {
     return try database.write { db in
       let existing = try Self.fetch(db, id: id)
       if existing.isFirstTeam && !draft.isFirstTeam { throw AppError.firstTeamRequired }
+      try Self.checkWidgetID(db, draft.tuttocampoWidgetID, excluding: id)
       if draft.isFirstTeam {
         try db.execute(sql: "UPDATE teams SET is_first_team = 0 WHERE id <> ?", arguments: [id])
       }
       try db.execute(
-        sql: "UPDATE teams SET name = ?, short_label = ?, is_first_team = ?, is_active = ? WHERE id = ?",
-        arguments: [draft.name, draft.shortLabel, draft.isFirstTeam, draft.isActive, id])
+        sql: """
+          UPDATE teams SET name = ?, short_label = ?, is_first_team = ?, is_active = ?, tuttocampo_widget_id = ?
+          WHERE id = ?
+          """,
+        arguments: [
+          draft.name, draft.shortLabel, draft.isFirstTeam, draft.isActive, draft.tuttocampoWidgetID, id,
+        ])
       return try Self.fetch(db, id: id)
     }
   }
@@ -79,6 +90,16 @@ struct TeamStore: TeamRepository {
         try db.execute(sql: "UPDATE teams SET sort_order = ? WHERE id = ?", arguments: [order, id])
       }
     }
+  }
+
+  /// Throws `AppError.widgetIDInUse(by:)` when another team has `widgetID` (ignoring case). The unique
+  /// index is only the safety net.
+  static func checkWidgetID(_ db: Database, _ widgetID: String?, excluding id: EntityID?) throws {
+    guard let widgetID else { return }
+    let owner = try String.fetchOne(
+      db, sql: "SELECT name FROM teams WHERE tuttocampo_widget_id = ? COLLATE NOCASE AND id IS NOT ?",
+      arguments: [widgetID, id])
+    if let owner { throw AppError.widgetIDInUse(by: owner) }
   }
 
   static func all(_ db: Database) throws -> [Team] {
