@@ -1,7 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-let libraries = ["SSCore", "SSCoreFakes", "SSData", "SSTemplates", "SSRender", "SSSeed", "SSApp"]
+let libraries = ["SSCore", "SSCoreFakes", "SSData", "SSTemplates", "SSRender", "SSSeed", "SSApp", "SSImport"]
 let allLibraries: [Target.Dependency] = libraries.map { .target(name: $0) }
 
 let package = Package(
@@ -11,6 +11,7 @@ let package = Package(
     .package(url: "https://github.com/groue/GRDB.swift.git", exact: "7.12.0"),
     .package(url: "https://github.com/hummingbird-project/swift-mustache.git", exact: "2.1.1"),
     .package(url: "https://github.com/weichsel/ZIPFoundation.git", exact: "0.9.20"),
+    .package(url: "https://github.com/scinfu/SwiftSoup.git", exact: "2.14.4"),
   ],
   targets: [
     .target(name: "SSCore"),
@@ -21,6 +22,7 @@ let package = Package(
       name: "SSRender",
       dependencies: ["SSCore", "SSTemplates", .product(name: "Mustache", package: "swift-mustache")]),
     .target(name: "SSSeed", dependencies: ["SSCore"]),
+    .target(name: "SSImport", dependencies: ["SSCore", .product(name: "SwiftSoup", package: "SwiftSoup")]),
     .target(name: "SSApp", dependencies: ["SSCore", "SSCoreFakes"]),
     .executableTarget(name: "SergnaneseSocial", dependencies: allLibraries),
     .executableTarget(name: "ss-tool", dependencies: allLibraries),
@@ -29,6 +31,7 @@ let package = Package(
     .testTarget(name: "SSDataTests", dependencies: ["SSData", "SSCoreFakes"]),
     .testTarget(name: "SSTemplatesTests", dependencies: ["SSTemplates", "SSCoreFakes"]),
     .testTarget(name: "SSRenderTests", dependencies: ["SSRender", "SSCoreFakes"]),
+    .testTarget(name: "SSImportTests", dependencies: ["SSImport", "SSCoreFakes"]),
     .testTarget(name: "SSSeedTests", dependencies: ["SSSeed", "SSCoreFakes"]),
     .testTarget(name: "SSAppTests", dependencies: ["SSApp", "SSCoreFakes"]),
     .testTarget(name: "IntegrationTests", dependencies: allLibraries),
