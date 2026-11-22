@@ -20,6 +20,13 @@ enum TeamsStrings {
   static let makeFirstTeam = "Imposta come prima squadra"
   static let firstTeamHelp = "La prima squadra è sempre una: sceglierne un'altra sposta il marcatore."
   static let deleteMenu = "Elimina…"
+  static let editMenu = "Modifica…"
+  static let editTitle = "Modifica squadra"
+  static let save = "Salva"
+  static let widgetField = "ID widget Tuttocampo"
+  static let widgetPrompt = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  static let widgetHelp = "Incolla l'ID o l'indirizzo del widget dei risultati"
+  static let widgetSet = "Importata da Tuttocampo"
   static func deleteTitle(_ name: String) -> String { "Eliminare \(name)?" }
   static let deleteMessage = "L'operazione non si può annullare."
   static let moveUp = "Sposta su"

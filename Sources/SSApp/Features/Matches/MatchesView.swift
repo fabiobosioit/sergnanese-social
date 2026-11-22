@@ -7,15 +7,20 @@ public struct MatchesView: View {
   let app: AppModel
   @ViewState private var model: MatchesViewModel
   @ViewState private var isInspectorShown = false
+  @ViewState private var importModel: ImportModel
   @FocusState private var searchFocused: Bool
 
   public init(app: AppModel) {
     self.app = app
     _model = ViewState(initialValue: MatchesViewModel(app: app))
+    let importModel = ImportModel(services: app.services)
+    importModel.onDataChanged = { [weak app] in app?.didChangeData() }
+    _importModel = ViewState(initialValue: importModel)
   }
 
   public var body: some View {
     @Bindable var vm = model
+    @Bindable var importer = importModel
     content(vm)
       .safeAreaInset(edge: .bottom, spacing: 0) { summaryBar }
       .inspector(isPresented: $isInspectorShown) {
@@ -34,16 +39,28 @@ public struct MatchesView: View {
           NewMatchSheet(initial: initial, model: vm)
         }
       }
+      .sheet(
+        isPresented: Binding(get: { importer.isPresented }, set: { if !$0 { importer.dismiss() } })
+      ) {
+        ImportSheet(model: importer)
+      }
       .confirmDelete(vm.deleteTitle, isPresented: $vm.isConfirmingDelete, onConfirm: vm.confirmDelete)
-      .onAppear { vm.reload() }
+      .onAppear {
+        vm.reload()
+        importer.refreshAvailability()
+      }
       .onChange(of: app.weekend) { vm.reload() }
-      .onChange(of: app.dataRevision) { vm.reload() }
+      .onChange(of: app.dataRevision) {
+        vm.reload()
+        importer.refreshAvailability()
+      }
       .onChange(of: vm.selection) { isInspectorShown = vm.selection.count == 1 }
       .publishCommand(.newMatch) { vm.beginNewMatch() }
       .publishCommand(.duplicate, enabled: !vm.selection.isEmpty) { vm.duplicate(vm.selection) }
       .publishCommand(.delete, enabled: !vm.selection.isEmpty) { vm.requestDelete(vm.selection) }
       .publishCommand(.generate) { vm.openGenerate() }
       .publishCommand(.find) { searchFocused = true }
+      .publishCommand(.importTuttocampo, enabled: importer.canStart) { importer.present() }
   }
 
   // MARK: Content
@@ -211,6 +228,15 @@ public struct MatchesView: View {
         Label(MatchesStrings.add, systemImage: "plus")
       }
       .help(MatchesStrings.addHelp)
+    }
+    ToolbarItem {
+      Button {
+        importModel.present()
+      } label: {
+        Label(AppStrings.Menu.importTuttocampo, systemImage: "arrow.down.circle")
+      }
+      .disabled(!importModel.canStart)
+      .help(importModel.unavailableReason ?? ImportStrings.toolbarHelp)
     }
     ToolbarItem {
       Menu {
