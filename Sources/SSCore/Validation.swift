@@ -34,13 +34,17 @@ extension AppError {
     field: .isFirstTeam, message: CoreStrings.firstTeamRequired)
   /// Thrown by `TeamRepository.delete` for the first team while other teams exist.
   public static let firstTeamCannotBeDeleted = AppError.conflict(message: CoreStrings.firstTeamCannotBeDeleted)
+  /// Thrown by `TeamRepository.create` and `update` when `teamName` already uses the widget id.
+  public static func widgetIDInUse(by teamName: String) -> AppError {
+    .validation(field: .tuttocampoWidgetID, message: CoreStrings.widgetIDInUse(teamName))
+  }
 }
 
 /// The fields a validation problem can point at. Forms use it to show the message next to the
 /// right control.
 public enum ValidationField: String, Sendable, Codable, CaseIterable {
   // Team
-  case name, shortLabel, isFirstTeam
+  case name, shortLabel, isFirstTeam, tuttocampoWidgetID
   // Opponent
   case shortName, aliases, logo
   // Match
@@ -110,6 +114,11 @@ extension TeamDraft: Validatable {
     var draft = self
     draft.name = draft.name.collapsedWhitespace
     draft.shortLabel = draft.shortLabel.collapsedWhitespace
+    if let text = draft.tuttocampoWidgetID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty {
+      draft.tuttocampoWidgetID = SSCore.tuttocampoWidgetID(from: text) ?? text
+    } else {
+      draft.tuttocampoWidgetID = nil
+    }
     return draft
   }
 
@@ -117,6 +126,9 @@ extension TeamDraft: Validatable {
     var problems: [FieldProblem] = []
     problems.appendRequired(name, field: .name, max: FieldLimits.teamName)
     problems.appendRequired(shortLabel, field: .shortLabel, max: FieldLimits.teamShortLabel)
+    if let tuttocampoWidgetID, !isValidTuttocampoWidgetID(tuttocampoWidgetID) {
+      problems.append(FieldProblem(field: .tuttocampoWidgetID, message: CoreStrings.invalidWidgetID))
+    }
     return problems
   }
 }

@@ -17,6 +17,10 @@ import Foundation
 ///   `AppError.firstTeamRequired`: choose another first team instead.
 /// - `delete` of the first team throws `AppError.firstTeamCannotBeDeleted` while other teams exist
 ///   (deleting the only team is allowed).
+///
+/// Widget-id rule (T4.2): `create` and `update` throw `AppError.validation(field: .tuttocampoWidgetID, …)`
+/// with `AppError.widgetIDInUse(by:)` when another team already has the same `tuttocampoWidgetID`
+/// (compared ignoring case).
 public protocol TeamRepository: Sendable {
   /// All teams, ordered by `sortOrder`.
   func list() throws -> [Team]

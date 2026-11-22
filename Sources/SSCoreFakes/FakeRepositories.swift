@@ -96,13 +96,14 @@ public struct FakeTeamRepository: TeamRepository {
 
   public func create(_ draft: TeamDraft) throws -> Team {
     let draft = try draft.validated()
-    return database.write { state in
+    return try database.write { state in
+      try checkWidgetID(draft.tuttocampoWidgetID, of: nil, in: state)
       let isFirstTeam = draft.isFirstTeam || !state.teams.contains(where: \.isFirstTeam)
       if isFirstTeam { clearFirstTeam(in: &state) }
       let team = Team(
         id: newEntityID(), name: draft.name, shortLabel: draft.shortLabel,
         sortOrder: (state.teams.map(\.sortOrder).max() ?? -1) + 1, isFirstTeam: isFirstTeam,
-        isActive: draft.isActive)
+        isActive: draft.isActive, tuttocampoWidgetID: draft.tuttocampoWidgetID)
       state.teams.append(team)
       return team
     }
@@ -113,11 +114,13 @@ public struct FakeTeamRepository: TeamRepository {
     return try database.write { state in
       guard let index = state.teams.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
       if state.teams[index].isFirstTeam && !draft.isFirstTeam { throw AppError.firstTeamRequired }
+      try checkWidgetID(draft.tuttocampoWidgetID, of: id, in: state)
       if draft.isFirstTeam { clearFirstTeam(in: &state) }
       state.teams[index].name = draft.name
       state.teams[index].shortLabel = draft.shortLabel
       state.teams[index].isFirstTeam = draft.isFirstTeam
       state.teams[index].isActive = draft.isActive
+      state.teams[index].tuttocampoWidgetID = draft.tuttocampoWidgetID
       return state.teams[index]
     }
   }
@@ -146,6 +149,16 @@ public struct FakeTeamRepository: TeamRepository {
 
   private func clearFirstTeam(in state: inout FakeDatabase.State) {
     for index in state.teams.indices { state.teams[index].isFirstTeam = false }
+  }
+
+  /// The widget-id rule: no other team may use the same id (ignoring case).
+  private func checkWidgetID(_ widgetID: String?, of teamID: EntityID?, in state: FakeDatabase.State) throws {
+    guard let widgetID else { return }
+    if let other = state.teams.first(where: {
+      $0.id != teamID && $0.tuttocampoWidgetID?.caseInsensitiveCompare(widgetID) == .orderedSame
+    }) {
+      throw AppError.widgetIDInUse(by: other.name)
+    }
   }
 }
 

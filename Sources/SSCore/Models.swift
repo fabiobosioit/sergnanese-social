@@ -176,9 +176,16 @@ public struct Team: Sendable, Codable, Equatable, Hashable, Identifiable {
   /// Exactly one team is the first team; the repository keeps it that way.
   public var isFirstTeam: Bool
   public var isActive: Bool
+  /// The id of the team's tuttocampo.it widget (T4.2), the `<id>` in
+  /// `https://www.tuttocampo.it/WidgetV2/Risultati/<id>`; one id serves the Risultati and Classifica
+  /// widgets. `nil` = the team is not imported from Tuttocampo. Always a valid id
+  /// (`isValidTuttocampoWidgetID`) and never shared with another team (`TeamRepository`). Absent from
+  /// older JSON, which decodes as `nil`.
+  public var tuttocampoWidgetID: String?
 
   public init(
-    id: EntityID, name: String, shortLabel: String, sortOrder: Int, isFirstTeam: Bool, isActive: Bool
+    id: EntityID, name: String, shortLabel: String, sortOrder: Int, isFirstTeam: Bool, isActive: Bool,
+    tuttocampoWidgetID: String? = nil
   ) {
     self.id = id
     self.name = name
@@ -186,6 +193,7 @@ public struct Team: Sendable, Codable, Equatable, Hashable, Identifiable {
     self.sortOrder = sortOrder
     self.isFirstTeam = isFirstTeam
     self.isActive = isActive
+    self.tuttocampoWidgetID = tuttocampoWidgetID
   }
 }
 
@@ -407,16 +415,24 @@ public struct TeamDraft: Sendable, Codable, Equatable, Hashable {
   public var shortLabel: String
   public var isFirstTeam: Bool
   public var isActive: Bool
+  /// A bare widget id or a pasted widget address; `normalized()` keeps only the id, empty becomes `nil`.
+  public var tuttocampoWidgetID: String?
 
-  public init(name: String = "", shortLabel: String = "", isFirstTeam: Bool = false, isActive: Bool = true) {
+  public init(
+    name: String = "", shortLabel: String = "", isFirstTeam: Bool = false, isActive: Bool = true,
+    tuttocampoWidgetID: String? = nil
+  ) {
     self.name = name
     self.shortLabel = shortLabel
     self.isFirstTeam = isFirstTeam
     self.isActive = isActive
+    self.tuttocampoWidgetID = tuttocampoWidgetID
   }
 
   public init(_ team: Team) {
-    self.init(name: team.name, shortLabel: team.shortLabel, isFirstTeam: team.isFirstTeam, isActive: team.isActive)
+    self.init(
+      name: team.name, shortLabel: team.shortLabel, isFirstTeam: team.isFirstTeam, isActive: team.isActive,
+      tuttocampoWidgetID: team.tuttocampoWidgetID)
   }
 }
 

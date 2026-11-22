@@ -15,7 +15,8 @@
       "shortLabel": "Prima Squadra",
       "sortOrder": 0,
       "isFirstTeam": true,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000001"
     },
     {
       "id": "CAD30E64-0126-5940-8B6D-B0CA218E4361",
@@ -23,7 +24,8 @@
       "shortLabel": "Juniores",
       "sortOrder": 1,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000002"
     },
     {
       "id": "34B6D42C-D71D-59C9-B3AE-286740C62575",
@@ -31,7 +33,8 @@
       "shortLabel": "Allievi U17",
       "sortOrder": 2,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000003"
     },
     {
       "id": "A58E78F2-A649-5C69-8BE6-468C0FBD8FF4",
@@ -39,7 +42,8 @@
       "shortLabel": "Allievi U16",
       "sortOrder": 3,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000004"
     },
     {
       "id": "480C8298-6E24-598B-B95E-00B2B7E7D85D",
@@ -47,7 +51,8 @@
       "shortLabel": "Giov. U15",
       "sortOrder": 4,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000005"
     },
     {
       "id": "F9F35786-9254-5995-ADCC-E2F551390317",
@@ -55,7 +60,8 @@
       "shortLabel": "Giov. U14",
       "sortOrder": 5,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000006"
     },
     {
       "id": "0971C19F-1BBF-5EC8-821C-D9F7BFDA0FB8",
@@ -63,7 +69,8 @@
       "shortLabel": "Esordienti",
       "sortOrder": 6,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000007"
     },
     {
       "id": "FF8EB2B5-A4C4-55EF-BD6D-6A32D4557B0D",
@@ -71,7 +78,8 @@
       "shortLabel": "Pulcini",
       "sortOrder": 7,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000008"
     },
     {
       "id": "2B6B9333-81B4-5A97-8DC0-F7D7D018505A",
@@ -79,7 +87,8 @@
       "shortLabel": "Primi Calci",
       "sortOrder": 8,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000009"
     },
     {
       "id": "75ACD2E7-E2FE-5555-8655-2B6F5C522F92",
@@ -87,7 +96,8 @@
       "shortLabel": "Femminile",
       "sortOrder": 9,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000010"
     },
     {
       "id": "CBA65859-1C64-508C-A065-25D46B85946E",
@@ -95,7 +105,8 @@
       "shortLabel": "Jun. Femminile",
       "sortOrder": 10,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000011"
     },
     {
       "id": "10787308-4A8F-5949-A60C-C16E04778555",
@@ -103,7 +114,8 @@
       "shortLabel": "Amatori",
       "sortOrder": 11,
       "isFirstTeam": false,
-      "isActive": true
+      "isActive": true,
+      "tuttocampoWidgetID": "00000000-0000-4000-8000-000000000012"
     },
     {
       "id": "DDE7F1B9-8228-5588-AD34-8BCB5A253095",

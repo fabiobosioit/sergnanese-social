@@ -13,7 +13,7 @@ logos, people and the social handle are fake. Load the files with `SSCoreFakes.F
 | `single-goalless.context.json` | A played match, 0–0 at half time and at full time. Templates must show the zeros: wrap score blocks in `{{#match.hasScore}}` / `{{#match.hasHalfTime}}`, never in a section on the score itself (Mustache treats 0 as false). |
 | `list.context.json` | `ListContext` with 10 programme rows for one day, page 1/1. |
 | `list-23.context.json` | `ListContext` with 23 rows, **not** paginated: input for pagination tests and for checking overflow. |
-| `matches.json` | The `FakeDataSet` behind `AppServices.fake()`: 13 teams, 14 opponents, 26 matches over three weekends, 4 archive records. |
+| `matches.json` | The `FakeDataSet` behind `AppServices.fake()`: 13 teams, 14 opponents, 26 matches over three weekends, 4 archive records. Every team but Veterani has a fake tuttocampo widget id `00000000-0000-4000-8000-0000000000NN` (NN = position + 1), the keys of `FakeFixtureSource.scenario` (T4.2). |
 | `logos/` | Fake opponent crests (256×256 PNG), named as in `Opponent.logoFile`. |
 | `generator/` | The scripts that produced the JSON and the logos. |
 

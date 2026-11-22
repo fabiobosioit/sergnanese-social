@@ -18,7 +18,8 @@ extension AppServices {
   }
 
   /// Services on in-memory fakes holding exactly `dataSet` (use `FakeDataSet.empty()` for an empty
-  /// app). Render `file` paths that are relative are resolved against the output folder, and a
+  /// app). The fixture source is `FakeFixtureSource.scenario` around `dataSet.referenceSaturday`, with
+  /// `renderDelay` as its fetch delay. Render `file` paths that are relative are resolved against the output folder, and a
   /// flat PNG is written for each record except those in `missingRenderFileIDs`.
   @MainActor
   public static func fake(dataSet: FakeDataSet, renderDelay: Duration = .milliseconds(150)) throws -> AppServices {
@@ -58,10 +59,13 @@ extension AppServices {
       templates: templates, matches: matches, renders: renders, settings: settings, paths: paths,
       delay: renderDelay)
     let demoSource = (try? Fixtures.dataSet()) ?? dataSet
+    let logos = FakeLogoStore(folder: paths.logos)
     return AppServices(
       teams: teams, opponents: opponents, matches: matches, settings: settings, renders: renders,
-      logos: FakeLogoStore(folder: paths.logos), templates: templates, renderer: renderer,
+      logos: logos, templates: templates, renderer: renderer,
       demoData: FakeDemoDataLoader(dataSet: demoSource, teams: teams, opponents: opponents, matches: matches),
-      paths: paths)
+      paths: paths,
+      fixtureSource: FakeFixtureSource.scenario(
+        referenceSaturday: data.referenceSaturday, logos: logos, delay: renderDelay))
   }
 }

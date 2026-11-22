@@ -90,7 +90,8 @@ Widget-to-team mapping is done by the user in the app, in the widget ID field of
 - Pure functions `tuttocampoClubID(fromLogoURL:) -> String?` and `tuttocampoLogoURL(clubID:) -> URL` (the `Teams/200` URL).
 - New types: `FixtureSource` protocol (`fetchFixtures(for team: Team) async throws -> FixtureFetch`; `FixtureFetch` = rows, or "not yet available", or a health problem); `FetchedFixture` (date, time, isHome, opponentName, opponentClubID (for the logo only), opponentLogoURL, score, round, raw status text); `ImportCandidate` with state new / changed / unchanged / locked / needs review.
 - `AppServices.fixtureSource`, plus a fake in `SSCoreFakes`.
-- Write the full T4.2 task sheet (Wave 1 format: owned paths, acceptance criteria, tests).
+- Write the full T4.2 task sheet (Wave 1 format: owned paths, acceptance criteria, tests). Done:
+  `wave-4-t4.2.md` (T4.2a, T4.2b, T4.2c, Step 5 and the exact `Package.swift` change).
 - The orchestrator edits `Package.swift`: SwiftSoup pinned exact, new target `SSImport` (SSCore + SwiftSoup), `SSImportTests`, and `SSImport` added to the app and integration targets.
 
 **Step 4 — three tasks in parallel, after Step 3 merges.**

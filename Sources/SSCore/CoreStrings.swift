@@ -27,6 +27,48 @@ enum CoreStrings {
     "Deve esserci una prima squadra: per cambiarla, segna come prima squadra un'altra squadra."
   static let firstTeamCannotBeDeleted =
     "Impossibile eliminare la prima squadra: prima segna come prima squadra un'altra squadra."
+  static let invalidWidgetID =
+    "ID widget non valido: incolla l'ID (nel formato xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) "
+    + "o l'indirizzo del widget Tuttocampo."
+  static func widgetIDInUse(_ team: String) -> String { "Questo ID widget è già usato dalla squadra «\(team)»." }
+
+  // Logos
+  static func invalidLogoFileName(_ name: String) -> String {
+    "Nome del logo non valido: «\(name)». Sono ammesse solo cifre seguite da .png."
+  }
+  static func cannotSaveLogo(_ name: String) -> String { "Impossibile salvare il logo \(name)." }
+
+  // Import (T4.2)
+  static func importReadFailed(_ team: String) -> String { "Tuttocampo: impossibile leggere i risultati di \(team)." }
+  static let importMissingWidgetID = "Manca l'ID widget Tuttocampo della squadra."
+  static let importNetwork = "Controlla la connessione a internet e riprova."
+  static let importTimeout = "Il sito non ha risposto in tempo: riprova più tardi."
+  static func importHTTPStatus(_ code: Int) -> String { "Il sito ha risposto con l'errore \(code)." }
+  static let importTooLarge = "La risposta del sito è troppo grande."
+  static let importNotAllowed = "Il sito ha indicato un indirizzo non consentito."
+  static let importUnavailable = "L'importazione da Tuttocampo non è disponibile in questa versione."
+  static let importSourceChanged = "La sorgente potrebbe essere cambiata."
+  static func importNoFixturesOfOurs(_ team: String, _ club: String) -> String {
+    "Tuttocampo: nessuna partita della \(club) trovata per \(team). La sorgente potrebbe essere cambiata, "
+      + "oppure l'ID widget è di un'altra squadra."
+  }
+  static func importNotYetAvailable(_ team: String) -> String {
+    "Tuttocampo: risultati non ancora disponibili per \(team)."
+  }
+  static func logoNotRecognised(_ opponent: String) -> String {
+    "Logo di \(opponent) non scaricato: l'indirizzo dell'immagine non è quello previsto."
+  }
+  static func logoFallback(_ opponent: String) -> String {
+    "Logo di \(opponent): la versione grande non è disponibile, è stata usata quella piccola."
+  }
+  static func logoFailed(_ opponent: String) -> String { "Impossibile scaricare il logo di \(opponent)." }
+  static func reviewOpponentNotFound(_ name: String) -> String {
+    "Avversario «\(name)» non trovato: crealo o collegalo a uno esistente."
+  }
+  static func reviewOpponentAmbiguous(_ name: String) -> String {
+    "Più avversari corrispondono a «\(name)»: collegalo a quello giusto."
+  }
+  static func reviewUnknownStatus(_ text: String) -> String { "Stato della partita non riconosciuto: «\(text)»." }
 
   // Manifest
   static let manifestNotJSON = "manifest.json non è un oggetto JSON valido."

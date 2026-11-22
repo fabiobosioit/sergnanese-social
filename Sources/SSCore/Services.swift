@@ -17,10 +17,40 @@ public protocol LogoStore: Sendable {
   func importLogo(from url: URL, replacing: String?) async throws -> String
   /// Same as `importLogo(from:replacing:)` for image data (a paste or a drag from a browser).
   func importLogo(data: Data, replacing: String?) async throws -> String
+  /// Same as `importLogo(data:replacing:)`, but the caller chooses the stored name (T4.2: downloaded
+  /// logos are stored as `"<ClubId>.png"`). `fileName` must pass `isValidImportedLogoFileName`
+  /// (digits followed by `.png`), otherwise `AppError.validation(field: .logo, …)` is thrown and
+  /// nothing is written. An existing file with that name is replaced. Returns `fileName`.
+  ///
+  /// A default implementation exists (import under a generated name, then move the file); stores
+  /// should implement it directly so the file is written in one step.
+  func importLogo(data: Data, fileName: String, replacing: String?) async throws -> String
   /// Removes a logo file. Removing a file that does not exist is not an error.
   func remove(fileName: String) throws
   /// Absolute file URL of a logo, for thumbnails. The file may not exist.
   func url(for fileName: String) -> URL
+}
+
+extension LogoStore {
+  /// Default for stores that do not implement it: imports under a generated name with
+  /// `importLogo(data:replacing:)`, then moves that file to `fileName` (removing an existing one).
+  public func importLogo(data: Data, fileName: String, replacing: String?) async throws -> String {
+    guard isValidImportedLogoFileName(fileName) else {
+      throw AppError.validation(field: .logo, message: CoreStrings.invalidLogoFileName(fileName))
+    }
+    let generated = try await importLogo(data: data, replacing: nil)
+    let source = url(for: generated)
+    let target = url(for: fileName)
+    do {
+      if FileManager.default.fileExists(atPath: target.path) { try FileManager.default.removeItem(at: target) }
+      try FileManager.default.moveItem(at: source, to: target)
+    } catch {
+      try? remove(fileName: generated)
+      throw AppError.io(message: CoreStrings.cannotSaveLogo(fileName))
+    }
+    if let replacing, replacing != fileName { try remove(fileName: replacing) }
+    return fileName
+  }
 }
 
 // MARK: - Templates
@@ -262,11 +292,15 @@ public struct AppServices: Sendable {
   public var renderer: any RenderService
   public var demoData: any DemoDataLoader
   public var paths: AppPaths
+  /// Tuttocampo import (T4.2). Containers built without one get a source whose fetches throw
+  /// `FixtureFetchError.unavailable`.
+  public var fixtureSource: any FixtureSource
 
   public init(
     teams: any TeamRepository, opponents: any OpponentRepository, matches: any MatchRepository,
     settings: any SettingsRepository, renders: any RenderRepository, logos: any LogoStore,
-    templates: any TemplateStore, renderer: any RenderService, demoData: any DemoDataLoader, paths: AppPaths
+    templates: any TemplateStore, renderer: any RenderService, demoData: any DemoDataLoader, paths: AppPaths,
+    fixtureSource: any FixtureSource = UnavailableFixtureSource()
   ) {
     self.teams = teams
     self.opponents = opponents
@@ -278,5 +312,6 @@ public struct AppServices: Sendable {
     self.renderer = renderer
     self.demoData = demoData
     self.paths = paths
+    self.fixtureSource = fixtureSource
   }
 }

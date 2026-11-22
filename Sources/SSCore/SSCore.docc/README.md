@@ -40,6 +40,8 @@ what the contract means.
 | `Validation.swift` | `AppError`, `ValidationField`, `FieldProblem`, `Validatable`, draft and settings rules, `normalizedHexColor`, `isValidSeason` |
 | `Repositories.swift` | `TeamRepository`, `OpponentRepository`, `MatchRepository`, `SettingsRepository`, `RenderRepository` |
 | `Services.swift` | `LogoStore`, `TemplateStore`, `RenderService` and its request/plan/event types, `DemoDataLoader`, `AppServices` |
+| `Import.swift` | T4.2: `FixtureSource`, `FetchedFixture`, `FixtureFetch`, `FixtureHealthProblem`, `FixtureFetchError`, `LogoRequest`, `LogoResult`, `ImportIssue`, `ImportCandidate`, `opponentsMatching` |
+| `Tuttocampo.swift` | T4.2: widget ids, ClubIds, `Teams/200` logo URLs, imported logo file names (pure functions) |
 | `Warnings.swift` | `RenderWarning`, `matchWarnings(for:teamNameLimit:)` |
 | `RenderContext.swift` | `SingleContext`, `ListContext` and their parts, `TemplateURLs` |
 | `TemplateManifest.swift` | `TemplateManifest`, its enums and limits, `isValidTemplateID`, `compareTemplateVersions` |
@@ -65,6 +67,14 @@ These are deliberate. They were made in T0.2 and the plan text still shows the e
 - `RenderRequest` lists the templates to render, each with its own matches (`TemplateSelection`), so the
   default "programme for everyone, post for the first team" plan can be expressed and edited.
 - `TemplateStore.install` returns `TemplateInstallOutcome` so the UI can tell an id clash from a broken template.
+- T4.2 contract step (Wave 4, backward compatible): `Team.tuttocampoWidgetID` and `TeamDraft.tuttocampoWidgetID`
+  (validated, field `.tuttocampoWidgetID`, unique per team via `AppError.widgetIDInUse(by:)`);
+  `LogoStore.importLogo(data:fileName:replacing:)` with a default implementation;
+  `AppServices.fixtureSource` (defaults to a source that answers `FixtureFetchError.unavailable`); the types in
+  `Import.swift` and the functions in `Tuttocampo.swift`. `FixtureSource.fetchFixtures` takes the
+  `ClubSettings` (club short name and season are parser input), and `downloadLogos` was added so the UI
+  can fetch logos through `AppServices`. `tuttocampoLogoURL(clubID:)` returns `URL?` (nil for a
+  malformed id) instead of `URL`.
 - Added, because Wave 1–2 tasks need them: `MatchRepository.get`, `count(source:)` and
   `deleteAll(source:)`; `OpponentRepository.matchCounts`; `DemoDataLoader.remove`;
   `AppPaths.latestBackupDate`; and the pure helpers `matchWarnings`, `formatWeekend`,

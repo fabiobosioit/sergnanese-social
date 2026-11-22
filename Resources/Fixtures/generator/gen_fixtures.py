@@ -99,6 +99,9 @@ teams = []
 for i, (name, label) in enumerate(TEAM_NAMES):
     teams.append({"id": uid("team", name), "name": name, "shortLabel": label, "sortOrder": i,
                   "isFirstTeam": i == 0, "isActive": name != "Veterani"})
+    # Fake tuttocampo.it widget ids (T4.2), the keys of FakeFixtureSource.scenario. Veterani has none.
+    if name != "Veterani":
+        teams[-1]["tuttocampoWidgetID"] = f"00000000-0000-4000-8000-{i + 1:012d}"
 T = {t["name"]: t for t in teams}
 
 # (key, name, shortName, logo?, aliases)
