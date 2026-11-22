@@ -8,6 +8,8 @@ public struct MatchesView: View {
   @ViewState private var model: MatchesViewModel
   @ViewState private var isInspectorShown = false
   @ViewState private var importModel: ImportModel
+  @ViewState private var csiLauncher: CSIImportLauncher
+  @Environment(\.openWindow) private var openWindow
   @FocusState private var searchFocused: Bool
 
   public init(app: AppModel) {
@@ -16,11 +18,13 @@ public struct MatchesView: View {
     let importModel = ImportModel(services: app.services)
     importModel.onDataChanged = { [weak app] in app?.didChangeData() }
     _importModel = ViewState(initialValue: importModel)
+    _csiLauncher = ViewState(initialValue: CSIImportLauncher(services: app.services))
   }
 
   public var body: some View {
     @Bindable var vm = model
     @Bindable var importer = importModel
+    @Bindable var csi = csiLauncher
     content(vm)
       .safeAreaInset(edge: .bottom, spacing: 0) { summaryBar }
       .inspector(isPresented: $isInspectorShown) {
@@ -44,15 +48,20 @@ public struct MatchesView: View {
       ) {
         ImportSheet(model: importer)
       }
+      .sheet(isPresented: $csi.isPickerPresented) {
+        CSITeamPickerSheet(launcher: csi) { openWindow(id: CSIImportLauncher.windowID, value: $0) }
+      }
       .confirmDelete(vm.deleteTitle, isPresented: $vm.isConfirmingDelete, onConfirm: vm.confirmDelete)
       .onAppear {
         vm.reload()
         importer.refreshAvailability()
+        csi.refresh()
       }
       .onChange(of: app.weekend) { vm.reload() }
       .onChange(of: app.dataRevision) {
         vm.reload()
         importer.refreshAvailability()
+        csi.refresh()
       }
       .onChange(of: vm.selection) { isInspectorShown = vm.selection.count == 1 }
       .publishCommand(.newMatch) { vm.beginNewMatch() }
@@ -61,6 +70,12 @@ public struct MatchesView: View {
       .publishCommand(.generate) { vm.openGenerate() }
       .publishCommand(.find) { searchFocused = true }
       .publishCommand(.importTuttocampo, enabled: importer.canStart) { importer.present() }
+      .publishCommand(.importCSI, enabled: csi.canStart) { startCSIImport() }
+  }
+
+  /// One team with a CSI page: opens its browser window; several: asks which one.
+  private func startCSIImport() {
+    csiLauncher.begin { openWindow(id: CSIImportLauncher.windowID, value: $0) }
   }
 
   // MARK: Content
@@ -237,6 +252,15 @@ public struct MatchesView: View {
       }
       .disabled(!importModel.canStart)
       .help(importModel.unavailableReason ?? ImportStrings.toolbarHelp)
+    }
+    ToolbarItem {
+      Button {
+        startCSIImport()
+      } label: {
+        Label(AppStrings.Menu.importCSI, systemImage: "globe")
+      }
+      .disabled(!csiLauncher.canStart)
+      .help(csiLauncher.unavailableReason ?? ImportStrings.csiToolbarHelp)
     }
     ToolbarItem {
       Menu {

@@ -26,6 +26,10 @@ enum TeamsStrings {
   static let widgetField = "ID widget Tuttocampo"
   static let widgetPrompt = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
   static let widgetHelp = "Incolla l'ID o l'indirizzo del widget dei risultati"
+  static let csiField = "Pagina CSI"
+  static let csiPrompt = "https://live.centrosportivoitaliano.it/…"
+  static let csiHelp = "Incolla l'indirizzo della pagina del girone su CSI Live"
+  static let csiSet = "Importabile da CSI Live"
   static let widgetSet = "Importata da Tuttocampo"
   static func deleteTitle(_ name: String) -> String { "Eliminare \(name)?" }
   static let deleteMessage = "L'operazione non si può annullare."

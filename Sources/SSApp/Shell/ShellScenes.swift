@@ -1,4 +1,5 @@
 import AppKit
+import SSCore
 import SwiftUI
 
 /// The scenes of the app: the one main window and Settings. `main.swift` puts this in its `App`.
@@ -16,6 +17,13 @@ public struct ShellScenes: Scene {
     }
     .defaultSize(width: 1200, height: 760)
     .commands { AppCommands(model: model) }
+
+    // One browser window per team (opening the same team again brings it to the front). SwiftUI remembers
+    // the size and position by the group's id.
+    WindowGroup(ImportStrings.csiWindowMenuTitle, id: CSIImportLauncher.windowID, for: EntityID.self) { $teamID in
+      CSIBrowserWindow(app: model, teamID: teamID)
+    }
+    .defaultSize(width: 1100, height: 800)
 
     Settings {
       SettingsView(app: model)

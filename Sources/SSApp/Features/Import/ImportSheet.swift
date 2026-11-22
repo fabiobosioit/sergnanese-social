@@ -9,7 +9,7 @@ struct ImportSheet: View {
   var body: some View {
     @Bindable var model = model
     VStack(spacing: 0) {
-      Text(ImportStrings.title)
+      Text(model.title)
         .font(.headline)
         .padding(12)
       Divider()
@@ -67,6 +67,7 @@ struct ImportSheet: View {
           .foregroundStyle(.secondary)
       } else {
         ProgressView()
+        if model.isCSI { Text(ImportStrings.readingPage).foregroundStyle(.secondary) }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -84,7 +85,7 @@ struct ImportSheet: View {
         ContentUnavailableView {
           Label(ImportStrings.emptyTitle, systemImage: "calendar.badge.exclamationmark")
         } description: {
-          Text(ImportStrings.emptyDescription)
+          Text(model.emptyDescription)
         }
         .frame(maxWidth: .infinity)
       }
@@ -335,7 +336,7 @@ private struct OpponentLinkPicker: View {
     let choices = model.linkChoices(matching: query)
     VStack(alignment: .leading, spacing: 8) {
       Text(ImportStrings.linkTitle(candidate.fixture.opponentName)).font(.headline)
-      Text(ImportStrings.linkMessage).font(.callout).foregroundStyle(.secondary)
+      Text(model.linkMessage).font(.callout).foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
       TextField(ImportStrings.linkSearch, text: $query, prompt: Text(ImportStrings.linkSearch))
         .textFieldStyle(.roundedBorder)

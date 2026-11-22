@@ -39,7 +39,8 @@ enum Composition {
       teams: database.teams, opponents: database.opponents, matches: database.matches,
       settings: database.settings, renders: database.renders, logos: logos, templates: templates,
       renderer: renderer, demoData: demo, paths: paths,
-      fixtureSource: LoggingFixtureSource(base: TuttocampoWidgetSource(logos: logos)))
+      fixtureSource: LoggingFixtureSource(base: TuttocampoWidgetSource(logos: logos)),
+      csiPageParser: LoggingPageFixtureParser(base: CSIPageParser()))
   }
 }
 
@@ -76,6 +77,24 @@ struct LoggingFixtureSource: FixtureSource {
       Log.imports.error("Logo not stored for \(result.request.opponentName, privacy: .public)")
     }
     return results
+  }
+}
+
+/// Logs the outcome of each CSI page read: the number of fixtures or the problem. Never the HTML or the address.
+struct LoggingPageFixtureParser: PageFixtureParser {
+  let base: any PageFixtureParser
+
+  func parse(html: String, pageURL: URL, settings: ClubSettings) -> FixtureFetch {
+    let fetch = base.parse(html: html, pageURL: pageURL, settings: settings)
+    switch fetch {
+    case .fixtures(let fixtures):
+      Log.imports.info("CSI import: \(fixtures.count) fixture(s)")
+    case .notYetAvailable:
+      Log.imports.info("CSI import: results not yet available")
+    case .sourceProblem(let problem):
+      Log.imports.error("CSI import: source problem \(problem.rawValue, privacy: .public)")
+    }
+    return fetch
   }
 }
 

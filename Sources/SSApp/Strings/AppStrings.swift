@@ -21,6 +21,7 @@ enum AppStrings {
     static let newOpponent = "Nuovo avversario"
     static let importTemplate = "Importa template…"
     static let importTuttocampo = "Importa da Tuttocampo…"
+    static let importCSI = "Importa da CSI…"
     static let loadDemo = "Carica dati demo"
     static let openOutputFolder = "Apri cartella immagini"
     static let duplicate = "Duplica"

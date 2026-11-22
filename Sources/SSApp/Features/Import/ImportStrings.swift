@@ -7,6 +7,24 @@ enum ImportStrings {
   static let toolbarHelp = "Legge le partite delle squadre da Tuttocampo e le mostra prima di importarle."
   static let noWidgetReason = "Nessuna squadra attiva ha un ID widget Tuttocampo: aggiungilo in Squadre."
 
+  // CSI Live
+  static let titleCSI = "Importa da CSI Live"
+  static let noCSIPageReason = "Nessuna squadra attiva ha una pagina CSI: aggiungila in Squadre."
+  static let csiToolbarHelp =
+    "Apre la pagina del girone su CSI Live: la leggi tu, l'app mostra le partite prima di importarle."
+  static let readingPage = "Lettura della pagina…"
+  static let emptyDescriptionCSI = "La pagina CSI Live non ha dato partite della società. Controlla l'esito qui sopra."
+  static let pickTeamTitle = "Importa da CSI Live"
+  static let pickTeamField = "Squadra"
+  static let pickTeamOpen = "Apri"
+  static let csiWindowUnavailable = "Questa squadra non ha una pagina CSI."
+  static func csiWindowTitle(_ team: String) -> String { "CSI – \(team)" }
+  static let csiWindowMenuTitle = "CSI Live"
+  static func otherPageTitle(_ team: String) -> String {
+    "La pagina aperta non è quella salvata per \(team). Importare comunque?"
+  }
+  static let otherPageImport = "Importa"
+
   // Progress
   static func reading(_ team: String, current: Int, total: Int) -> String {
     "Lettura di \(team)… \(current) di \(total)"
@@ -66,6 +84,7 @@ enum ImportStrings {
 
   // Link picker
   static func linkTitle(_ name: String) -> String { "Collega «\(name)» a un avversario" }
+  static let linkMessageCSI = "Il nome letto da CSI Live verrà salvato come alias dell'avversario scelto."
   static let linkMessage = "Il nome letto da Tuttocampo verrà salvato come alias dell'avversario scelto."
   static let linkSearch = "Cerca avversario"
   static let linkNoResults = "Nessun avversario trovato"

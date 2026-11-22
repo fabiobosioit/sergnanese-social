@@ -140,6 +140,12 @@ private struct TeamRow: View {
           .help(TeamsStrings.widgetSet)
           .accessibilityLabel(TeamsStrings.widgetSet)
       }
+      if team.csiPageURL != nil {
+        Image(systemName: "globe")
+          .foregroundStyle(.secondary)
+          .help(TeamsStrings.csiSet)
+          .accessibilityLabel(TeamsStrings.csiSet)
+      }
       Toggle(TeamsStrings.active, isOn: Binding(get: { team.isActive }, set: { model.setActive(team, $0) }))
         .toggleStyle(.switch)
         .labelsHidden()
@@ -192,6 +198,7 @@ private struct NewTeamSheet: View {
           .onSubmit { vm.create() }
         }
         WidgetIDField(draft: $vm.newDraft, problems: vm.newProblems) { vm.create() }
+        CSIPageField(draft: $vm.newDraft, problems: vm.newProblems) { vm.create() }
       }
       .formStyle(.grouped)
       HStack {
@@ -229,6 +236,7 @@ private struct EditTeamSheet: View {
             .onSubmit { vm.saveEdit() }
         }
         WidgetIDField(draft: $vm.editDraft, problems: vm.editProblems) { vm.saveEdit() }
+        CSIPageField(draft: $vm.editDraft, problems: vm.editProblems) { vm.saveEdit() }
       }
       .formStyle(.grouped)
       HStack {
@@ -261,6 +269,30 @@ private struct WidgetIDField: View {
         .labelsHidden()
         .onSubmit(onSubmit)
         Text(TeamsStrings.widgetHelp)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+}
+
+/// The CSI page text field with its help line and the problem of `.csiPageURL` under it.
+private struct CSIPageField: View {
+  @Binding var draft: TeamDraft
+  let problems: [FieldProblem]
+  let onSubmit: () -> Void
+
+  var body: some View {
+    ValidatedField(TeamsStrings.csiField, problems: problems, field: .csiPageURL) {
+      VStack(alignment: .leading, spacing: 4) {
+        TextField(
+          TeamsStrings.csiField,
+          text: Binding(get: { draft.csiPageURL ?? "" }, set: { draft.csiPageURL = $0 }),
+          prompt: Text(TeamsStrings.csiPrompt)
+        )
+        .labelsHidden()
+        .onSubmit(onSubmit)
+        Text(TeamsStrings.csiHelp)
           .font(.caption)
           .foregroundStyle(.secondary)
       }

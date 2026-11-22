@@ -31,7 +31,16 @@ final class ImportModel {
     var total: Int
   }
 
+  /// Where the rows come from: the Tuttocampo widgets (fetched), or the CSI Live page open in a browser window.
+  enum Source {
+    case tuttocampo
+    case csi(team: Team, page: any CSIPageProvider)
+  }
+
   let services: AppServices
+  let source: Source
+  /// Set while the "this is not the team's page, import anyway?" question is shown (CSI).
+  var confirmsOtherPage = false
   /// Called after matches or opponents changed, so the other screens reload.
   var onDataChanged: @MainActor () -> Void = {}
 
@@ -58,10 +67,22 @@ final class ImportModel {
   @ObservationIgnored private var task: Task<Void, Never>?
   @ObservationIgnored private var settings: ClubSettings?
 
-  init(services: AppServices, today: @escaping @MainActor () -> DayDate = { DayDate.today() }) {
+  init(
+    services: AppServices, source: Source = .tuttocampo, today: @escaping @MainActor () -> DayDate = { DayDate.today() }
+  ) {
     self.services = services
+    self.source = source
     self.today = today
   }
+
+  var isCSI: Bool {
+    if case .csi = source { return true }
+    return false
+  }
+
+  var title: String { isCSI ? ImportStrings.titleCSI : ImportStrings.title }
+  var emptyDescription: String { isCSI ? ImportStrings.emptyDescriptionCSI : ImportStrings.emptyDescription }
+  var linkMessage: String { isCSI ? ImportStrings.linkMessageCSI : ImportStrings.linkMessage }
 
   // MARK: Availability
 
@@ -86,7 +107,77 @@ final class ImportModel {
 
   func start() {
     task?.cancel()
-    task = Task { await fetch() }
+    task = Task { await isCSI ? readCSIPage() : fetch() }
+  }
+
+  // MARK: CSI
+
+  /// "Importa questa pagina": asks first when the open page is not the team's saved one.
+  func beginCSIImport() {
+    guard case .csi(_, let page) = source, !isPresented else { return }
+    if page.isOnTeamPage { startCSI() } else { confirmsOtherPage = true }
+  }
+
+  /// "Importa" in the confirmation.
+  func confirmOtherPage() {
+    confirmsOtherPage = false
+    startCSI()
+  }
+
+  private func startCSI() {
+    isPresented = true
+    start()
+  }
+
+  /// Reads the page on screen, parses it off the main actor and stages the rows. Awaitable, so tests can run
+  /// it to the end. A page that gave no rows leaves only the report.
+  func readCSIPage() async {
+    guard case .csi(let team, let page) = source else { return }
+    resetStaging()
+    phase = .fetching
+    let settings: ClubSettings
+    do {
+      settings = try services.settings.load()
+      opponents = try services.opponents.list()
+    } catch {
+      phase = .failed((error as? AppError)?.localizedDescription ?? ImportStrings.loadErrorTitle)
+      return
+    }
+    self.settings = settings
+    switch await page.readPage() {
+    case .failure(let reason):
+      issues = [.csiPageReadFailed(team: team.name, reason: reason)]
+    case .success(let snapshot):
+      let parser = services.csiPageParser
+      let outcome = await Task.detached {
+        parser.parse(html: snapshot.html, pageURL: snapshot.pageURL, settings: settings)
+      }
+      .value
+      if let issue = ImportIssue.csiPage(team: team.name, outcome: outcome, clubShortName: settings.clubShortName) {
+        issues = [issue]
+      } else if case .fixtures(let fixtures) = outcome {
+        do {
+          candidates = try candidates(for: fixtures, team: team, homeVenue: settings.homeVenue)
+            .sorted(by: Self.stagingOrder)
+          ticked = Set(candidates.filter(isTickedByDefault).map(\.id))
+        } catch {
+          phase = .failed((error as? AppError)?.localizedDescription ?? ImportStrings.loadErrorTitle)
+          return
+        }
+      }
+    }
+    phase = .review
+  }
+
+  private func resetStaging() {
+    progress = nil
+    wasCancelled = false
+    issues = []
+    candidates = []
+    ticked = []
+    replaceLogo = []
+    venueEdits = [:]
+    summary = nil
   }
 
   /// Cancels the fetch; the teams already read stay.
@@ -110,15 +201,8 @@ final class ImportModel {
 
   /// Reads the teams one at a time. Awaitable, so tests can run it to the end.
   func fetch() async {
+    resetStaging()
     phase = .fetching
-    progress = nil
-    wasCancelled = false
-    issues = []
-    candidates = []
-    ticked = []
-    replaceLogo = []
-    venueEdits = [:]
-    summary = nil
 
     let teams: [Team]
     let settings: ClubSettings
@@ -344,18 +428,52 @@ final class ImportModel {
     phase = .done
   }
 
-  private func downloadLogos(for chosen: [ImportCandidate]) async {
-    var requests: [LogoRequest] = []
+  /// The opponents that need a logo, with the fixture that names them. Opponents of the rows that were
+  /// written, and of the rows already in the database (unchanged or locked): all of them are part of the
+  /// weekend. Rows the user left unticked are not. An opponent without a logo, or one the user asked to
+  /// replace.
+  private func logoTargets(for chosen: [ImportCandidate]) -> [(opponent: Opponent, fixture: FetchedFixture)] {
+    var targets: [(opponent: Opponent, fixture: FetchedFixture)] = []
     var seen: Set<EntityID> = []
-    // Opponents of the rows that were written, and of the rows already in the database (unchanged or
-    // locked): all of them are part of the weekend. Rows the user left unticked are not.
     let inScope = chosen + candidates.filter { $0.state == .unchanged || $0.state == .locked }
     for candidate in inScope {
       guard let opponent = candidate.opponent, seen.insert(opponent.id).inserted else { continue }
       if opponent.logoFile == nil || replaceLogo.contains(opponent.id) {
-        requests.append(LogoRequest(opponent: opponent, fixture: candidate.fixture))
+        targets.append((opponent, candidate.fixture))
       }
     }
+    return targets
+  }
+
+  /// CSI: the bytes are read in the browser's page session, then stored; a logo the page does not
+  /// carry (placeholder shield) or cannot give is reported as information.
+  private func downloadCSILogos(for chosen: [ImportCandidate], page: any PageLogoSource) async {
+    var requests: [CSILogoRequest] = []
+    for target in logoTargets(for: chosen) {
+      if let request = CSILogoRequest(opponent: target.opponent, fixture: target.fixture) {
+        requests.append(request)
+      } else {
+        issues.append(.csiLogoUnavailable(opponent: target.opponent.name))
+      }
+    }
+    guard !requests.isEmpty else { return }
+    let data = await page.fetchLogos(requests)
+    let results = await storeCSILogos(data, in: services.logos)
+    for result in results {
+      var issue = result.issue
+      if let fileName = result.fileName, !store(logo: fileName, for: result.request.opponentID) {
+        issue = .logoFailed(opponent: result.request.opponentName)
+      }
+      if let issue { issues.append(issue) }
+    }
+  }
+
+  private func downloadLogos(for chosen: [ImportCandidate]) async {
+    if case .csi(_, let page) = source {
+      await downloadCSILogos(for: chosen, page: page)
+      return
+    }
+    let requests = logoTargets(for: chosen).map { LogoRequest(opponent: $0.opponent, fixture: $0.fixture) }
     guard !requests.isEmpty else { return }
     let results = await services.fixtureSource.downloadLogos(requests)
     for result in results {
