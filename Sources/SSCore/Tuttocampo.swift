@@ -68,12 +68,24 @@ public func tuttocampoLogoFileName(clubID: String) -> String? {
   isValidTuttocampoClubID(clubID) ? "\(clubID).png" : nil
 }
 
-/// `true` for a name `LogoStore.importLogo(data:fileName:replacing:)` accepts: 1 to 15 ASCII digits
-/// followed by `.png` (`"917410.png"`). Such a name holds no path and never clashes with the
-/// generated `<uuid>.png` names of logos added by hand.
+/// `true` for a name `LogoStore.importLogo(data:fileName:replacing:)` accepts:
+/// - tuttocampo (T4.2): 1 to 15 ASCII digits followed by `.png` (`"917410.png"`);
+/// - CSI (T4.8): `csi-` followed by 1 to 60 characters among `a-z`, `0-9` and `-`, then `.png`
+///   (`"csi-12345678.png"`, `"csi-us-esempio-2016.png"`; see `csiLogoFileName(id:name:)`).
+///
+/// Such a name holds no path and never clashes with the generated `<uuid>.png` names of logos added by
+/// hand (a UUID has upper-case letters or, lower-cased, is not prefixed by `csi-`).
 public func isValidImportedLogoFileName(_ name: String) -> Bool {
   guard name.hasSuffix(".png") else { return false }
-  return isValidTuttocampoClubID(String(name.dropLast(4)))
+  let stem = String(name.dropLast(4))
+  if isValidTuttocampoClubID(stem) { return true }
+  guard stem.hasPrefix("csi-") else { return false }
+  let rest = stem.utf8.dropFirst(4)
+  return (1...csiLogoSlugLimit).contains(rest.count)
+    && rest.allSatisfy {
+      (UInt8(ascii: "a")...UInt8(ascii: "z")).contains($0) || (UInt8(ascii: "0")...UInt8(ascii: "9")).contains($0)
+        || $0 == UInt8(ascii: "-")
+    }
 }
 
 /// 1 to 15 ASCII digits.

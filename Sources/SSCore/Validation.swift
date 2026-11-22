@@ -38,13 +38,18 @@ extension AppError {
   public static func widgetIDInUse(by teamName: String) -> AppError {
     .validation(field: .tuttocampoWidgetID, message: CoreStrings.widgetIDInUse(teamName))
   }
+  /// Thrown by `TeamRepository.create` and `update` when `teamName` already uses the same CSI page
+  /// (same `csiPageKey`).
+  public static func csiPageURLInUse(by teamName: String) -> AppError {
+    .validation(field: .csiPageURL, message: CoreStrings.csiPageURLInUse(teamName))
+  }
 }
 
 /// The fields a validation problem can point at. Forms use it to show the message next to the
 /// right control.
 public enum ValidationField: String, Sendable, Codable, CaseIterable {
   // Team
-  case name, shortLabel, isFirstTeam, tuttocampoWidgetID
+  case name, shortLabel, isFirstTeam, tuttocampoWidgetID, csiPageURL
   // Opponent
   case shortName, aliases, logo
   // Match
@@ -105,6 +110,8 @@ public enum FieldLimits {
   public static let socialHandle = 40
   public static let maxRound = 99
   public static let maxGoals = 99
+  /// A team's CSI page address (T4.8). The girone addresses seen are about 170 characters.
+  public static let csiPageURL = 500
 }
 
 // MARK: - Draft validation
@@ -119,6 +126,11 @@ extension TeamDraft: Validatable {
     } else {
       draft.tuttocampoWidgetID = nil
     }
+    if let text = draft.csiPageURL?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty {
+      draft.csiPageURL = SSCore.csiPageURL(from: text) ?? text
+    } else {
+      draft.csiPageURL = nil
+    }
     return draft
   }
 
@@ -128,6 +140,13 @@ extension TeamDraft: Validatable {
     problems.appendRequired(shortLabel, field: .shortLabel, max: FieldLimits.teamShortLabel)
     if let tuttocampoWidgetID, !isValidTuttocampoWidgetID(tuttocampoWidgetID) {
       problems.append(FieldProblem(field: .tuttocampoWidgetID, message: CoreStrings.invalidWidgetID))
+    }
+    if let csiPageURL {
+      if csiPageURL.count > FieldLimits.csiPageURL {
+        problems.append(FieldProblem(field: .csiPageURL, message: CoreStrings.tooLong(FieldLimits.csiPageURL)))
+      } else if !isValidCSIPageURL(csiPageURL) {
+        problems.append(FieldProblem(field: .csiPageURL, message: CoreStrings.invalidCSIPageURL))
+      }
     }
     return problems
   }

@@ -31,10 +31,14 @@ enum CoreStrings {
     "ID widget non valido: incolla l'ID (nel formato xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) "
     + "o l'indirizzo del widget Tuttocampo."
   static func widgetIDInUse(_ team: String) -> String { "Questo ID widget è già usato dalla squadra «\(team)»." }
+  static let invalidCSIPageURL =
+    "Indirizzo non valido: incolla l'indirizzo della pagina del girone, che inizia con "
+    + "https://live.centrosportivoitaliano.it/."
+  static func csiPageURLInUse(_ team: String) -> String { "Questa pagina CSI è già usata dalla squadra «\(team)»." }
 
   // Logos
   static func invalidLogoFileName(_ name: String) -> String {
-    "Nome del logo non valido: «\(name)». Sono ammesse solo cifre seguite da .png."
+    "Nome del logo non valido: «\(name)». Sono ammessi solo nomi come 917410.png o csi-12345678.png."
   }
   static func cannotSaveLogo(_ name: String) -> String { "Impossibile salvare il logo \(name)." }
 
@@ -69,6 +73,20 @@ enum CoreStrings {
     "Più avversari corrispondono a «\(name)»: collegalo a quello giusto."
   }
   static func reviewUnknownStatus(_ text: String) -> String { "Stato della partita non riconosciuto: «\(text)»." }
+
+  // Import from CSI Live (T4.8)
+  static func csiPageReadFailed(_ team: String) -> String { "CSI: impossibile leggere la pagina di \(team)." }
+  static let csiPageTooLarge = "La pagina è troppo grande."
+  static let csiPageNotReadable = "Attendi che la pagina abbia finito di caricarsi e riprova."
+  static func csiNotAGirone(_ team: String) -> String {
+    "CSI: la pagina aperta per \(team) non sembra un girone CSI."
+  }
+  static func csiNoFixturesOfOurs(_ team: String, _ club: String) -> String {
+    "CSI: nessuna partita della \(club) nella pagina aperta per \(team)."
+  }
+  static func csiLogoUnavailable(_ opponent: String) -> String {
+    "CSI: logo di \(opponent) non disponibile. Puoi aggiungerlo a mano."
+  }
 
   // Manifest
   static let manifestNotJSON = "manifest.json non è un oggetto JSON valido."

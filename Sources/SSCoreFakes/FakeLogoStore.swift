@@ -2,7 +2,7 @@ import Foundation
 import SSCore
 
 /// Stores logos in a folder without converting them: the bytes are written as given under a new
-/// `<uuid>.png` name, or under the caller's `<digits>.png` name. It checks the 5 MB limit and that the
+/// `<uuid>.png` name, or under the caller's `<digits>.png` or `csi-<id or slug>.png` name. It checks the 5 MB limit and that the
 /// data looks like a supported image.
 public struct FakeLogoStore: LogoStore {
   public let folder: URL

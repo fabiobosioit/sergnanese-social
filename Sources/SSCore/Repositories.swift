@@ -21,6 +21,10 @@ import Foundation
 /// Widget-id rule (T4.2): `create` and `update` throw `AppError.validation(field: .tuttocampoWidgetID, …)`
 /// with `AppError.widgetIDInUse(by:)` when another team already has the same `tuttocampoWidgetID`
 /// (compared ignoring case).
+///
+/// CSI-page rule (T4.8): `create` and `update` throw `AppError.validation(field: .csiPageURL, …)` with
+/// `AppError.csiPageURLInUse(by:)` when another team already has a `csiPageURL` with the same
+/// `csiPageKey` (the query and the case are ignored). A team may save its own page again.
 public protocol TeamRepository: Sendable {
   /// All teams, ordered by `sortOrder`.
   func list() throws -> [Team]

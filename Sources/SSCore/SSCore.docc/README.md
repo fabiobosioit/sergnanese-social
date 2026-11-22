@@ -42,6 +42,7 @@ what the contract means.
 | `Services.swift` | `LogoStore`, `TemplateStore`, `RenderService` and its request/plan/event types, `DemoDataLoader`, `AppServices` |
 | `Import.swift` | T4.2: `FixtureSource`, `FetchedFixture`, `FixtureFetch`, `FixtureHealthProblem`, `FixtureFetchError`, `LogoRequest`, `LogoResult`, `ImportIssue`, `ImportCandidate`, `opponentsMatching` |
 | `Tuttocampo.swift` | T4.2: widget ids, ClubIds, `Teams/200` logo URLs, imported logo file names (pure functions) |
+| `CSI.swift` | T4.8: CSI page addresses and keys, CSI team ids and logo file names, `CSIPageReadError`, `PageFixtureParser`, `CSILogoRequest`, `CSILogoData`, `CSILogoResult`, `PageLogoSource`, `storeCSILogos(_:in:)` |
 | `Warnings.swift` | `RenderWarning`, `matchWarnings(for:teamNameLimit:)` |
 | `RenderContext.swift` | `SingleContext`, `ListContext` and their parts, `TemplateURLs` |
 | `TemplateManifest.swift` | `TemplateManifest`, its enums and limits, `isValidTemplateID`, `compareTemplateVersions` |
@@ -75,6 +76,13 @@ These are deliberate. They were made in T0.2 and the plan text still shows the e
   `ClubSettings` (club short name and season are parser input), and `downloadLogos` was added so the UI
   can fetch logos through `AppServices`. `tuttocampoLogoURL(clubID:)` returns `URL?` (nil for a
   malformed id) instead of `URL`.
+- T4.8 contract step (Wave 4, backward compatible): `Team.csiPageURL` and `TeamDraft.csiPageURL` (normalised and
+  validated, field `.csiPageURL`, `FieldLimits.csiPageURL`, one page per team by `csiPageKey` via
+  `AppError.csiPageURLInUse(by:)`); `FetchedFixture.venue` (used by `ImportCandidate.make` for away drafts only);
+  four CSI cases of `ImportIssue` and `ImportIssue.csiPage(team:outcome:clubShortName:)`;
+  `isValidImportedLogoFileName` also accepts `csi-[a-z0-9-]{1,60}.png`; `AppServices.csiPageParser` (defaults to a
+  parser that answers "not a CSI girone"); the types and functions in `CSI.swift`. `FixtureSource` is unchanged.
+  `PageLogoSource` is not in `AppServices`: the CSI browser window is the logo source while it is open.
 - Added, because Wave 1–2 tasks need them: `MatchRepository.get`, `count(source:)` and
   `deleteAll(source:)`; `OpponentRepository.matchCounts`; `DemoDataLoader.remove`;
   `AppPaths.latestBackupDate`; and the pure helpers `matchWarnings`, `formatWeekend`,

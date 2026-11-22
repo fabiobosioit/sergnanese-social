@@ -1,7 +1,7 @@
 import Foundation
 
-// Match import from an outside source: T4.2 reads tuttocampo.it widgets; T4.1 (CSV) reuses the staging
-// types. The flow, driven by the UI:
+// Match import from an outside source: T4.2 reads tuttocampo.it widgets; T4.8 reads CSI Live pages the
+// user opens (see `CSI.swift`); T4.1 (CSV) reuses the staging types. The tuttocampo flow, driven by the UI:
 //
 // 1. `FixtureSource.fetchFixtures(for:settings:)` once per active team with a widget id;
 // 2. `ImportCandidate.make(…)` for every fetched fixture; the user reviews the candidates (staging);
@@ -36,10 +36,15 @@ public struct FetchedFixture: Sendable, Codable, Equatable, Hashable {
   /// The status text exactly as the source writes it ("Partita da giocare", "Partita rinviata"),
   /// shown when the status is not recognised.
   public var statusText: String
+  /// Where the match is played as the source writes it, trimmed (T4.8, CSI: the row's tooltip, venue name
+  /// and address, with the trailing match code removed). `nil` when the source does not say (tuttocampo).
+  /// `ImportCandidate.make` uses it for away matches only; at home the club's `homeVenue` is used.
+  public var venue: String?
 
   public init(
     date: DayDate, time: ClockTime?, isHome: Bool, opponentName: String, opponentClubID: String? = nil,
-    opponentLogoURL: URL? = nil, score: Score? = nil, round: Int? = nil, status: MatchStatus?, statusText: String
+    opponentLogoURL: URL? = nil, score: Score? = nil, round: Int? = nil, status: MatchStatus?, statusText: String,
+    venue: String? = nil
   ) {
     self.date = date
     self.time = time
@@ -51,6 +56,7 @@ public struct FetchedFixture: Sendable, Codable, Equatable, Hashable {
     self.round = round
     self.status = status
     self.statusText = statusText
+    self.venue = venue
   }
 }
 
@@ -205,6 +211,17 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
   case logoFallback(opponent: String)
   /// No logo could be downloaded or stored.
   case logoFailed(opponent: String)
+  /// T4.8: the CSI page open for `team` could not be read (too large, still loading, closed).
+  case csiPageReadFailed(team: String, reason: CSIPageReadError)
+  /// T4.8: the page open for `team` has no recognisable match list: "la pagina aperta non sembra un
+  /// girone CSI" (`FixtureHealthProblem.structureChanged` from `PageFixtureParser`).
+  case csiNotAGirone(team: String)
+  /// T4.8: the page has match rows but none of the club's (`.noFixturesOfOurs`). `clubShortName` is
+  /// `ClubSettings.clubShortName`.
+  case csiNoFixturesOfOurs(team: String, clubShortName: String)
+  /// T4.8: no logo was stored for the opponent: the page shows none (placeholder shield), or it could
+  /// not be read or stored. Information: the import goes on and the logo can be added by hand.
+  case csiLogoUnavailable(opponent: String)
 
   public var message: String {
     switch self {
@@ -222,14 +239,39 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
       return CoreStrings.logoFallback(opponent)
     case .logoFailed(let opponent):
       return CoreStrings.logoFailed(opponent)
+    case .csiPageReadFailed(let team, let reason):
+      return CoreStrings.csiPageReadFailed(team) + " "
+        + (reason == .tooLarge ? CoreStrings.csiPageTooLarge : CoreStrings.csiPageNotReadable)
+    case .csiNotAGirone(let team):
+      return CoreStrings.csiNotAGirone(team)
+    case .csiNoFixturesOfOurs(let team, let club):
+      return CoreStrings.csiNoFixturesOfOurs(team, club)
+    case .csiLogoUnavailable(let opponent):
+      return CoreStrings.csiLogoUnavailable(opponent)
     }
   }
 
-  /// `false` for `.notYetAvailable` and `.logoFallback`, which are information.
+  /// `false` for `.notYetAvailable`, `.logoFallback` and `.csiLogoUnavailable`, which are information.
   public var isError: Bool {
     switch self {
-    case .notYetAvailable, .logoFallback: return false
-    case .fetchFailed, .sourceProblem, .logoNotRecognised, .logoFailed: return true
+    case .notYetAvailable, .logoFallback, .csiLogoUnavailable: return false
+    case .fetchFailed, .sourceProblem, .logoNotRecognised, .logoFailed, .csiPageReadFailed, .csiNotAGirone,
+      .csiNoFixturesOfOurs:
+      return true
+    }
+  }
+
+  /// T4.8: the report line for a CSI page whose `PageFixtureParser` outcome gave nothing to stage;
+  /// `nil` for a non-empty `.fixtures`. `.structureChanged` → `.csiNotAGirone`; `.noFixturesOfOurs`,
+  /// `.notYetAvailable` and an empty `.fixtures` → `.csiNoFixturesOfOurs`.
+  public static func csiPage(team: String, outcome: FixtureFetch, clubShortName: String) -> ImportIssue? {
+    switch outcome {
+    case .fixtures(let fixtures):
+      return fixtures.isEmpty ? .csiNoFixturesOfOurs(team: team, clubShortName: clubShortName) : nil
+    case .sourceProblem(.structureChanged):
+      return .csiNotAGirone(team: team)
+    case .sourceProblem(.noFixturesOfOurs), .notYetAvailable:
+      return .csiNoFixturesOfOurs(team: team, clubShortName: clubShortName)
     }
   }
 
@@ -344,11 +386,12 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
   /// - Existing match: the one in `existingMatches` with the same team and date.
   /// - Draft, when the opponent is known and the status recognised:
   ///   - new match: team, opponent, date, time, home/away, round, status, score from the fixture;
-  ///     venue `homeVenue` at home, empty away;
+  ///     venue `homeVenue` at home; away, the fixture's `venue` (whitespace collapsed, cut with
+  ///     `truncateAtWord` to `FieldLimits.venue`), or empty when it has none;
   ///   - existing match: starts from it and takes the opponent, home/away, status and score from the
   ///     fixture, plus time and round when the fixture has them; half-time is kept only for a played
-  ///     match; the venue is kept unless it is empty or home/away changed, then it becomes
-  ///     `homeVenue` at home and empty away. Competition and notes are kept.
+  ///     match; the venue is kept unless it is empty or home/away changed, then it becomes the new
+  ///     match's venue (above). Competition and notes are kept.
   ///   - source is always `.scrape`; `isLocked` is the existing match's.
   /// - State: `.locked` when the existing match is locked (draft still shown); else `.needsReview`
   ///   when there is a review reason; else `.new` without an existing match; else `.unchanged` when
@@ -369,7 +412,8 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
 
     var draft: MatchDraft?
     if let opponent, let status = fixture.status {
-      let venueForSide = fixture.isHome ? homeVenue : ""
+      let awayVenue = fixture.venue.map { truncateAtWord($0.collapsedWhitespace, max: FieldLimits.venue).text } ?? ""
+      let venueForSide = fixture.isHome ? homeVenue : awayVenue
       if let existing {
         var updated = MatchDraft(existing.match)
         updated.opponentID = opponent.id

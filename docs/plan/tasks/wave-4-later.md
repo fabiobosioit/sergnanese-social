@@ -15,6 +15,7 @@ From here on the user has real data on this Mac. Every task keeps working in the
 | T4.5 Results workflow | `ui-dev` | sonnet | — |
 | T4.6 Captions | `ui-dev` | sonnet | — |
 | T4.7 Developer-ID signing and in-app updates | `release-engineer` | sonnet | paid Apple Developer account |
+| T4.8 CSI Live import (matches, names, logos) through an in-app browser | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | CSI terms-of-use check, a page saved by the user, team → page mapping |
 
 ---
 
@@ -164,3 +165,132 @@ Escalation is unchanged: a failed task retries once on the same model with the r
 - Needs a paid Apple Developer account and certificates stored as GitHub Actions secrets.
 - With proper signing, add in-app updates (Sparkle) so "Scarica aggiornamenti…" installs the new version itself.
 - Model: sonnet.
+
+## T4.8 — CSI Live import: matches, opponent names and logos
+
+Second import source, added on 2026-11-22. Some club teams play in CSI (Centro Sportivo Italiano) leagues. Their league ("girone") page on CSI Live shows the standings and the matches, with or without results, and the opponents' logos. Example (a 2016-born age group, Crema committee):
+
+```
+https://live.centrosportivoitaliano.it/26/Calcio-a-11/Lombardia/Crema/C36048/G283123-girone-a-2016/?j=NEU9RUZGJjRGPVBOWSY0Rz1HSkRITCY0SD1GTEdFRkcmNEk9VHY0MTByIE4gLSBGREVKJjRMPUVGRiY0Mj1l
+```
+
+Scope is the same as T4.2: matches, opponent names and opponent logos. Standings are **not** imported.
+
+### Why the T4.2 method cannot be used
+
+Checked on 2026-11-22: a plain request for the page returns `HTTP 403` with `cf-mitigated: challenge` and `server: cloudflare`. The site deliberately runs a Cloudflare bot check, so **the app does not fetch CSI pages by itself**. The plan does not get around the check: no faked browser identity, no automated solving of the check, no reuse of the browser's cookies outside its web view.
+
+### Method: the user opens the page, the app reads what is on screen
+
+1. In Matches, "Importa da CSI…" opens a **visible browser window** (`WKWebView`) on the CSI page stored for the chosen team.
+2. The user browses as in Safari. If Cloudflare shows a check, the user passes it.
+3. The user presses **"Importa questa pagina"**. The app reads that page's HTML once (`document.documentElement.outerHTML`), parses it in Swift with SwiftSoup, and opens the **same staging sheet as T4.2** (`ImportCandidate.make`, states, create/link opponent, away venue, report, commit with `upsertFromImport`, `source: .scrape`).
+
+The app never navigates, clicks or reloads by itself and does no polling or background work. One press reads one page, the one on screen.
+
+Browser window rules:
+- Its own persistent website data store (`WKWebsiteDataStore(forIdentifier:)`, one fixed identifier for CSI). It is separate from the template renderer's non-persistent store, so the user is not checked every week. A "Cancella dati del sito CSI" command removes it.
+- Navigation only to `live.centrosportivoitaliano.it` and `challenges.cloudflare.com` (the check). Any other link opens in the default browser. Pop-ups are refused.
+- No script message handlers. The page cannot call into the app; only the app queries the page (`evaluateJavaScript` / `callAsyncJavaScript`).
+- The page HTML is parsed, never passed to the template engine. It has a size cap (2 MB).
+
+### Our matches and opponents
+
+- **Ours:** same rule as T4.2. A row is ours when one side's name equals `ClubSettings.clubShortName`, compared with `searchKey` after `stripLegalPrefixes`. That side gives `isHome`; other rows are ignored. The spike confirms how CSI writes our name (for example "Sergnanese", "ASD Sergnanese", or with the age group appended). If CSI appends text, the parser normalises it with an explicit rule recorded in the notes.
+- **Opponents:** matched by name and aliases, as in T4.2. No CSI ID is used as an opponent key, for the same reason as the tuttocampo ClubId: an ID per team, not per club, is likely. The spike checks this.
+- **Dates and years:** CSI writes `dd/MM/yy` with a two-digit year (spike), so no season inference is needed. An unparseable row → needs review.
+- **Duplicates:** the rendered page repeats every match about five times (110 matches, 550 rows in the example). The parser dedupes by the match code in the row link (`P263A1`).
+- **Venue:** read from the row's tooltip (`data-bs-title`, name and address, trailing `(code)` removed).
+- **Status:** score present → played; no score → scheduled; known CSI texts for postponed or cancelled matches map to those statuses; anything else → needs review with the raw text shown.
+- **Whole calendar:** the page may show every round, not one matchday. The staging sheet already groups by weekend and ticks only the coming weekend by default.
+
+### Logos
+
+Logos are taken **inside the page session**, never by a separate request against the protected site:
+
+1. In the page, with `callAsyncJavaScript`, `fetch(img.src)` for each opponent logo the page already shows; the bytes come back to Swift (base64), with a 5 MB cap per logo. This works when the image is same-origin or allows CORS.
+2. If the logo host is **not** behind the bot check (the spike found `static.centrosportivoitaliano.it`, a different host from the page; T4.8c confirms it live with the user), a plain `URLSession` download, using the T4.2 rules: https, a host allowlist (that one host), a timeout, the size cap and no cookies.
+3. Otherwise: no logo, and the opponent is listed in the report ("logo non disponibile").
+
+The CSI placeholder shield (`csi-shield-b.svg`, host `cdncsi.csi-net.it`) means "no logo": never imported, never fetched. Logos are JPEG; `LogoFileStore` converts them to PNG.
+
+The logo is stored with `LogoStore.importLogo(data:fileName:replacing:)` as `csi-<id>.png` when the logo URL carries a stable numeric ID, else `csi-<slug(opponent name)>.png`. T4.2's rule 6 applies: an opponent that already has a logo, from tuttocampo or added by hand, is not changed unless the user asks.
+
+### Errors
+
+Shown in the app in Italian, naming the team, never silently:
+- page with no recognisable match table → "CSI: la pagina aperta non sembra un girone CSI";
+- rows found but none of ours → "nessuna partita della Sergnanese in questa pagina";
+- page too large, or reading the page failed.
+
+A logo failure never stops the import.
+
+### Contract changes needed (`foundation-architect`)
+
+Built on the T4.2 contract (`Sources/SSCore/Import.swift`, `Tuttocampo.swift`):
+- `Team.csiPageURL: String?` with validation (https, host exactly `live.centrosportivoitaliano.it`, length cap), its `ValidationField`, and the `TeamRepository` rule (one page per team).
+- `isValidImportedLogoFileName` also accepts `csi-[a-z0-9-]{1,60}.png`; add a pure `csiLogoFileName(id:name:)`.
+- `ImportIssue` gains a source (tuttocampo / CSI) or CSI cases, so messages say "CSI: …" instead of "Tuttocampo: …". Also cases for "page is not a CSI girone" and "logo not available".
+- A logo request for CSI: carries page-obtained bytes or a URL, not a `clubID`. `FetchedFixture.opponentClubID` stays tuttocampo-only.
+- `PageFixtureParser` protocol: `parse(html:pageURL:settings:) -> FixtureFetch`, a pure function. It reuses `FetchedFixture`, `FixtureFetch` and `FixtureHealthProblem`. A fake in `SSCoreFakes`.
+- No change to `FixtureSource`: it stays the network path for tuttocampo.
+
+### Steps
+
+**Step 1 — user, blocking.**
+- Check the CSI Live terms of use for reading pages the user opens in an app. If not allowed, T4.8 stops. T4.2 is not affected.
+- In Safari, open the girone page and save it twice into a folder **outside the repo**: File → Save As → "Archivio web", and File → Save As → "Sorgente pagina". Repeat for a second CSI team if one exists.
+- Say which club team each CSI page belongs to.
+
+**Step 2 — spike** (`render-engineer`; **local files only, no requests to CSI**). First findings from the user's example page are in `docs/plan/notes/t4.8-csi-spike.md` (2026-11-22); the spike confirms them, sanitises the fixture and fills the gaps (postponed text, missing time, per team or per club IDs). From the saved page, record:
+- the selectors for match rows: date, time, home, away, score, round, status text;
+- whether the page has a venue;
+- the date format;
+- how our team is named;
+- whether teams have stable IDs in links or logo URLs, and whether they are per team or per club;
+- the logo URLs and their host (from the URL only);
+- whether the page shows one round or the whole calendar.
+
+Produce a **sanitised** fixture (fake names, placeholder logo URLs; the repo is public). Output: `docs/plan/notes/t4.8-csi-spike.md` and `Tests/Fixtures/csi/`.
+
+**Step 3 — contract step** (`foundation-architect`): the changes above + the full task sheet `docs/plan/tasks/wave-4-t4.8.md` (Wave 1 format). No `Package.swift` change is expected: `SSImport` already depends on SwiftSoup, and WebKit is a system framework. If the browser needs a new target, the sheet says so and the orchestrator adds it.
+
+**Step 4 — three tasks in parallel, after Step 3 merges.**
+
+| Task | Agent | Owns | Work |
+|---|---|---|---|
+| T4.8a CSI parser | `render-engineer` | `Sources/SSImport/CSI/`, `Tests/SSImportTests/CSI/` | Pure parser `HTML + page URL → FixtureFetch` from the spike fixture: our side by name, `isHome`, dates and year, statuses, round, opponent name, logo URL and ID. Health checks. Tests on the fixture, plus variants: no table, no rows of ours, unknown status, missing year. |
+| T4.8b data | `core-dev` | `Sources/SSData/`, `Tests/SSDataTests/` | Migration for `teams.csiPageURL`; the `LogoFileStore` accepts `csi-…png` names; tests. |
+| T4.8c browser + logos | `render-engineer` | `Sources/SSApp/Features/Import/CSIBrowser/`, its tests | Browser window: persistent CSI data store, navigation allowlist, external links in the default browser, no pop-ups, no message handlers, page size cap, "Importa questa pagina" (one `outerHTML` read). Logo retrieval in the page session (in-page `fetch`, else `URLSession` only to a host proven unprotected, else none); stored as `csi-<id or slug>.png`. "Cancella dati del sito CSI". Tests: navigation decisions, file names, logo size cap. Acceptance includes one manual run with the user on the real page. |
+
+**Step 5 — UI and wiring** (`ui-dev`, after Step 4). "Importa da CSI…" in Matches (menu and toolbar, next to "Importa da Tuttocampo…"), with a team picker limited to teams that have a CSI page. Opening the browser; the parser result goes into the existing staging sheet and report (`Sources/SSApp/Features/Import/`). "Pagina CSI" field in the Team inspector (paste the address). Italian strings in `ImportStrings`/`Strings`. Real parser wired in `Sources/SergnaneseSocial/Composition.swift`. Integration test: fixture HTML → parser → staging → database (no browser, no network).
+
+**Step 6 — gate and release.** `qa-reviewer`: acceptance criteria, Mac design rules for the browser window, Light/Dark, security (navigation policy, data store, no message handlers), and one live run with the user. `chore-runner`: a USER-GUIDE section "Importare da CSI". `release-engineer`: in the next release after T4.2's v0.2.0.
+
+### Model and effort per step
+
+Same rule as T4.2: the cheapest model that finishes without rework. Overrides are passed at dispatch.
+
+| Step | Agent | Agent default | Dispatch with | Why |
+|---|---|---|---|---|
+| 2 spike | `render-engineer` | opus, high | sonnet, medium | Reads a local file; records selectors; anonymises. |
+| 3 contract + sheet | `foundation-architect` | opus, high | opus, high | Frozen contracts shared with T4.2's import types. |
+| 4 T4.8a parser | `render-engineer` | opus, high | sonnet, medium | A pure parser against a fixture, like T4.2a but with no network or concurrency. |
+| 4 T4.8b data | `core-dev` | sonnet, medium | sonnet, low | One column and one file-name rule. |
+| 4 T4.8c browser + logos | `render-engineer` | opus, high | sonnet, high | `WKWebView` on the main actor, a persistent data store, `callAsyncJavaScript`, the navigation policy. Escalate to opus if it fails twice. |
+| 5 UI + wiring | `ui-dev` | sonnet, medium | sonnet, medium | Reuses the T4.2 staging sheet; a new menu item and field. |
+| gate (T4.8a, T4.8b, step 5) | `qa-reviewer` | opus, high | sonnet, medium | Well-defined acceptance criteria. |
+| gate (T4.8c + final) | `qa-reviewer` | opus, high | opus, high | A visible web view on an untrusted site, a persistent data store, file names from remote data. |
+| 6 USER-GUIDE | `chore-runner` | haiku | haiku | Prose only. |
+| 6 release | `release-engineer` | sonnet, medium | sonnet, low | Existing scripts. |
+
+Escalation is unchanged: retry once on the same model with the reviewer's findings, then one model up.
+
+### Rules
+
+- The page is read only when the user presses "Importa questa pagina"; logos are read only from that page's session.
+- No bypass of the site's protection, and no automated navigation.
+- Third-party HTML is parsed only. SVG logos are rasterised by `LogoStore`.
+- Locked matches are never overwritten. Logos already present are not replaced automatically.
+- Dev data folder only; no real logos or club HTML committed.
+- The security notes in `01-architecture.md` §8 cover the CSI browser window.

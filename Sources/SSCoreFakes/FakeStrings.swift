@@ -23,6 +23,6 @@ enum FakeStrings {
   static func fakeRenderFailure(_ templateID: String) -> String { "Errore simulato nel template \(templateID)." }
   static let warningNotScheduled = "La partita è rinviata o annullata."
   static func logoBadName(_ name: String) -> String {
-    "Nome del logo non valido: «\(name)». Sono ammesse solo cifre seguite da .png."
+    "Nome del logo non valido: «\(name)». Sono ammessi solo nomi come 917410.png o csi-12345678.png."
   }
 }

@@ -98,12 +98,13 @@ public struct FakeTeamRepository: TeamRepository {
     let draft = try draft.validated()
     return try database.write { state in
       try checkWidgetID(draft.tuttocampoWidgetID, of: nil, in: state)
+      try checkCSIPage(draft.csiPageURL, of: nil, in: state)
       let isFirstTeam = draft.isFirstTeam || !state.teams.contains(where: \.isFirstTeam)
       if isFirstTeam { clearFirstTeam(in: &state) }
       let team = Team(
         id: newEntityID(), name: draft.name, shortLabel: draft.shortLabel,
         sortOrder: (state.teams.map(\.sortOrder).max() ?? -1) + 1, isFirstTeam: isFirstTeam,
-        isActive: draft.isActive, tuttocampoWidgetID: draft.tuttocampoWidgetID)
+        isActive: draft.isActive, tuttocampoWidgetID: draft.tuttocampoWidgetID, csiPageURL: draft.csiPageURL)
       state.teams.append(team)
       return team
     }
@@ -115,12 +116,14 @@ public struct FakeTeamRepository: TeamRepository {
       guard let index = state.teams.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
       if state.teams[index].isFirstTeam && !draft.isFirstTeam { throw AppError.firstTeamRequired }
       try checkWidgetID(draft.tuttocampoWidgetID, of: id, in: state)
+      try checkCSIPage(draft.csiPageURL, of: id, in: state)
       if draft.isFirstTeam { clearFirstTeam(in: &state) }
       state.teams[index].name = draft.name
       state.teams[index].shortLabel = draft.shortLabel
       state.teams[index].isFirstTeam = draft.isFirstTeam
       state.teams[index].isActive = draft.isActive
       state.teams[index].tuttocampoWidgetID = draft.tuttocampoWidgetID
+      state.teams[index].csiPageURL = draft.csiPageURL
       return state.teams[index]
     }
   }
@@ -158,6 +161,14 @@ public struct FakeTeamRepository: TeamRepository {
       $0.id != teamID && $0.tuttocampoWidgetID?.caseInsensitiveCompare(widgetID) == .orderedSame
     }) {
       throw AppError.widgetIDInUse(by: other.name)
+    }
+  }
+
+  /// The CSI-page rule: no other team may store a page with the same `csiPageKey`.
+  private func checkCSIPage(_ pageURL: String?, of teamID: EntityID?, in state: FakeDatabase.State) throws {
+    guard let key = pageURL.flatMap(csiPageKey) else { return }
+    if let other = state.teams.first(where: { $0.id != teamID && $0.csiPageURL.flatMap(csiPageKey) == key }) {
+      throw AppError.csiPageURLInUse(by: other.name)
     }
   }
 }

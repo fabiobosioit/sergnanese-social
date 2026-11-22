@@ -102,6 +102,10 @@ for i, (name, label) in enumerate(TEAM_NAMES):
     # Fake tuttocampo.it widget ids (T4.2), the keys of FakeFixtureSource.scenario. Veterani has none.
     if name != "Veterani":
         teams[-1]["tuttocampoWidgetID"] = f"00000000-0000-4000-8000-{i + 1:012d}"
+    # Fake CSI Live page (T4.8), the key of FakePageFixtureParser.scenario. No such girone exists.
+    if name == "Pulcini":
+        teams[-1]["csiPageURL"] = ("https://live.centrosportivoitaliano.it/26/Calcio-a-7/Lombardia/Esempio/"
+                                   "C00001/G000008-girone-a-2016/")
 T = {t["name"]: t for t in teams}
 
 # (key, name, shortName, logo?, aliases)

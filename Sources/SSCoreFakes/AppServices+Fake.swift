@@ -19,7 +19,8 @@ extension AppServices {
 
   /// Services on in-memory fakes holding exactly `dataSet` (use `FakeDataSet.empty()` for an empty
   /// app). The fixture source is `FakeFixtureSource.scenario` around `dataSet.referenceSaturday`, with
-  /// `renderDelay` as its fetch delay. Render `file` paths that are relative are resolved against the output folder, and a
+  /// `renderDelay` as its fetch delay; the CSI page parser is `FakePageFixtureParser.scenario` around the
+  /// same Saturday. Render `file` paths that are relative are resolved against the output folder, and a
   /// flat PNG is written for each record except those in `missingRenderFileIDs`.
   @MainActor
   public static func fake(dataSet: FakeDataSet, renderDelay: Duration = .milliseconds(150)) throws -> AppServices {
@@ -66,6 +67,7 @@ extension AppServices {
       demoData: FakeDemoDataLoader(dataSet: demoSource, teams: teams, opponents: opponents, matches: matches),
       paths: paths,
       fixtureSource: FakeFixtureSource.scenario(
-        referenceSaturday: data.referenceSaturday, logos: logos, delay: renderDelay))
+        referenceSaturday: data.referenceSaturday, logos: logos, delay: renderDelay),
+      csiPageParser: FakePageFixtureParser.scenario(referenceSaturday: data.referenceSaturday))
   }
 }

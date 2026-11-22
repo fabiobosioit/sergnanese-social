@@ -18,8 +18,8 @@ public protocol LogoStore: Sendable {
   /// Same as `importLogo(from:replacing:)` for image data (a paste or a drag from a browser).
   func importLogo(data: Data, replacing: String?) async throws -> String
   /// Same as `importLogo(data:replacing:)`, but the caller chooses the stored name (T4.2: downloaded
-  /// logos are stored as `"<ClubId>.png"`). `fileName` must pass `isValidImportedLogoFileName`
-  /// (digits followed by `.png`), otherwise `AppError.validation(field: .logo, …)` is thrown and
+  /// logos are stored as `"<ClubId>.png"`; T4.8: CSI logos as `"csi-<id or slug>.png"`). `fileName` must
+  /// pass `isValidImportedLogoFileName`, otherwise `AppError.validation(field: .logo, …)` is thrown and
   /// nothing is written. An existing file with that name is replaced. Returns `fileName`.
   ///
   /// A default implementation exists (import under a generated name, then move the file); stores
@@ -295,12 +295,16 @@ public struct AppServices: Sendable {
   /// Tuttocampo import (T4.2). Containers built without one get a source whose fetches throw
   /// `FixtureFetchError.unavailable`.
   public var fixtureSource: any FixtureSource
+  /// CSI Live import (T4.8): parses the page the user opened in the CSI browser window. Containers built
+  /// without one get a parser that answers "not a CSI girone" for every page.
+  public var csiPageParser: any PageFixtureParser
 
   public init(
     teams: any TeamRepository, opponents: any OpponentRepository, matches: any MatchRepository,
     settings: any SettingsRepository, renders: any RenderRepository, logos: any LogoStore,
     templates: any TemplateStore, renderer: any RenderService, demoData: any DemoDataLoader, paths: AppPaths,
-    fixtureSource: any FixtureSource = UnavailableFixtureSource()
+    fixtureSource: any FixtureSource = UnavailableFixtureSource(),
+    csiPageParser: any PageFixtureParser = UnavailablePageFixtureParser()
   ) {
     self.teams = teams
     self.opponents = opponents
@@ -313,5 +317,6 @@ public struct AppServices: Sendable {
     self.demoData = demoData
     self.paths = paths
     self.fixtureSource = fixtureSource
+    self.csiPageParser = csiPageParser
   }
 }

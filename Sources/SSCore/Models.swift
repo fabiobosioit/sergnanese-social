@@ -182,10 +182,14 @@ public struct Team: Sendable, Codable, Equatable, Hashable, Identifiable {
   /// (`isValidTuttocampoWidgetID`) and never shared with another team (`TeamRepository`). Absent from
   /// older JSON, which decodes as `nil`.
   public var tuttocampoWidgetID: String?
+  /// The address of the team's CSI Live girone page (T4.8), opened in the in-app browser by "Importa da
+  /// CSI…". `nil` = the team is not imported from CSI. Always `isValidCSIPageURL` and never the same page
+  /// (`csiPageKey`) as another team's (`TeamRepository`). Absent from older JSON, which decodes as `nil`.
+  public var csiPageURL: String?
 
   public init(
     id: EntityID, name: String, shortLabel: String, sortOrder: Int, isFirstTeam: Bool, isActive: Bool,
-    tuttocampoWidgetID: String? = nil
+    tuttocampoWidgetID: String? = nil, csiPageURL: String? = nil
   ) {
     self.id = id
     self.name = name
@@ -194,6 +198,7 @@ public struct Team: Sendable, Codable, Equatable, Hashable, Identifiable {
     self.isFirstTeam = isFirstTeam
     self.isActive = isActive
     self.tuttocampoWidgetID = tuttocampoWidgetID
+    self.csiPageURL = csiPageURL
   }
 }
 
@@ -417,22 +422,25 @@ public struct TeamDraft: Sendable, Codable, Equatable, Hashable {
   public var isActive: Bool
   /// A bare widget id or a pasted widget address; `normalized()` keeps only the id, empty becomes `nil`.
   public var tuttocampoWidgetID: String?
+  /// A pasted CSI page address; `normalized()` trims it and adds `https://` when missing, empty becomes `nil`.
+  public var csiPageURL: String?
 
   public init(
     name: String = "", shortLabel: String = "", isFirstTeam: Bool = false, isActive: Bool = true,
-    tuttocampoWidgetID: String? = nil
+    tuttocampoWidgetID: String? = nil, csiPageURL: String? = nil
   ) {
     self.name = name
     self.shortLabel = shortLabel
     self.isFirstTeam = isFirstTeam
     self.isActive = isActive
     self.tuttocampoWidgetID = tuttocampoWidgetID
+    self.csiPageURL = csiPageURL
   }
 
   public init(_ team: Team) {
     self.init(
       name: team.name, shortLabel: team.shortLabel, isFirstTeam: team.isFirstTeam, isActive: team.isActive,
-      tuttocampoWidgetID: team.tuttocampoWidgetID)
+      tuttocampoWidgetID: team.tuttocampoWidgetID, csiPageURL: team.csiPageURL)
   }
 }
 

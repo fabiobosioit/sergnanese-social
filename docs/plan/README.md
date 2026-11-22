@@ -22,6 +22,7 @@ A native Mac app that turns the club's weekend fixtures into ready-to-post Insta
 | D2 | Match data in v0.1.0 is entered by hand. Development uses **fake matches** (seed data). | User |
 | D3 | Import (CSV/Excel, website scraping, PDF) comes later, in Wave 4. | User |
 | D4 | Opponent logos will later be downloaded from tuttocampo.it (T4.2, by direct fetch of the club widgets). In v0.1.0 they are added by hand; seed data uses generated placeholder logos. | User |
+| D10 | Teams playing in CSI leagues are imported from CSI Live (`live.centrosportivoitaliano.it`), matches, opponent names and logos, no standings (T4.8). The site runs a Cloudflare bot check, so the app does not fetch it: the user opens the page in an in-app browser window and presses "Importa questa pagina". (Added 2026-11-22.) | User |
 | D5 | Long team names are **truncated** (with a manual short-name override). | User |
 | D6 | The app must be downloadable from GitHub as a package and run on the Mac. | User |
 | D7 | Review/edit before render is part of v0.1.0. | User |
@@ -130,3 +131,4 @@ Fable, the most capable and most expensive model, is not assigned to any task. I
 | T1.4 (nice to have) | Real list of the club's teams/categories. Fake ones are used otherwise. |
 | T4.2 | A check of tuttocampo.it's terms of use for automated reading, and confirmation of which widget ID belongs to which team. The six widget IDs are already known (see the T4.2 sheet). |
 | T4.1 / T4.3 | A sample fixture document (Excel/CSV/PDF). |
+| T4.8 | A check of CSI Live's terms of use; each CSI girone page saved from Safari ("Archivio web" and "Sorgente pagina") into a folder outside the repo; which club team each CSI page belongs to. |
