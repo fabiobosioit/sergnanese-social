@@ -17,7 +17,7 @@ struct CSIBrowserControllerTests {
   }
 
   func controller(_ team: Team? = nil) -> CSIBrowserController {
-    CSIBrowserController(team: team ?? self.team(), dataStore: .nonPersistent())
+    CSIBrowserController(team: team ?? self.team(), dataStore: .nonPersistent(), downloader: nil)
   }
 
   func request(_ name: String, url: String) -> CSILogoRequest {
@@ -122,8 +122,8 @@ struct CSIBrowserControllerTests {
     #expect(await model.fetchLogos([]).isEmpty)
   }
 
-  @Test func theDirectDownloadIsOffByDefault() {
-    #expect(!CSIBrowserController.allowsDirectLogoDownload)
+  @Test func theDirectDownloadIsOn() {
+    #expect(CSIBrowserController.allowsDirectLogoDownload)
   }
 
   @Test func aCancelledFetchGivesNothing() async {

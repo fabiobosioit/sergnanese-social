@@ -16,9 +16,10 @@ typealias CSIPageSnapshot = CSIPageReader.Snapshot
 /// into the app (no script message handlers).
 @MainActor @Observable
 final class CSIBrowserController: PageLogoSource {
-  /// Whether logos may be downloaded from `CSILive.logoHost` outside the page session when the page cannot
-  /// give them. Off until the host is shown not to be behind the bot check (checked live with the user).
-  static let allowsDirectLogoDownload = false
+  /// Whether logos are downloaded straight from `CSILive.logoHost` (`static.centrosportivoitaliano.it`).
+  /// On: the user confirmed the host serves plain images (HTTP 200, no bot check, 2026-11-22). The download
+  /// follows the T4.2 rules (https, that one host, size cap, no cookies); the page session is the fallback.
+  static let allowsDirectLogoDownload = true
 
   /// How many logos are read at the same time.
   static let logoConcurrency = 3
@@ -167,7 +168,7 @@ final class CSIBrowserController: PageLogoSource {
   // MARK: Logos
 
   /// The bytes of each logo, in request order, at most `logoConcurrency` at a time. In the page session
-  /// first (`fetch`); then, only if `allowsDirectLogoDownload`, a download from the logo host; else
+  /// first from the logo host directly (`allowsDirectLogoDownload`); then in the page session (`fetch`); else
   /// `data == nil`. Never navigates, never throws. When the task is cancelled the rest is `nil`.
   func fetchLogos(_ requests: [CSILogoRequest]) async -> [CSILogoData] {
     let answers = await CSIConcurrentMap.run(requests, limit: Self.logoConcurrency) { await self.logo($0) }
@@ -176,9 +177,13 @@ final class CSIBrowserController: PageLogoSource {
 
   private func logo(_ request: CSILogoRequest) async -> Data? {
     guard !Task.isCancelled, !isClosed, CSILogoBytes.isReadable(request.logoURL) else { return nil }
-    if let data = await logoInPage(request.logoURL) { return data }
-    guard !Task.isCancelled, let downloader, CSILogoDownloader.isAllowed(request.logoURL) else { return nil }
-    return try? await downloader.download(request.logoURL)
+    if let downloader, CSILogoDownloader.isAllowed(request.logoURL),
+      let data = try? await downloader.download(request.logoURL)
+    {
+      return data
+    }
+    guard !Task.isCancelled else { return nil }
+    return await logoInPage(request.logoURL)
   }
 
   /// `fetch` in the page session. Only while a CSI page is open: the page's own session is the point.
