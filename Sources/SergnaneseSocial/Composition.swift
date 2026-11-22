@@ -2,6 +2,7 @@ import Foundation
 import OSLog
 import SSCore
 import SSData
+import SSImport
 import SSRender
 import SSSeed
 import SSTemplates
@@ -37,7 +38,44 @@ enum Composition {
     return AppServices(
       teams: database.teams, opponents: database.opponents, matches: database.matches,
       settings: database.settings, renders: database.renders, logos: logos, templates: templates,
-      renderer: renderer, demoData: demo, paths: paths)
+      renderer: renderer, demoData: demo, paths: paths,
+      fixtureSource: LoggingFixtureSource(base: TuttocampoWidgetSource(logos: logos)))
+  }
+}
+
+/// Logs each import fetch and logo download: team or opponent name and the outcome only, never HTML.
+struct LoggingFixtureSource: FixtureSource {
+  let base: any FixtureSource
+
+  func fetchFixtures(for team: Team, settings: ClubSettings) async throws -> FixtureFetch {
+    do {
+      let fetch = try await base.fetchFixtures(for: team, settings: settings)
+      switch fetch {
+      case .fixtures(let fixtures):
+        Log.imports.info("Import \(team.name, privacy: .public): \(fixtures.count) fixture(s)")
+      case .notYetAvailable:
+        Log.imports.info("Import \(team.name, privacy: .public): results not yet available")
+      case .sourceProblem(let problem):
+        Log.imports.error("Import \(team.name, privacy: .public): source problem \(problem.rawValue, privacy: .public)")
+      }
+      return fetch
+    } catch is CancellationError {
+      Log.imports.info("Import \(team.name, privacy: .public): cancelled")
+      throw CancellationError()
+    } catch {
+      Log.imports.error("Import \(team.name, privacy: .public): failed, \(String(describing: error), privacy: .public)")
+      throw error
+    }
+  }
+
+  func downloadLogos(_ requests: [LogoRequest]) async -> [LogoResult] {
+    let results = await base.downloadLogos(requests)
+    let stored = results.filter { $0.fileName != nil }.count
+    Log.imports.info("Logos: \(stored) of \(results.count) stored")
+    for result in results where result.fileName == nil && result.issue != nil {
+      Log.imports.error("Logo not stored for \(result.request.opponentName, privacy: .public)")
+    }
+    return results
   }
 }
 
