@@ -20,6 +20,7 @@ enum AppStrings {
     static let newMatch = "Nuova partita"
     static let newOpponent = "Nuovo avversario"
     static let importTemplate = "Importa template…"
+    static let importTuttocampo = "Importa da Tuttocampo…"
     static let loadDemo = "Carica dati demo"
     static let openOutputFolder = "Apri cartella immagini"
     static let duplicate = "Duplica"

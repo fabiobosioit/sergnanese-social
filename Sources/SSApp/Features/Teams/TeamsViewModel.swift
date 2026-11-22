@@ -15,6 +15,10 @@ final class TeamsViewModel {
   var newDraft = TeamDraft()
   private(set) var newProblems: [FieldProblem] = []
   var isCreating = false
+  /// The team the edit sheet is open for.
+  var editing: Team?
+  var editDraft = TeamDraft()
+  private(set) var editProblems: [FieldProblem] = []
   var pendingDelete: Team?
   /// Shown in a standard alert: the first-team rule, the delete guard, failed saves.
   var errorMessage: String?
@@ -54,6 +58,40 @@ final class TeamsViewModel {
       return true
     } catch let AppError.validation(field, message) {
       newProblems = [FieldProblem(field: field, message: message)]
+      return false
+    } catch {
+      present(error, fallback: TeamsStrings.saveFailed)
+      return false
+    }
+  }
+
+  // MARK: Edit sheet
+
+  func beginEdit(_ team: Team) {
+    editDraft = TeamDraft(team)
+    editProblems = []
+    editing = team
+  }
+
+  func beginEditSelection() {
+    if let team = teams.first(where: { $0.id == selection }) { beginEdit(team) }
+  }
+
+  /// Saves the edit sheet. The problem of the widget id (invalid, or used by another team) stays on
+  /// the sheet, under the field.
+  @discardableResult
+  func saveEdit() -> Bool {
+    guard let team = editing else { return false }
+    let candidate = editDraft.normalized()
+    editProblems = candidate.validate()
+    guard editProblems.isEmpty else { return false }
+    do {
+      _ = try services.teams.update(id: team.id, with: candidate)
+      editing = nil
+      reload()
+      return true
+    } catch let AppError.validation(field, message) {
+      editProblems = [FieldProblem(field: field, message: message)]
       return false
     } catch {
       present(error, fallback: TeamsStrings.saveFailed)

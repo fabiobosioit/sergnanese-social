@@ -10,6 +10,7 @@ struct AppCommands: Commands {
   @FocusedValue(\.newMatchAction) private var newMatch
   @FocusedValue(\.newOpponentAction) private var newOpponent
   @FocusedValue(\.importTemplateAction) private var importTemplate
+  @FocusedValue(\.importTuttocampoAction) private var importTuttocampo
   @FocusedValue(\.duplicateAction) private var duplicate
   @FocusedValue(\.deleteAction) private var delete
   @FocusedValue(\.findAction) private var find
@@ -23,6 +24,7 @@ struct AppCommands: Commands {
     var actions: [ShellCommand: CommandAction] = [:]
     let pairs: [(ShellCommand, CommandAction?)] = [
       (.newMatch, newMatch), (.newOpponent, newOpponent), (.importTemplate, importTemplate),
+      (.importTuttocampo, importTuttocampo),
       (.duplicate, duplicate), (.delete, delete), (.find, find), (.generate, generate),
       (.quickLook, quickLook), (.share, share), (.copyImage, copyImage), (.revealInFinder, revealInFinder),
     ]
@@ -52,6 +54,8 @@ struct AppCommands: Commands {
       Button(AppStrings.Menu.importTemplate) { published.perform(.importTemplate) }
         .keyboardShortcut("o", modifiers: .command)
         .disabled(!published.isEnabled(.importTemplate))
+      Button(AppStrings.Menu.importTuttocampo) { published.perform(.importTuttocampo) }
+        .disabled(!published.isEnabled(.importTuttocampo))
       Button(AppStrings.Menu.loadDemo) { Task { await model.loadDemoData() } }
       Divider()
       Button(AppStrings.Menu.openOutputFolder) { FolderOpener.openOutputFolder(model) }

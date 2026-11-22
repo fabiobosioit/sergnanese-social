@@ -20,8 +20,16 @@ public struct TeamsView: View {
           Button(TeamsStrings.add, systemImage: "plus") { vm.beginCreate() }
             .help(TeamsStrings.add)
         }
+        ToolbarItem {
+          Button(TeamsStrings.editMenu, systemImage: "pencil") { vm.beginEditSelection() }
+            .disabled(vm.selection == nil)
+            .help(TeamsStrings.editTitle)
+        }
       }
       .sheet(isPresented: $vm.isCreating) { NewTeamSheet(model: vm) }
+      .sheet(isPresented: Binding(get: { vm.editing != nil }, set: { if !$0 { vm.editing = nil } })) {
+        EditTeamSheet(model: vm)
+      }
       .confirmDelete(
         vm.pendingDelete.map { TeamsStrings.deleteTitle($0.name) } ?? "",
         isPresented: Binding(get: { vm.pendingDelete != nil }, set: { if !$0 { vm.pendingDelete = nil } }),
@@ -63,6 +71,8 @@ public struct TeamsView: View {
           TeamRow(team: team, model: vm)
             .tag(team.id)
             .contextMenu {
+              Button(TeamsStrings.editMenu) { vm.beginEdit(team) }
+              Divider()
               Button(TeamsStrings.makeFirstTeam) { vm.makeFirst(team) }
                 .disabled(team.isFirstTeam)
               Button(team.isActive ? TeamsStrings.deactivate : TeamsStrings.active) {
@@ -124,6 +134,12 @@ private struct TeamRow: View {
         .frame(maxWidth: 140)
         .focused($focus, equals: .shortLabel)
         .onSubmit(commit)
+      if team.tuttocampoWidgetID != nil {
+        Image(systemName: "arrow.down.circle")
+          .foregroundStyle(.secondary)
+          .help(TeamsStrings.widgetSet)
+          .accessibilityLabel(TeamsStrings.widgetSet)
+      }
       Toggle(TeamsStrings.active, isOn: Binding(get: { team.isActive }, set: { model.setActive(team, $0) }))
         .toggleStyle(.switch)
         .labelsHidden()
@@ -175,6 +191,7 @@ private struct NewTeamSheet: View {
           .labelsHidden()
           .onSubmit { vm.create() }
         }
+        WidgetIDField(draft: $vm.newDraft, problems: vm.newProblems) { vm.create() }
       }
       .formStyle(.grouped)
       HStack {
@@ -187,5 +204,66 @@ private struct NewTeamSheet: View {
       .padding([.horizontal, .bottom], 16)
     }
     .frame(width: 400)
+  }
+}
+
+/// "Modifica squadra": name, short label and the Tuttocampo widget id, Salva (Return) and Annulla (Esc).
+private struct EditTeamSheet: View {
+  let model: TeamsViewModel
+
+  var body: some View {
+    @Bindable var vm = model
+    VStack(spacing: 0) {
+      Text(TeamsStrings.editTitle)
+        .font(.headline)
+        .padding(.top, 16)
+      Form {
+        ValidatedField(TeamsStrings.nameField, problems: vm.editProblems, field: .name) {
+          TextField(TeamsStrings.nameField, text: $vm.editDraft.name)
+            .labelsHidden()
+            .onSubmit { vm.saveEdit() }
+        }
+        ValidatedField(TeamsStrings.shortLabelField, problems: vm.editProblems, field: .shortLabel) {
+          TextField(TeamsStrings.shortLabelField, text: $vm.editDraft.shortLabel)
+            .labelsHidden()
+            .onSubmit { vm.saveEdit() }
+        }
+        WidgetIDField(draft: $vm.editDraft, problems: vm.editProblems) { vm.saveEdit() }
+      }
+      .formStyle(.grouped)
+      HStack {
+        Spacer()
+        Button(AppStrings.Common.cancel) { vm.editing = nil }
+          .keyboardShortcut(.cancelAction)
+        Button(TeamsStrings.save) { vm.saveEdit() }
+          .keyboardShortcut(.defaultAction)
+      }
+      .padding([.horizontal, .bottom], 16)
+    }
+    .frame(width: 440)
+  }
+}
+
+/// The widget id text field with its help line and the problem of `.tuttocampoWidgetID` under it.
+private struct WidgetIDField: View {
+  @Binding var draft: TeamDraft
+  let problems: [FieldProblem]
+  let onSubmit: () -> Void
+
+  var body: some View {
+    ValidatedField(TeamsStrings.widgetField, problems: problems, field: .tuttocampoWidgetID) {
+      VStack(alignment: .leading, spacing: 4) {
+        TextField(
+          TeamsStrings.widgetField,
+          text: Binding(get: { draft.tuttocampoWidgetID ?? "" }, set: { draft.tuttocampoWidgetID = $0 }),
+          prompt: Text(TeamsStrings.widgetPrompt)
+        )
+        .labelsHidden()
+        .onSubmit(onSubmit)
+        Text(TeamsStrings.widgetHelp)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
   }
 }

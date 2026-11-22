@@ -4,7 +4,7 @@ import SwiftUI
 /// `.publishCommand(_:enabled:perform:)`; the shell's `Commands` call them. A screen never edits the
 /// menu definition.
 public enum ShellCommand: String, CaseIterable, Sendable {
-  case newMatch, newOpponent, importTemplate
+  case newMatch, newOpponent, importTemplate, importTuttocampo
   case duplicate, delete, find
   case generate
   case quickLook, share, copyImage, revealInFinder
@@ -61,6 +61,7 @@ public struct WeekendCommandAvailability: Equatable, Sendable {
 private struct NewMatchKey: FocusedValueKey { typealias Value = CommandAction }
 private struct NewOpponentKey: FocusedValueKey { typealias Value = CommandAction }
 private struct ImportTemplateKey: FocusedValueKey { typealias Value = CommandAction }
+private struct ImportTuttocampoKey: FocusedValueKey { typealias Value = CommandAction }
 private struct DuplicateKey: FocusedValueKey { typealias Value = CommandAction }
 private struct DeleteKey: FocusedValueKey { typealias Value = CommandAction }
 private struct FindKey: FocusedValueKey { typealias Value = CommandAction }
@@ -82,6 +83,10 @@ extension FocusedValues {
   var importTemplateAction: CommandAction? {
     get { self[ImportTemplateKey.self] }
     set { self[ImportTemplateKey.self] = newValue }
+  }
+  var importTuttocampoAction: CommandAction? {
+    get { self[ImportTuttocampoKey.self] }
+    set { self[ImportTuttocampoKey.self] = newValue }
   }
   var duplicateAction: CommandAction? {
     get { self[DuplicateKey.self] }
@@ -137,6 +142,7 @@ private struct PublishCommandModifier: ViewModifier {
     case .newMatch: content.focusedSceneValue(\.newMatchAction, action)
     case .newOpponent: content.focusedSceneValue(\.newOpponentAction, action)
     case .importTemplate: content.focusedSceneValue(\.importTemplateAction, action)
+    case .importTuttocampo: content.focusedSceneValue(\.importTuttocampoAction, action)
     case .duplicate: content.focusedSceneValue(\.duplicateAction, action)
     case .delete: content.focusedSceneValue(\.deleteAction, action)
     case .find: content.focusedSceneValue(\.findAction, action)
