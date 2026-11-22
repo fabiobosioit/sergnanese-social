@@ -18,6 +18,16 @@ enum MatchesStrings {
   static let generate = "Genera"
   static let generateHelp = "Genera le immagini di questo weekend"
 
+  // MARK: Scope
+  static let scopePicker = "Mostra"
+  static let scopeWeekend = "Weekend"
+  static let scopeAll = "Tutte"
+  static let scopeHelp = "Mostra le partite del weekend oppure tutte quelle registrate"
+  static let switcherDisabledHelp = "Con “Tutte” il weekend non conta"
+  static func dateWithYear(_ date: String, year: Int) -> String { "\(date) \(year)" }
+  static let emptyAllTitle = "Nessuna partita registrata"
+  static let emptyAllDescription = "Aggiungi una partita oppure importa il calendario."
+
   // MARK: Table
   static let columnTime = "Ora"
   static let columnTeam = "Squadra"
@@ -38,8 +48,9 @@ enum MatchesStrings {
   static let sourcePDF = "Importata da PDF"
   static func roundLabel(_ round: Int) -> String { "Giornata \(round)" }
 
-  static func summary(matches: Int, withWarnings: Int) -> String {
-    let base = matches == 1 ? "1 partita" : "\(matches) partite"
+  static func summary(matches: Int, withWarnings: Int, isTotal: Bool = false) -> String {
+    let base =
+      isTotal ? "Tutte le partite: \(matches)" : matches == 1 ? "1 partita" : "\(matches) partite"
     return withWarnings == 0 ? base : "\(base), \(withWarnings) con avvisi"
   }
 

@@ -6,8 +6,21 @@ import SSCore
 struct MatchDaySection: Identifiable, Equatable {
   var date: DayDate
   var matches: [MatchDetail]
+  /// The long date gets the year too (all-matches mode, dates outside the current year).
+  var showsYear = false
   var id: String { date.value }
-  var title: String { formatDateLong(date) }
+  var title: String {
+    let long = formatDateLong(date)
+    return showsYear ? MatchesStrings.dateWithYear(long, year: date.year) : long
+  }
+}
+
+/// What the Partite list covers.
+enum MatchesScope: String, CaseIterable, Identifiable {
+  case weekend
+  case all
+  var id: String { rawValue }
+  var title: String { self == .weekend ? MatchesStrings.scopeWeekend : MatchesStrings.scopeAll }
 }
 
 /// State and logic of the Partite screen. Reads the weekend shared in `AppModel`; every change goes
@@ -26,6 +39,11 @@ final class MatchesViewModel {
   private(set) var databaseIsEmpty = false
   private(set) var planWarnings: [EntityID: [RenderWarning]] = [:]
   private(set) var homeVenue = ""
+
+  /// The shown weekend, or every recorded match.
+  var scope: MatchesScope = .weekend {
+    didSet { if scope != oldValue { reload() } }
+  }
 
   var searchText = ""
   var teamFilter: EntityID?
@@ -49,7 +67,12 @@ final class MatchesViewModel {
   func reload() {
     do {
       let weekend = app.weekend
-      details = try services.matches.list(from: weekend.saturday, to: weekend.sunday, teamID: nil)
+      switch scope {
+      case .weekend:
+        details = try services.matches.list(from: weekend.saturday, to: weekend.sunday, teamID: nil)
+      case .all:
+        details = try services.matches.list(from: Self.firstDay, to: Self.lastDay, teamID: nil)
+      }
       teams = try services.teams.list()
       opponents = try services.opponents.list()
       databaseIsEmpty = try services.matches.count(source: nil) == 0
@@ -65,6 +88,10 @@ final class MatchesViewModel {
     app.refreshWarningBadge()
   }
 
+  /// Bounds wide enough to cover every match the database can hold.
+  static let firstDay = DayDate(year: 1970, month: 1, day: 1)!
+  static let lastDay = DayDate(year: 9999, month: 12, day: 31)!
+
   // MARK: Warnings
 
   func warnings(for detail: MatchDetail) -> [RenderWarning] {
@@ -76,7 +103,8 @@ final class MatchesViewModel {
   }
 
   var summary: String {
-    MatchesStrings.summary(matches: details.count, withWarnings: matchesWithWarnings)
+    MatchesStrings.summary(
+      matches: details.count, withWarnings: matchesWithWarnings, isTotal: scope == .all)
   }
 
   // MARK: Filter and search
@@ -111,11 +139,15 @@ final class MatchesViewModel {
   /// `visibleMatches` grouped by day, days in order.
   var daySections: [MatchDaySection] {
     var sections: [MatchDaySection] = []
+    let currentYear = DayDate.today().year
     for detail in visibleMatches {
       if let last = sections.last, last.date == detail.match.date {
         sections[sections.count - 1].matches.append(detail)
       } else {
-        sections.append(MatchDaySection(date: detail.match.date, matches: [detail]))
+        sections.append(
+          MatchDaySection(
+            date: detail.match.date, matches: [detail],
+            showsYear: scope == .all && detail.match.date.year != currentYear))
       }
     }
     return sections
@@ -177,7 +209,7 @@ final class MatchesViewModel {
       let match = try services.matches.create(draft)
       newMatchForm = nil
       reload()
-      selection = app.weekend.contains(match.date) ? [match.id] : []
+      selection = scope == .all || app.weekend.contains(match.date) ? [match.id] : []
       return []
     } catch let AppError.validation(field, message) {
       return [FieldProblem(field: field, message: message)]

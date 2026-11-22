@@ -303,4 +303,45 @@ struct MatchesViewModelTests {
     #expect(model.app.section == .generate)
     #expect(model.app.weekend == shown)
   }
+
+  // MARK: All matches
+
+  @Test func allModeListsMatchesOutsideTheWeekendAndSwitchingBackRestoresIt() {
+    let model = makeModel()
+    let weekendOnly = model.details
+    model.scope = .all
+    #expect(model.details.count > weekendOnly.count)
+    #expect(model.details.contains { !model.app.weekend.contains($0.match.date) })
+    let dates = model.daySections.map(\.date)
+    #expect(dates == dates.sorted())
+    #expect(model.summary.hasPrefix("Tutte le partite: \(model.details.count)"))
+    model.scope = .weekend
+    #expect(model.details == weekendOnly)
+  }
+
+  @Test func allModeFiltersAndSearchWork() {
+    let model = makeModel()
+    model.scope = .all
+    let total = model.visibleMatches.count
+    let team = model.details[0].team.id
+    model.teamFilter = team
+    #expect(model.visibleMatches.allSatisfy { $0.team.id == team })
+    model.resetFilters()
+    model.statusFilter = .postponed
+    #expect(model.visibleMatches.allSatisfy { $0.match.status == .postponed })
+    model.resetFilters()
+    model.searchText = model.details[0].opponent.name
+    #expect(!model.visibleMatches.isEmpty && model.visibleMatches.count < total)
+  }
+
+  @Test func allModeDeleteWorksAndYearShowsOutsideTheCurrentYear() throws {
+    let model = makeModel()
+    model.scope = .all
+    let outside = try #require(model.details.first { !model.app.weekend.contains($0.match.date) })
+    model.requestDelete([outside.id])
+    model.confirmDelete()
+    #expect(model.details.allSatisfy { $0.id != outside.id })
+    let section = MatchDaySection(date: try DayDate("2020-03-07"), matches: [], showsYear: true)
+    #expect(section.title.hasSuffix(" 2020"))
+  }
 }

@@ -11,6 +11,7 @@ public struct MatchesView: View {
   @ViewState private var csiLauncher: CSIImportLauncher
   @Environment(\.openWindow) private var openWindow
   @FocusState private var searchFocused: Bool
+  @SceneStorage("matches.scope") private var storedScope = MatchesScope.weekend.rawValue
 
   public init(app: AppModel) {
     self.app = app
@@ -53,11 +54,13 @@ public struct MatchesView: View {
       }
       .confirmDelete(vm.deleteTitle, isPresented: $vm.isConfirmingDelete, onConfirm: vm.confirmDelete)
       .onAppear {
+        vm.scope = MatchesScope(rawValue: storedScope) ?? .weekend
         vm.reload()
         importer.refreshAvailability()
         csi.refresh()
       }
       .onChange(of: app.weekend) { vm.reload() }
+      .onChange(of: vm.scope) { storedScope = vm.scope.rawValue }
       .onChange(of: app.dataRevision) {
         vm.reload()
         importer.refreshAvailability()
@@ -107,9 +110,11 @@ public struct MatchesView: View {
 
   private func emptyWeekend(_ vm: MatchesViewModel) -> some View {
     ContentUnavailableView {
-      Label(MatchesStrings.emptyTitle, systemImage: MatchesStrings.placeholderSymbol)
+      Label(
+        vm.scope == .all ? MatchesStrings.emptyAllTitle : MatchesStrings.emptyTitle,
+        systemImage: MatchesStrings.placeholderSymbol)
     } description: {
-      Text(MatchesStrings.emptyDescription)
+      Text(vm.scope == .all ? MatchesStrings.emptyAllDescription : MatchesStrings.emptyDescription)
     } actions: {
       Button(MatchesStrings.addMatch) { vm.beginNewMatch() }
         .buttonStyle(.borderedProminent)
@@ -235,6 +240,15 @@ public struct MatchesView: View {
     @Bindable var vm = vm
     ToolbarItem(placement: .navigation) {
       WeekendSwitcher(model: app)
+        .disabled(vm.scope == .all)
+        .help(vm.scope == .all ? MatchesStrings.switcherDisabledHelp : "")
+    }
+    ToolbarItem(placement: .principal) {
+      Picker(MatchesStrings.scopePicker, selection: $vm.scope) {
+        ForEach(MatchesScope.allCases) { Text($0.title).tag($0) }
+      }
+      .pickerStyle(.segmented)
+      .help(MatchesStrings.scopeHelp)
     }
     ToolbarItem {
       Button {
