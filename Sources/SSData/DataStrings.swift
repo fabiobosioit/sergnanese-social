@@ -11,7 +11,7 @@ enum DataStrings {
   static let logoTooLarge = "Il logo è troppo grande: al massimo 5 MB."
   static let logoNotImage = "Il file non è un'immagine supportata (PNG, JPEG, WebP, HEIC o SVG)."
   static func invalidLogoFileName(_ name: String) -> String {
-    "Il nome «\(name)» non è valido per un logo importato: servono solo cifre seguite da .png."
+    "Il nome «\(name)» non è valido per un logo importato: servono nomi come 917410.png o csi-12345678.png."
   }
   static func cannotRead(_ path: String) -> String { "Impossibile leggere \(path)." }
   static func cannotWrite(_ path: String) -> String { "Impossibile scrivere \(path)." }

@@ -5,6 +5,10 @@ import Testing
 
 private let idA = "aaaaaaaa-1111-2222-3333-444444444444"
 private let idAUpper = idA.uppercased()
+private func csi(_ tail: String, upper: Bool = false) -> String {
+  let base = "https://live.centrosportivoitaliano.it/"
+  return upper ? base.uppercased() + tail : base + tail
+}
 private let idB = "bbbbbbbb-1111-2222-3333-444444444444"
 
 @Suite struct TeamRepositoryTests {
@@ -146,6 +150,61 @@ private let idB = "bbbbbbbb-1111-2222-3333-444444444444"
       Issue.record("expected a validation error")
     } catch AppError.validation(let field, _) {
       #expect(field == .tuttocampoWidgetID)
+    }
+  }
+
+  // MARK: CSI page
+
+  @Test func csiPageIsStoredUpdatedClearedAndGetsHTTPS() throws {
+    let db = try AppDatabase.inMemory()
+    let a = try db.teams.create(
+      TeamDraft(name: "A", shortLabel: "A", csiPageURL: csi("girone?j=1")))
+    #expect(a.csiPageURL == csi("girone?j=1"))
+    #expect(try db.teams.get(id: a.id).csiPageURL == a.csiPageURL)
+    let moved = try db.teams.update(
+      id: a.id,
+      with: TeamDraft(
+        name: "A", shortLabel: "A", isFirstTeam: true, csiPageURL: "live.centrosportivoitaliano.it/altro?j=2"))
+    #expect(moved.csiPageURL == csi("altro?j=2"))
+    let cleared = try db.teams.update(
+      id: a.id, with: TeamDraft(name: "A", shortLabel: "A", isFirstTeam: true, csiPageURL: ""))
+    #expect(cleared.csiPageURL == nil)
+    #expect(try db.teams.get(id: a.id).csiPageURL == nil)
+  }
+
+  @Test func sameCSIPageOnAnotherTeamIsRefusedNamingTheOwner() throws {
+    let db = try AppDatabase.inMemory()
+    _ = try db.teams.create(
+      TeamDraft(name: "Prima Squadra", shortLabel: "P", csiPageURL: csi("girone?j=1")))
+    let b = try db.teams.create(TeamDraft(name: "B", shortLabel: "B"))
+    let expected = AppError.csiPageURLInUse(by: "Prima Squadra")
+    #expect(throws: expected) {
+      try db.teams.create(TeamDraft(name: "C", shortLabel: "C", csiPageURL: csi("girone?j=99")))
+    }
+    #expect(throws: expected) {
+      try db.teams.update(
+        id: b.id, with: TeamDraft(name: "B", shortLabel: "B", csiPageURL: csi("GIRONE?j=7", upper: true)))
+    }
+    #expect(try db.teams.list().count == 2)
+  }
+
+  @Test func aTeamMaySaveItsOwnCSIPageAgain() throws {
+    let db = try AppDatabase.inMemory()
+    let a = try db.teams.create(
+      TeamDraft(name: "A", shortLabel: "A", csiPageURL: csi("girone?j=1")))
+    let saved = try db.teams.update(
+      id: a.id,
+      with: TeamDraft(name: "A2", shortLabel: "A", isFirstTeam: true, csiPageURL: csi("girone?j=2")))
+    #expect(saved.csiPageURL == csi("girone?j=2"))
+  }
+
+  @Test func csiPageOnAnotherHostIsAValidationError() throws {
+    let db = try AppDatabase.inMemory()
+    do {
+      _ = try db.teams.create(TeamDraft(name: "A", shortLabel: "A", csiPageURL: "https://example.com/girone?j=1"))
+      Issue.record("expected a validation error")
+    } catch AppError.validation(let field, _) {
+      #expect(field == .csiPageURL)
     }
   }
 }

@@ -147,4 +147,28 @@ import UniformTypeIdentifiers
     #expect(!FileManager.default.fileExists(atPath: folder.appendingPathComponent("logos").path))
     #expect(!FileManager.default.fileExists(atPath: folder.appendingPathComponent("x.png").path))
   }
+
+  @Test func csiNamedImportIsAPNGAndSlugsAreChecked() async throws {
+    let folder = try makeTempFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let store = LogoFileStore(folder: folder.appendingPathComponent("logos"))
+    let name = try await store.importLogo(
+      data: jpeg(width: 3000, height: 2000), fileName: "csi-12345678.png", replacing: nil)
+    #expect(name == "csi-12345678.png")
+    #expect(try assertPNG(store, name).width <= 1024)
+    let slug = try await store.importLogo(
+      data: jpeg(width: 50, height: 50), fileName: "csi-us-esempio-2016.png", replacing: nil)
+    #expect(slug == "csi-us-esempio-2016.png")
+    for bad in ["csi-../x.png", "csi-ABC.png", "csi-.png"] {
+      do {
+        _ = try await store.importLogo(data: jpeg(width: 50, height: 50), fileName: bad, replacing: nil)
+        Issue.record("expected \(bad) to be refused")
+      } catch AppError.validation(let field, let message) {
+        #expect(field == .logo)
+        #expect(message.contains("csi-12345678.png"))
+      }
+    }
+    let files = try FileManager.default.contentsOfDirectory(atPath: folder.appendingPathComponent("logos").path)
+    #expect(files.sorted() == ["csi-12345678.png", "csi-us-esempio-2016.png"])
+  }
 }

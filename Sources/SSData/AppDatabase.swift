@@ -140,6 +140,10 @@ public final class AppDatabase: Sendable {
             ON teams(tuttocampo_widget_id COLLATE NOCASE) WHERE tuttocampo_widget_id IS NOT NULL;
           """)
     }
+    // T4.8: the CSI Live girone page of a team. No index: pages are compared by `csiPageKey` in code.
+    migrator.registerMigration("v3") { db in
+      try db.execute(sql: "ALTER TABLE teams ADD COLUMN csi_page_url TEXT")
+    }
     return migrator
   }
 
