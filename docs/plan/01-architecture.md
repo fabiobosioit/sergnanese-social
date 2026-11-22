@@ -14,6 +14,7 @@ How the app looks and behaves (window, menus, shortcuts) is in `03-mac-design.md
 | Database | SQLite through **GRDB** | SwiftData needs Xcode's macro plugin and does not build here. |
 | Templating | **swift-mustache** (logic-less Mustache) | Safe for user-supplied templates. No helpers: every value a template shows is computed by the app. |
 | Zip | **ZIPFoundation** | For template import, with per-entry checks. |
+| HTML parsing | **SwiftSoup** (Wave 4, T4.2) | Parses tuttocampo.it widget HTML. Never renders it. |
 | Rendering | Off-screen `WKWebView` + `takeSnapshot`, redrawn into an sRGB bitmap of exactly width×height pixels | The system web engine; nothing to bundle. |
 | Fonts | Barlow and Barlow Condensed files (SIL Open Font License) inside each template's `assets/fonts/` | No Google Fonts request at render time. The app UI uses the system font. |
 | Tests | Swift Testing, run by `swift test` | UI is tested through view models. There are no XCUITest tests (they need Xcode). |
@@ -342,6 +343,7 @@ Errors: one `AppError` enum (`validation(field, message)`, `conflict(message)`, 
 ## 8. Security notes
 
 - No network listener of any kind. The app makes no network request in v0.1.0. It only opens pages in the browser when the user asks: the Releases page, the user guide and the template guide on github.com.
+- From T4.2 (Wave 4) the app makes outbound requests only when the user presses "Importa da Tuttocampo…": https only, to `www.tuttocampo.it` and the image hosts the widgets return (`b2-content.tuttocampo.it`), with a timeout, a response size cap and an allowlist check. Fetched HTML is parsed, never rendered or run; logos are size- and type-checked and stored under a name made of digits only. No polling or background requests. Templates still render with the network blocked.
 - Template web views: custom scheme limited to two folders, all remote requests blocked, non-persistent store, no script message handlers (template JavaScript cannot call into the app).
 - Template imports: reject absolute paths, `..` and symlinks; cap size and file count.
 - Logos: SVG files are rasterised to PNG on import, so no script-bearing SVG is ever stored.

@@ -9,7 +9,7 @@ From here on the user has real data on this Mac. Every task keeps working in the
 | Task | Agent | Model | Blocked on |
 |---|---|---|---|
 | T4.1 CSV/Excel import | `core-dev` + `ui-dev` | sonnet | sample file from the user |
-| T4.2 Website import + logo download | `render-engineer` (scraper) + `ui-dev` | opus + sonnet | tuttocampo page addresses, terms-of-use check |
+| T4.2 Tuttocampo import (matches, names, logos) | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | terms-of-use check, widget → team mapping |
 | T4.3 PDF import | `render-engineer` | opus | sample PDFs |
 | T4.4 Shortcuts support | `ui-dev` | sonnet | — |
 | T4.5 Results workflow | `ui-dev` | sonnet | — |
@@ -26,19 +26,106 @@ From here on the user has real data on this Mac. Every task keeps working in the
 - Commit selected rows; an exportable template file with the expected columns.
 - Model: sonnet. The logic is ordinary; the staging design is fixed by the contract step. `.xlsx` reading needs a library, chosen in the contract step.
 
-## T4.2 — Website import and logo download
+## T4.2 — Tuttocampo import: matches, opponent names and logos
 
-Decision D4: logos come from tuttocampo.it, which the user indicated as the source behind the club site's results page.
+Decision D4: logos come from tuttocampo.it. The club site (sergnanese.com) shows tuttocampo.it widgets in an iframe. Method changed on 2026-11-22: the app does **not** read the iframe and does not use a `WKWebView`. The `htmlASD` experiment (`/Users/fabiobosio/src/prove/htmlASD/`) showed that each iframe URL, `https://www.tuttocampo.it/WidgetV2/{Risultati|Classifica}/<id>`, returns plain server-rendered HTML with the matches and the logo URLs. A browser is blocked only by CORS; a native app is not, so `URLSession` makes the same request directly.
 
-- Before any code: confirm the site's terms of use allow automated reading, and keep request rates very low (a few requests per week). If not allowed, this task stops and T4.1 remains the import path.
-- Adapter protocol `FixtureSource { listTeams(), fetchFixtures(team, range) }` so the source can be replaced when the site changes.
-- When checked on 2026-11-16, the club's page (`sergnanese.com/classifiche-e-risultati`) showed only a heading and no match tables in its static content, and appeared to be a Google Sites page. The match data is probably embedded and loaded after the page opens. First step of this task: find the embedded source address in a browser and read that directly.
-- Fetch through an off-screen `WKWebView` if the data needs JavaScript to appear; otherwise `URLSession` + HTML parsing.
-- Results go to the same staging list as T4.1.
-- Logo download: for each opponent without a logo, fetch the crest once, store it through `LogoStore`, never in the repo.
-- A health check: zero fixtures found → show "la sorgente potrebbe essere cambiata" instead of silently importing nothing.
-- This is the first feature that uses the network; the security notes in `01-architecture.md` §8 are updated with it.
-- Model: opus for the adapter (unknown page structure, fragile parsing), sonnet for the UI.
+Scope: matches, opponent names and opponent logos. Standings (`Classifica`) are not imported.
+
+### Decisions (user, 2026-11-22)
+
+- Only T4.2 is rewritten; Waves 0–3 are untouched.
+- The tuttocampo.it terms-of-use check stays a **blocking** step before any code.
+
+### Facts from the old project
+
+- Widget IDs (snapshot of 2026-11-21): `c1e4e5c7-493e-46d6-b5a6-b53e6730900c`, `7486cae6-e1df-41a4-af64-ccc8e5c13786`, `1c6b18be-36a2-4ea4-add9-0604e671d95a`, `7b9d04d9-a571-45e2-b281-25d39c0d122a`, `0e12aeec-a1bd-4fc7-98e6-01fdcd28b507`, `e6c85afd-4f8f-482a-b971-108ffc9d8267`. Which ID belongs to which club team is **unknown**; the spike finds out.
+- Results selectors: `#table_results_content table`, then `tr.date` (date in `span`) and `tr.match` → `.team.home` / `.team.away` → `.team-name`, `.goal`, `img[src]`; `.match-time` (+ `a[href]`). The matchday label is `.swiper-slide.selected span`.
+- Empty state: `#content .message_info` = `Risultati non ancora disponibili.` is information, not an error.
+- Relative URLs resolve against `<base href>` if present, else against the final response URL.
+- A request returns only the **default matchday**, a fresh snapshot not tied to anything shown in an iframe.
+- A widget is a whole league matchday (about 8 matches), not only our matches.
+
+### Logo rule
+
+The widget's `img[src]` points to a resized copy, for example `https://b2-content.tuttocampo.it/Teams/40/917410.png?v=2`. The size folder and query string vary. Every club has a numeric **ClubId** (`917410`) and the full-size logo is always at `https://b2-content.tuttocampo.it/Teams/Original/<ClubId>.png`.
+
+1. **Get the ClubId** from the widget logo URL: host `b2-content.tuttocampo.it`, path `/Teams/<anything>/<digits>.<ext>`. ClubId = the digits; ignore the query string. A URL that does not match is not guessed: the opponent gets no logo and appears in the import report.
+2. **Download the Original**, never the resized copy. If it fails (HTTP error, not an image, over the size cap), fall back to the widget's own `img[src]` once and note it in the report.
+3. **Save it as `<ClubId>.png`** in the logos folder. `LogoStore` still converts every logo to PNG, at most 1024 px. One file per club: a second team meeting the same opponent reuses the file.
+4. **Store the ClubId on the opponent** (`Opponent.tuttocampoClubID`). It is the first matching key in later imports: the same ClubId is the same club, whatever the spelling. Name and alias matching is only for opponents without a ClubId. When the user links a widget name to an existing opponent in staging, that opponent gets the ClubId too.
+5. **Our ClubId is `917410`** (ASD Sergnanese; logo at `https://b2-content.tuttocampo.it/Teams/Original/917410.png`). A widget row is "ours" when the home or away logo has this ClubId; that side gives `isHome` and the other side is the opponent. This replaces matching by name. It is the default of `ClubSettings.tuttocampoClubID` and can be changed in Settings. Our own logo is never stored as an opponent logo. A row where neither side has our ClubId is ignored (`upsertFromImport` keys on team + date, `Validation.swift:188`, so a foreign match would overwrite ours). A widget with no such row raises the health check ("nessuna partita della Sergnanese trovata").
+6. Do not download a logo when the opponent already has one, unless the user asks to replace it. A logo added by hand is never overwritten automatically.
+
+Venue: the widget has none. Home = `ClubSettings.homeVenue`. Away = empty and flagged "da completare" in staging.
+
+### Corrections to the first draft
+
+- A short contract step **is** needed: `Team` and `ClubSettings` have nowhere to store the widget ID, `AppServices` has no fixture source, there is no staging type, and `LogoStore` names files itself (`Services.swift:13-17`). `Sources/SSCore/` is frozen, so `foundation-architect` does it.
+- T4.2 **builds** the staging review; T4.1 reuses it later (T4.1 is not implemented).
+- `LogoStore` accepts PNG/JPEG/WebP/HEIC/SVG up to 5 MB, not GIF.
+
+### Steps
+
+**Step 0 — plan edit (this commit, docs only).**
+
+**Step 1 — user, blocking.**
+- Check the tuttocampo.it terms of use for automated reading. If not allowed, T4.2 stops and T4.1 (CSV) is the import path.
+- Confirm the widget → team mapping proposed by the spike.
+
+**Step 2 — spike** (`render-engineer`; throwaway, only a notes file is committed). Fetch each of the 12 widgets **once**. Record: team names per widget (the mapping proposal); date and time text formats; text for postponed or suspended matches; the `Giornata N` label; image hosts and content types; whether every logo `src` follows `Teams/<size>/<ClubId>.png` and every `Teams/Original/<ClubId>.png` exists (size, format); that ClubId `917410` appears in each of the 6 results widgets (and on which side); whether the URL accepts a matchday or date parameter. Produce **sanitised** HTML fixtures (fake team names, logo URLs pointing to a placeholder; the repo is public). Output: `docs/plan/notes/t4.2-spike.md` + fixtures.
+
+**Step 3 — contract step** (`foundation-architect`, sequential).
+- `Team.tuttocampoWidgetID: String?` (one ID serves Risultati and Classifica), with validation.
+- `Opponent.tuttocampoClubID: String?` (digits only); lookup by ClubId in `OpponentRepository`.
+- `ClubSettings.tuttocampoClubID: String?`, default `"917410"` in `ClubSettings.defaults`.
+- `LogoStore.importLogo(data:fileName:replacing:)`: the caller chooses the stored name, digits followed by `.png` only, rejected otherwise; an existing file with that name is replaced. The generated-name methods stay for logos added by hand.
+- Pure functions `tuttocampoClubID(fromLogoURL:) -> String?` and `tuttocampoOriginalLogoURL(clubID:) -> URL`.
+- New types: `FixtureSource` protocol (`fetchFixtures(for team: Team) async throws -> FixtureFetch`; `FixtureFetch` = rows, or "not yet available", or a health problem); `FetchedFixture` (date, time, isHome, opponentName, opponentClubID, opponentLogoURL, score, round, raw status text); `ImportCandidate` with state new / changed / unchanged / locked / needs review.
+- `AppServices.fixtureSource`, plus a fake in `SSCoreFakes`.
+- Write the full T4.2 task sheet (Wave 1 format: owned paths, acceptance criteria, tests).
+- The orchestrator edits `Package.swift`: SwiftSoup pinned exact, new target `SSImport` (SSCore + SwiftSoup), `SSImportTests`, and `SSImport` added to the app and integration targets.
+
+**Step 4 — three tasks in parallel, after Step 3 merges.**
+
+| Task | Agent | Owns | Work |
+|---|---|---|---|
+| T4.2a fetch + parse | `render-engineer` | `Sources/SSImport/`, `Tests/SSImportTests/` | HTTP client (https only, host allowlist, timeout, response size cap, app `User-Agent`). Pure parser `HTML + baseURL → [FetchedFixture]`. Italian date parsing (year from `ClubSettings.season`). Keep only rows with our ClubId; that side sets `isHome`. Score `-` → scheduled; numeric score → played; unknown status text → needs review. Health check on missing table or zero rows. Logo downloader per the Logo rule: deduplicated by ClubId, limited concurrency, size and type check, saved through `LogoStore.importLogo(data:fileName:)`. Failures go to the report and never abort the import. Tests: ClubId extraction (`/Teams/40/917410.png?v=2`, other size folders, a non-matching URL), Original first, fallback, deduplication. Sanitised fixtures and a `URLProtocol` stub; **no live network in tests**. |
+| T4.2b data | `core-dev` | `Sources/SSData/`, `Tests/SSDataTests/` | Migration for `teams.tuttocampoWidgetID`, `opponents.tuttocampoClubID` (unique when set) and the club ClubId setting. Opponent lookup by ClubId. `LogoStore.importLogo(data:fileName:)` with name validation and replace. Repository tests. |
+| T4.2c UI | `ui-dev` | `Sources/SSApp/Features/Import/` (new), Teams editor field, `Strings` | Menu/toolbar "Importa da Tuttocampo…" in Matches. Staging sheet with candidates grouped by weekend; the coming weekend ticked by default. Each row shows new/changed/unchanged/locked/needs review. Opponents not found: "crea" or "collega a esistente" (saved as an alias). Away venue to fill in. Messages "la sorgente potrebbe essere cambiata" and "risultati non ancora disponibili". Commit via `upsertFromImport` with `source: .scrape`. Widget ID field in the Team inspector. Built against the fake source. |
+
+**Step 5 — wiring** (`core-dev`). Real `TuttocampoWidgetSource` in `Sources/SergnaneseSocial/Composition.swift`. Integration test with the `URLProtocol` stub: fixture HTML → staging → database → logos in the temp `SS_DATA_DIR`.
+
+**Step 6 — gate and release.** `qa-reviewer`: acceptance criteria, Mac design rules, Light/Dark, a manual run against the live site. `chore-runner`: USER-GUIDE section. `release-engineer`: v0.2.0.
+
+### Model and effort per step
+
+Rule from `02-agents-and-models.md`: the cheapest model that finishes without rework. Overrides are passed at dispatch (the Agent tool's `model` / `effort`); the agent files do not change.
+
+| Step | Agent | Agent default | Dispatch with | Why |
+|---|---|---|---|---|
+| 0 plan edit | main session | — | sonnet, medium | Content is fixed; transcription only. |
+| 2 spike | `render-engineer` | opus, high | sonnet, medium | Selectors are known; fetch, record, anonymise. |
+| 3 contract + sheet | `foundation-architect` | opus, high | opus, high | Frozen contracts: a mistake costs every later task. |
+| 3b `Package.swift` | main session | — | sonnet, low | A few lines, exact versions given. |
+| 4 T4.2a | `render-engineer` | opus, high | sonnet, high | Ordinary parsing against real fixtures; `high` for the Swift 6 async parts. Escalate to opus if it fails twice. |
+| 4 T4.2b | `core-dev` | sonnet, medium | sonnet, medium | Small GRDB migration. |
+| 4 T4.2c | `ui-dev` | sonnet, medium | sonnet, medium | Standard SwiftUI against the fake source; `high` only on retry. |
+| 5 wiring | `core-dev` | sonnet, medium | sonnet, medium | One composition change and one test. |
+| gate (T4.2b, T4.2c, step 5) | `qa-reviewer` | opus, high | sonnet, medium | Well-defined acceptance criteria. |
+| gate (T4.2a + final) | `qa-reviewer` | opus, high | opus, high | Network, untrusted HTML, file names from remote data. |
+| 6 USER-GUIDE | `chore-runner` | haiku | haiku | Prose only. |
+| 6 release v0.2.0 | `release-engineer` | sonnet, medium | sonnet, low | Scripts exist; bump, changelog, tag. |
+
+Escalation is unchanged: a failed task retries once on the same model with the reviewer's findings; a second failure reruns one model up (sonnet → opus). A needed contract change stops the task and goes to `foundation-architect`.
+
+### Rules
+
+- Requests only when the user presses import: one per mapped team plus missing logos. No polling or background work.
+- Third-party HTML is parsed only, never rendered or run. SVG logos are rasterised by `LogoStore`.
+- Locked matches are never overwritten (existing `upsertFromImport` rule).
+- Dev data folder only; no real logos or club HTML committed.
+- The security notes in `01-architecture.md` §8 are updated with this feature.
 
 ## T4.3 — PDF import
 
