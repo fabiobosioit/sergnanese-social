@@ -48,16 +48,24 @@ Scope: matches, opponent names and opponent logos. Standings (`Classifica`) are 
 
 ### Logo rule
 
-The widget's `img[src]` points to a resized copy, for example `https://b2-content.tuttocampo.it/Teams/40/917410.png?v=2`. The size folder and query string vary. Every club has a numeric **ClubId** (`917410`) and the full-size logo is always at `https://b2-content.tuttocampo.it/Teams/Original/<ClubId>.png`.
+The widget's `img[src]` points to a small copy, for example `https://b2-content.tuttocampo.it/Teams/40/917410.png?v=2`. The size folder and query string vary. Every club team has a numeric **ClubId** (`917410` is only an example), and a medium-size logo is at `https://b2-content.tuttocampo.it/Teams/200/<ClubId>.png` (chosen by the user over `Teams/Original/`, which reaches 1 MB).
 
-1. **Get the ClubId** from the widget logo URL: host `b2-content.tuttocampo.it`, path `/Teams/<anything>/<digits>.<ext>`. ClubId = the digits; ignore the query string. A URL that does not match is not guessed: the opponent gets no logo and appears in the import report.
-2. **Download the Original**, never the resized copy. If it fails (HTTP error, not an image, over the size cap), fall back to the widget's own `img[src]` once and note it in the report.
-3. **Save it as `<ClubId>.png`** in the logos folder. `LogoStore` still converts every logo to PNG, at most 1024 px. One file per club: a second team meeting the same opponent reuses the file.
-4. **Store the ClubId on the opponent** (`Opponent.tuttocampoClubID`). It is the first matching key in later imports: the same ClubId is the same club, whatever the spelling. Name and alias matching is only for opponents without a ClubId. When the user links a widget name to an existing opponent in staging, that opponent gets the ClubId too.
-5. **Our ClubId is `917410`** (ASD Sergnanese; logo at `https://b2-content.tuttocampo.it/Teams/Original/917410.png`). A widget row is "ours" when the home or away logo has this ClubId; that side gives `isHome` and the other side is the opponent. This replaces matching by name. It is the default of `ClubSettings.tuttocampoClubID` and can be changed in Settings. Our own logo is never stored as an opponent logo. A row where neither side has our ClubId is ignored (`upsertFromImport` keys on team + date, `Validation.swift:188`, so a foreign match would overwrite ours). A widget with no such row raises the health check ("nessuna partita della Sergnanese trovata").
+1. **Get the ClubId** from the widget logo URL: host `b2-content.tuttocampo.it`, path `/Teams/<anything>/<digits>.<ext>`. ClubId = the digits; ignore the query string. A URL that does not match is not guessed: that opponent gets no logo and appears in the import report.
+2. **Download `Teams/200/<ClubId>.png`**. If it fails (HTTP error, not an image, over the size cap), fall back to the widget's own `img[src]` once and note it in the report.
+3. **Save it as `<ClubId>.png`** in the logos folder. `LogoStore` still converts every logo to PNG, at most 1024 px. One file per ClubId: the same ClubId seen twice is downloaded once.
+4. Opponents are matched by name and aliases (as in T4.1). The ClubId is **not** a cross-team key: the spike (2026-11-22) showed the same real club has a different ClubId in each widget, and our own six teams each have their own. The opponent keeps a reference to the logo file it was given.
+5. **Our side** is the row side whose team name is `Sergnanese` (compared with `ClubSettings.clubShortName`, normalised), not a ClubId. That side gives `isHome`; the other side is the opponent. Our own logo is not stored as an opponent logo. A row with no `Sergnanese` side is ignored. A widget that returns rows but none of ours raises the health check ("nessuna partita della Sergnanese trovata").
 6. Do not download a logo when the opponent already has one, unless the user asks to replace it. A logo added by hand is never overwritten automatically.
 
+The imported matches and logos are what the templates are filled from, through the normal match and opponent data.
+
+### Errors
+
+Any widget failure (network error, HTTP error, timeout, page structure changed, no rows of ours) is shown **in the app** as an Italian message naming the team, for example "Tuttocampo: impossibile leggere i risultati di <squadra>", never silently ignored. "Risultati non ancora disponibili." is information, not an error. A failure on one team or one logo does not stop the others.
+
 Venue: the widget has none. Home = `ClubSettings.homeVenue`. Away = empty and flagged "da completare" in staging.
+
+Widget-to-team mapping is done by the user in the app, in the widget ID field of each team. Spike findings (year inference, matchday path `/WidgetV2/Risultati/<id>/<N>?y=2026-27`, statuses, fixtures) are in `docs/plan/notes/t4.2-spike.md`; sanitised fixtures are in `Tests/Fixtures/tuttocampo/`.
 
 ### Corrections to the first draft
 
@@ -77,11 +85,10 @@ Venue: the widget has none. Home = `ClubSettings.homeVenue`. Away = empty and fl
 
 **Step 3 — contract step** (`foundation-architect`, sequential).
 - `Team.tuttocampoWidgetID: String?` (one ID serves Risultati and Classifica), with validation.
-- `Opponent.tuttocampoClubID: String?` (digits only); lookup by ClubId in `OpponentRepository`.
-- `ClubSettings.tuttocampoClubID: String?`, default `"917410"` in `ClubSettings.defaults`.
+- No ClubId on `Opponent` or `ClubSettings` (see Logo rule): opponents match by name and alias.
 - `LogoStore.importLogo(data:fileName:replacing:)`: the caller chooses the stored name, digits followed by `.png` only, rejected otherwise; an existing file with that name is replaced. The generated-name methods stay for logos added by hand.
-- Pure functions `tuttocampoClubID(fromLogoURL:) -> String?` and `tuttocampoOriginalLogoURL(clubID:) -> URL`.
-- New types: `FixtureSource` protocol (`fetchFixtures(for team: Team) async throws -> FixtureFetch`; `FixtureFetch` = rows, or "not yet available", or a health problem); `FetchedFixture` (date, time, isHome, opponentName, opponentClubID, opponentLogoURL, score, round, raw status text); `ImportCandidate` with state new / changed / unchanged / locked / needs review.
+- Pure functions `tuttocampoClubID(fromLogoURL:) -> String?` and `tuttocampoLogoURL(clubID:) -> URL` (the `Teams/200` URL).
+- New types: `FixtureSource` protocol (`fetchFixtures(for team: Team) async throws -> FixtureFetch`; `FixtureFetch` = rows, or "not yet available", or a health problem); `FetchedFixture` (date, time, isHome, opponentName, opponentClubID (for the logo only), opponentLogoURL, score, round, raw status text); `ImportCandidate` with state new / changed / unchanged / locked / needs review.
 - `AppServices.fixtureSource`, plus a fake in `SSCoreFakes`.
 - Write the full T4.2 task sheet (Wave 1 format: owned paths, acceptance criteria, tests).
 - The orchestrator edits `Package.swift`: SwiftSoup pinned exact, new target `SSImport` (SSCore + SwiftSoup), `SSImportTests`, and `SSImport` added to the app and integration targets.
@@ -90,8 +97,8 @@ Venue: the widget has none. Home = `ClubSettings.homeVenue`. Away = empty and fl
 
 | Task | Agent | Owns | Work |
 |---|---|---|---|
-| T4.2a fetch + parse | `render-engineer` | `Sources/SSImport/`, `Tests/SSImportTests/` | HTTP client (https only, host allowlist, timeout, response size cap, app `User-Agent`). Pure parser `HTML + baseURL → [FetchedFixture]`. Italian date parsing (year from `ClubSettings.season`). Keep only rows with our ClubId; that side sets `isHome`. Score `-` → scheduled; numeric score → played; unknown status text → needs review. Health check on missing table or zero rows. Logo downloader per the Logo rule: deduplicated by ClubId, limited concurrency, size and type check, saved through `LogoStore.importLogo(data:fileName:)`. Failures go to the report and never abort the import. Tests: ClubId extraction (`/Teams/40/917410.png?v=2`, other size folders, a non-matching URL), Original first, fallback, deduplication. Sanitised fixtures and a `URLProtocol` stub; **no live network in tests**. |
-| T4.2b data | `core-dev` | `Sources/SSData/`, `Tests/SSDataTests/` | Migration for `teams.tuttocampoWidgetID`, `opponents.tuttocampoClubID` (unique when set) and the club ClubId setting. Opponent lookup by ClubId. `LogoStore.importLogo(data:fileName:)` with name validation and replace. Repository tests. |
+| T4.2a fetch + parse | `render-engineer` | `Sources/SSImport/`, `Tests/SSImportTests/` | HTTP client (https only, host allowlist, timeout, response size cap, app `User-Agent`). Pure parser `HTML + baseURL → [FetchedFixture]`. Italian date parsing (year from `ClubSettings.season`). Keep only rows whose home or away name is `Sergnanese`; that side sets `isHome`. Year inferred from the season; fetch the default matchday. Score `-` → scheduled; numeric score → played; unknown status text → needs review. Health check on missing table or zero rows. Errors surface as typed failures, one per team. Logo downloader per the Logo rule: deduplicated by ClubId, limited concurrency, size and type check, saved through `LogoStore.importLogo(data:fileName:)`. Failures go to the report and never abort the import. Tests: ClubId extraction (`/Teams/40/917410.png?v=2`, other size folders, a non-matching URL), `Teams/200` first, fallback, deduplication. Sanitised fixtures and a `URLProtocol` stub; **no live network in tests**. |
+| T4.2b data | `core-dev` | `Sources/SSData/`, `Tests/SSDataTests/` | Migration for `teams.tuttocampoWidgetID`. `LogoStore.importLogo(data:fileName:)` with name validation and replace. Repository tests. |
 | T4.2c UI | `ui-dev` | `Sources/SSApp/Features/Import/` (new), Teams editor field, `Strings` | Menu/toolbar "Importa da Tuttocampo…" in Matches. Staging sheet with candidates grouped by weekend; the coming weekend ticked by default. Each row shows new/changed/unchanged/locked/needs review. Opponents not found: "crea" or "collega a esistente" (saved as an alias). Away venue to fill in. Messages "la sorgente potrebbe essere cambiata" and "risultati non ancora disponibili". Commit via `upsertFromImport` with `source: .scrape`. Widget ID field in the Team inspector. Built against the fake source. |
 
 **Step 5 — wiring** (`core-dev`). Real `TuttocampoWidgetSource` in `Sources/SergnaneseSocial/Composition.swift`. Integration test with the `URLProtocol` stub: fixture HTML → staging → database → logos in the temp `SS_DATA_DIR`.
