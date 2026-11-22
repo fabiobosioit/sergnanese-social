@@ -92,7 +92,7 @@ direttamente in `<img src>`.
   `{{#match.home}}…{{displayName}}…{{/match.home}}`.
 - **Logo o cerchio con le iniziali**:
   `{{#logo}}<img src="{{logo}}" alt="">{{/logo}}{{^logo}}<div class="circle">{{initials}}</div>{{/logo}}`.
-- **Indicatore casa/trasferta in una riga di lista**: `{{#isHome}}(C){{/isHome}}{{^isHome}}(T){{/isHome}}`.
+- **Indicatore casa/trasferta in una riga di lista**: icona casa (`{{#isHome}}`) o auto (`{{^isHome}}`) in SVG inline.
 - **Righe ripetute**: `{{#rows}}…{{/rows}}`; dentro, i campi sono quelli della riga (`{{category}}`,
   `{{opponent.displayName}}`).
 - **Numero di pagina solo se le pagine sono più d'una**: `{{#hasPages}}{{pageLabel}}{{/hasPages}}`.
