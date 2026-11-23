@@ -10,12 +10,13 @@ From here on the user has real data on this Mac. Every task keeps working in the
 |---|---|---|---|
 | T4.1 CSV/Excel import | `core-dev` + `ui-dev` | sonnet | sample file from the user |
 | T4.2 Tuttocampo import (matches, names, logos) | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | terms-of-use check, widget → team mapping |
-| T4.3 PDF import | `render-engineer` | opus | sample PDFs |
+| T4.3 PDF import (federation calendar: matches, names, venues, times) | `foundation-architect` (contract), `render-engineer`, `ui-dev`, `core-dev` | opus (contract) + sonnet | sample received 2026-11-24; spring-phase sample later |
 | T4.4 Shortcuts support | `ui-dev` | sonnet | — |
 | T4.5 Results workflow | `ui-dev` | sonnet | — |
 | T4.6 Captions | `ui-dev` | sonnet | — |
 | T4.7 Developer-ID signing and in-app updates | `release-engineer` | sonnet | paid Apple Developer account |
 | T4.8 CSI Live import (matches, names, logos) through an in-app browser | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | CSI terms-of-use check, a page saved by the user, team → page mapping |
+| T4.9 Download all opponents (names + logos) from the tuttocampo standings and the CSI pages already read | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract) + sonnet | T4.2 and T4.8 merged |
 
 ---
 
@@ -136,11 +137,123 @@ Escalation is unchanged: a failed task retries once on the same model with the r
 - Dev data folder only; no real logos or club HTML committed.
 - The security notes in `01-architecture.md` §8 are updated with this feature.
 
-## T4.3 — PDF import
+## T4.3 — PDF import: federation calendar
 
-- Text extraction from federation-style fixture PDFs with PDFKit, table detection, mapping to staging rows.
-- Always through the staging review. Rows the parser is unsure about are flagged.
-- Model: opus; PDF layouts vary and parsing needs careful heuristics. Reassess after seeing the user's sample files: if they are regular, sonnet is enough.
+Rewritten on 2026-11-24 from the user's sample, `examples/Calendario_EsordientiMiste_Femm_Aut.pdf`: the U13 women championship ("ESORDIENTI MISTE FEMM. AUT."), autumn phase, girone B, 9 teams, 9 matchdays. The file stays **outside git**: it holds real club names and addresses, and the repo is public. Tests use a synthetic PDF.
+
+Scope: our scheduled matches (date, time, home/away, opponent, venue, round, competition) and the opponents' names. The PDF has **no team logos**: opponents get logos from T4.9, from tuttocampo/CSI imports, or by hand.
+
+### The layout (checked with PDFKit on 2026-11-24)
+
+Two A4 landscape pages (842 × 595 pt), created by PDFium, with real text (no OCR needed). `page.string` returns the text in a **jumbled order** (columns run into each other), so the parser must use **line positions**: `page.selection(for: mediaBox).selectionsByLine()` gives one line per entry, each with its own bounds. That gave clean results on the sample.
+
+**Page 1 — calendar grid**
+
+| Item | Where | Example |
+|---|---|---|
+| Category | title line, top centre | `ESORDIENTI MISTE FEMM. AUT.` |
+| Phase and girone | second title line | `FASE AUTUNNALE - GIRONE B` |
+| Matchday blocks | 3 columns (x ≈ 60, 340, 610) × 3 rows | `GIORNATA 1` … `GIORNATA 9` |
+| Matchday date | the line under each `GIORNATA n` | `A. 03/10/2026`: `A.` = andata (autumn); the spring phase is expected to use `R.`. The date is always the Saturday of the weekend. |
+| Match rows | lines under the date, same column, until the next block | `CREMONESE- RIOZZESE`: home, then `"- "`, then away |
+| Bye | a row whose home side is `Riposo` | `Riposo- PAVIA CALCIO 1911` |
+
+Lines are assigned to a block by column (x of the line's centre) and by vertical band (between this block's `GIORNATA` line and the next one below it).
+
+**Page 2 — club table**
+
+Header `Società | N. | Campo / Località | Indirizzo | Orario | Giorno`; one row per club, aligned by y (rows about 16 pt apart). Columns are found from the header x positions.
+
+| Column | Example | Use |
+|---|---|---|
+| Società | `SAN BERNARDO CALCIO`, `ALCIONE MILANO SSD A RL`, `SERGNANESE A.S.D.` | full official name → alias of the opponent |
+| N. | `2015` | club number in the federation; recorded, not used as a key |
+| Campo / Località | `C.S.COMUNALE N.1 - SERGNANO - SERGNANO` | venue |
+| Indirizzo | `VIA VALLARSA 4` | appended to the venue in notes (venue field limits apply) |
+| Orario | `15.30`, `9.30` | home kick-off time → `ClockTime` (`9.30` → `09:30`) |
+| Giorno | `Sabato`, `Domenica` | home match day |
+
+### Rules (user decisions, 2026-11-24)
+
+1. **Date and time come from the home club.** Date = the matchday date, **+1 day when the home club's Giorno is Domenica**. Time = the home club's Orario. Example: `RIOZZESE- REAL MEDA CF Sq.B` on `A. 10/10/2026`, where RIOZZESE plays Domenica at 9.30, becomes **Sun 11/10/2026, 09:30**. A home club missing from page 2 → the Saturday date, no time, "needs review".
+2. **Venue:** away matches get the home club's `Campo / Località` from page 2. **Our home matches keep `ClubSettings.homeVenue`.**
+3. **Opponent name = the short page-1 name** (`S. BERNARDO CALCIO`, `ALCIONE`, `REAL MEDA CF Sq.B`). **The full page-2 name becomes an alias** (`SAN BERNARDO CALCIO`, `ALCIONE MILANO SSD A RL`), so other imports still match it.
+4. **Our matches:** rows where one side is our club. Compare with `ClubSettings.clubShortName` using `searchKey` after `stripLegalPrefixes`: `SERGNANESE` matches, and on page 2 `SERGNANESE A.S.D.` matches after the suffix is stripped. That side gives `isHome`. Other rows are ignored.
+5. **Our bye** (`Riposo- SERGNANESE`) creates no match. The review shows it as information: "Giornata 8: riposo".
+6. **Layout:** this federation layout only (calendar grid + club table), for other categories and for the spring phase. A PDF that does not fit it is refused with "Formato PDF non riconosciuto"; nothing is guessed.
+7. **Team:** the user picks which of our teams the PDF belongs to (picker in the import flow). The category title is shown to help. Remembering the choice per title is optional; the contract step decides.
+8. Every row goes through the **same staging review** as T4.2/T4.8 (`ImportCandidate.make`, states, create/link opponent, commit with `upsertFromImport`, `source: .pdf`). Round = the GIORNATA number. Competition = `<category> – <phase> – <girone>` (cut to the field limit). Status = scheduled.
+
+### Short name → page-2 club
+
+Page 1 uses short names and page 2 full names, so each page-1 name is linked to one page-2 row:
+1. Normalise both: upper case, collapse spaces, remove dots. Strip legal words and suffixes (`A.S.D.`, `ASD`, `S.P.A.`, `SSD`, `A RL`, `A R.L.`, `S.R.L.`, the `stripLegalPrefixes` list). Compare the squad letter case-insensitively (`Sq.B` = `sq.B`).
+2. Expand `S.` to `SAN`/`SANTO`/`SANTA` only to compare.
+3. Link when exactly one page-2 row equals the short name, or starts with all of its words (`ALCIONE` → `ALCIONE MILANO SSD A RL`, `CREMONESE` → `CREMONESE S.P.A.`).
+4. When one page-1 name and one page-2 row are left over after the others are linked, link them.
+5. Anything still unlinked → that club's home matches get no time or venue and are flagged "needs review". The review shows the unlinked names.
+
+**Health check:** the number of distinct page-1 teams (without `Riposo`) must equal the page-2 rows. If they differ, the review shows a warning ("il PDF sembra incompleto") but still lists what was read.
+
+**Sample coverage:** all 9 short names link by rules 1–3. Sergnanese plays 8 matches in 9 matchdays, with the bye on matchday 8.
+
+### Contract changes needed (`foundation-architect`)
+
+- `PDFCalendar`: category, phase, girone, matchdays (`number`, `leg` = andata/ritorno, `date`), clubs (`fullName`, `number`, `venue`, `address`, `time`, `weekday`), the short-to-full links, and `fixtures: [FetchedFixture]` for our matches. Plus `byes` and `problems` (unlinked names, count mismatch, unrecognised layout).
+- `PDFCalendarParser` protocol: `parse(pdf: Data, settings: ClubSettings) throws -> PDFCalendar`, pure, no network. Errors: not a PDF, too large (cap 10 MB / 20 pages), encrypted, layout not recognised.
+- `FetchedFixture` gains `opponentAliases: [String]` (the page-2 full name), used by `ImportCandidate.make` when an opponent is created or linked. `venue` already exists.
+- `ImportIssue` cases: layout not recognised, PDF incomplete (count mismatch), club not linked (name).
+- Fake parser in `SSCoreFakes`.
+- Task sheet `docs/plan/tasks/wave-4-t4.3.md` (Wave 1 format). PDFKit is a system framework: no `Package.swift` change is expected. The parser goes in `SSImport/PDF/`.
+
+### Steps
+
+**Step 0 — plan edit** (this section, docs only).
+
+**Step 1 — user.**
+- Keep the sample outside git: `examples/` is untracked; add it to `.gitignore` or move the file out.
+- Send a spring-phase PDF (`R.` dates) when available. The parser treats `R.` like `A.`; the sample confirms it later.
+
+**Step 2 — fixture and spike** (`render-engineer`). A small Swift script that **generates a synthetic PDF** with the same layout and coordinates (PDFKit/CoreGraphics). It uses fake club names, including a squad letter, an `S.` name, a Domenica home club, a `9.30` time and our club with one bye. Commit it with the generated file in `Tests/Fixtures/pdf/` (generator + `calendar-sample.pdf`), plus two variants: a page-2 club missing, and a non-federation PDF. Record the measured column x positions and line spacing of the real sample in `docs/plan/notes/t4.3-pdf-spike.md`. **No real names in the repo.**
+
+**Step 3 — contract step** (`foundation-architect`): the changes above + the task sheet.
+
+**Step 4 — two tasks in parallel.**
+
+| Task | Agent | Owns | Work |
+|---|---|---|---|
+| T4.3a parser | `render-engineer` | `Sources/SSImport/PDF/`, `Tests/SSImportTests/PDF/` | Read lines with bounds through PDFKit. Page 1: blocks by column and band; date and leg; rows split at `"- "` (exactly one split, else needs review); byes. Page 2: columns from the header; rows by y. Short-to-full linking (rules above). Our fixtures with date +1 on Domenica, home time, away venue, round, competition, aliases. Health checks. Tests on the synthetic fixtures, including rule 1's Sunday example, a missing club, an unrecognised PDF, encrypted and oversized files. |
+| T4.3b UI | `ui-dev` | `Sources/SSApp/Features/Import/` (PDF entry), Strings | "Importa da PDF…" in Matches (toolbar and File menu). Open panel limited to PDF, plus dropping a PDF on the Matches list. Team picker showing the category title. Then the existing staging sheet and report, with the extra notices (byes, unlinked clubs, incomplete PDF). Italian strings. Built against the fake parser. |
+
+**Step 5 — wiring** (`core-dev`). Real parser in `Sources/SergnaneseSocial/Composition.swift`. Integration test: synthetic PDF → parser → staging → database, checking a Sunday date, a home time, an away venue, an alias and our home venue from Settings.
+
+**Step 6 — gate and release.** `qa-reviewer`: acceptance criteria, Mac design (open panel, drop target, Light/Dark), and one run with the user on the real sample. Expected: 8 Sergnanese matches with the right dates, times and venues. `chore-runner`: USER-GUIDE subsection "Importare un calendario PDF". `release-engineer`: in the next release.
+
+### Model and effort per step
+
+The sample is regular and its text comes out cleanly with positions, so the original "opus for the parser" drops to sonnet. Opus stays only on the contract.
+
+| Step | Agent | Agent default | Dispatch with | Why |
+|---|---|---|---|---|
+| 0 plan edit | main session | — | sonnet, low | This section is the content. |
+| 2 fixture + spike | `render-engineer` | opus, high | sonnet, medium | A generator script reproducing measured coordinates. |
+| 3 contract + sheet | `foundation-architect` | opus, high | opus, high | Frozen contracts; `FetchedFixture` is shared with T4.2/T4.8. |
+| 4 T4.3a parser | `render-engineer` | opus, high | sonnet, high | Geometry grouping and name linking need care, but the layout is fixed and fully described here. Escalate to opus if it fails twice. |
+| 4 T4.3b UI | `ui-dev` | sonnet, medium | sonnet, medium | Open panel, drop and picker in front of the existing staging sheet. |
+| 5 wiring | `core-dev` | sonnet, medium | sonnet, low | One composition line + one integration test. |
+| gate (each task) | `qa-reviewer` | opus, high | sonnet, medium | Well-defined acceptance criteria. |
+| gate (final, real sample) | `qa-reviewer` | opus, high | sonnet, high | Local file, no network. The risk is wrong dates or times, checked against the real sample. |
+| 6 USER-GUIDE | `chore-runner` | haiku | haiku | Prose only. |
+| 6 release | `release-engineer` | sonnet, medium | sonnet, low | Existing scripts. |
+
+Escalation is unchanged: retry once on the same model with the reviewer's findings, then one model up.
+
+### Rules
+
+- Local files only: no network, and nothing in the PDF is run (PDFKit text only).
+- Size and page caps; encrypted PDFs are refused with a message.
+- Locked matches are never overwritten. Opponents are created or linked only from the review.
+- No real PDFs, names or addresses in the repo; tests use the synthetic fixture.
 
 ## T4.4 — Shortcuts support
 
@@ -294,3 +407,101 @@ Escalation is unchanged: retry once on the same model with the reviewer's findin
 - Locked matches are never overwritten. Logos already present are not replaced automatically.
 - Dev data folder only; no real logos or club HTML committed.
 - The security notes in `01-architecture.md` §8 cover the CSI browser window.
+
+## T4.9 — Download all opponents at once
+
+Added on 2026-11-24. One action in **Avversari** fills the opponent list, names and logos, for every league our teams play in. The user no longer waits for each opponent to appear in a match import. It reuses the addresses already stored for T4.2 and T4.8; no new site and no new address to enter.
+
+### Decisions (user, 2026-11-24)
+
+- **Where:** a toolbar button **"Scarica tutti gli avversari…"** in Avversari (and the same item in the File menu).
+- **Tuttocampo:** read live from each team's **Classifica** widget (`https://www.tuttocampo.it/WidgetV2/Classifica/<id>`, the same id as Risultati). It lists every team of the league, even teams we have not met yet, and it is filled even when Risultati says "Risultati non ancora disponibili." (spike, widget 6).
+- **CSI:** **no new page read.** When a CSI page is read for a match import (T4.8, "Importa questa pagina"), the app also keeps the list of every team on that page. "Scarica tutti gli avversari…" uses the last stored list of each CSI team. A team with a CSI page but no stored list yet is named in the report: "CSI: nessuna lettura per <squadra>, usa prima Importa da CSI…".
+- **Review before saving:** a sheet lists what was found; nothing is written until the user presses "Salva".
+- **Existing opponents:** never renamed automatically. They get a downloaded logo **only when they have none**. A logo added by hand is never replaced.
+- **Possible duplicates:** the app **asks** for each pair: keep name A, keep name B, or keep them separate. Merging makes one opponent and stores the other spelling as an alias.
+
+### What is read
+
+| Source | Page | Team rows | Name | Logo |
+|---|---|---|---|---|
+| Tuttocampo | Classifica widget, one request per active team with a widget id | `table.table_ranking tbody tr` | `td.team > a` | `td.team_logo > img[src]` → ClubId → `Teams/200/<ClubId>.png`, stored as `<ClubId>.png` (T4.2 rule) |
+| CSI | The stored team list from the last CSI page read | every team on the girone page (calendar and standings; deduplicated by team id) | `span.nome-squadra` | `static.centrosportivoitaliano.it/modulistica/logo/<id>_<timestamp>.jpg`, stored as `csi-<id>.png` (T4.8 rule); the CSI shield placeholder = no logo |
+
+- Our own row is left out: the name equals `ClubSettings.clubShortName` (same comparison as the match import). In tuttocampo it is also the row with class `selected`.
+- The fixture `Tests/Fixtures/tuttocampo/classifica-normal.html` (16 rows) and `Tests/Fixtures/csi/girone-sample.html` already cover both shapes. No spike is needed; the contract step reads them.
+- Requests: one per tuttocampo team (at least 1 s apart, the T4.2 client and allowlist), then the logos actually missing. No CSI request at all. Only when the user presses the button.
+
+### Review sheet
+
+One row per distinct name found (names are compared with `importNameKey`; the same name seen in two leagues is one row listing both teams/leagues):
+
+| State | Meaning | Default |
+|---|---|---|
+| **Nuovo** | No opponent with this name or alias | ticked: create it, with its logo |
+| **Già presente, senza logo** | Matches an existing opponent that has no logo | ticked: download the logo only |
+| **Già presente** | Matches an existing opponent that has a logo | nothing to do, shown greyed |
+| **Possibile duplicato** | Looks like another row or an existing opponent (rule below) | **a choice is required**: "Usa «A»" / "Usa «B»" / "Tieni separati". "Salva" stays disabled until every pair has a choice. |
+
+- **Duplicate rule** (pure function in the contract, tested): two names are a possible pair when they differ but are equal after `importNameKey` **and** after removing one trailing age-group token: a year from 2000 to 2030 ("US Standard 2016"), `U<n>`/`Under <n>`, or a squad letter ("B"). Pairs are checked among the rows found and against existing opponents (name and aliases).
+- **Merging into an existing opponent:** if the user picks the existing name, the found name becomes an alias. If the user picks the found name, the existing opponent is renamed and the old name becomes an alias. Its matches, logo and id do not change.
+- **Merging two new rows:** one opponent with the chosen name, the other as alias, the first logo found (tuttocampo before CSI).
+- Each row shows where it was seen ("Tuttocampo · <squadra>", "CSI · <squadra>, letto il <data>") and a logo thumbnail when the source has one.
+- After "Salva": create/rename/alias in one database transaction, then download logos for the ticked rows, then a report (created, logos stored, logos failed or not available, teams that could not be read). One failing team or logo never stops the others.
+
+### Contract changes needed (`foundation-architect`)
+
+- `SourceTeam`: source (tuttocampo / CSI), our team it was seen with, name as written, logo reference (tuttocampo ClubId + fallback URL, or CSI logo id + URL; `nil` for none or the placeholder).
+- `FixtureSource.fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> [SourceTeam]`: reads the Classifica widget; the same errors as `fetchFixtures`, plus a structure-changed health problem. Default implementation on `UnavailableFixtureSource`.
+- `PageFixtureParser` (CSI) gains `teams(html:pageURL:settings:) -> [SourceTeam]`, or `parse` returns the teams alongside the fixtures (architect's choice).
+- **Stored CSI team lists:** `SourceTeamListRepository { save(teamID:source:teams:readAt:), latest(teamID:source:) }`, so the list survives app restarts. Table `source_team_lists` (team id, source, read at, teams as JSON). Deleting a team deletes its lists. Fake in `SSCoreFakes`.
+- `OpponentCandidate` with the four states above, `make(found:existing:)` and `possibleDuplicatePairs(...)`, pure and in SSCore.
+- `OpponentMergeChoice` (keep A / keep B / separate), and a repository method that applies the ticked candidates and choices in one transaction (create, rename + alias, add alias).
+- `ImportIssue` cases: "Tuttocampo: impossibile leggere la classifica di <squadra>", "CSI: nessuna lettura per <squadra>", reusing the existing logo cases.
+- Logo download reuses `FixtureSource.downloadLogos` (tuttocampo) and the T4.8c CSI logo path.
+- Task sheet: `docs/plan/tasks/wave-4-t4.9.md` (Wave 1 format: owned paths, acceptance criteria, tests). No `Package.swift` change expected.
+
+### Steps
+
+**Step 0 — plan edit** (this section, docs only).
+
+**Step 1 — contract step** (`foundation-architect`), sequential.
+
+**Step 2 — three tasks in parallel, after Step 1 merges.**
+
+| Task | Agent | Owns | Work |
+|---|---|---|---|
+| T4.9a sources | `render-engineer` | `Sources/SSImport/` (Classifica parser, `fetchLeagueTeams`; CSI team-list extraction), `Tests/SSImportTests/` | Classifica parser on `classifica-normal.html` (16 rows → 15 teams without ours; names; ClubIds); variants: no table, a row without a logo, our row missing. CSI team list from `girone-sample.html`: dedupe by team id, placeholder shield → no logo, ours left out. `URLProtocol` stub for the fetch; **no live network in tests**. |
+| T4.9b data | `core-dev` | `Sources/SSData/`, `Tests/SSDataTests/` | Migration `source_team_lists`; repository; cascade on team delete; the transaction that applies candidates and merge choices (create, rename + alias, alias); tests, including rollback when one write fails. |
+| T4.9c UI | `ui-dev` | `Sources/SSApp/Features/Opponents/` (button, review sheet, merge choice, report), the CSI save hook in `Sources/SSApp/Features/Import/` (store the team list after "Importa questa pagina"), Strings | The toolbar button and File menu item. Progress while tuttocampo teams are read. The review sheet with states, ticks, a duplicate choice per pair ("Salva" disabled until every pair is resolved), source and date labels, thumbnails. The report. Italian strings. Built against fakes. |
+
+**Step 3 — wiring** (`core-dev`). Real sources and repository in `Sources/SergnaneseSocial/Composition.swift`. Integration test: stubbed Classifica + a stored CSI list → candidates → choices → database → logos in the temp `SS_DATA_DIR`.
+
+**Step 4 — gate and release.** `qa-reviewer`: acceptance criteria, Mac design (sheet, toolbar, Light/Dark), one live run with the user (tuttocampo read + a stored CSI list). `chore-runner`: USER-GUIDE subsection "Scaricare tutti gli avversari". `release-engineer`: in the same release as T4.2 and T4.8 if not shipped yet.
+
+### Model and effort per step
+
+The network client, the allowlist, the logo download and the CSI page read already exist and were reviewed in T4.2/T4.8. T4.9 adds one pure parser, one table and one sheet. So only the contract step stays on opus.
+
+| Step | Agent | Agent default | Dispatch with | Why |
+|---|---|---|---|---|
+| 0 plan edit | main session | — | sonnet, low | This section is the content. |
+| 1 contract + sheet | `foundation-architect` | opus, high | opus, high | Frozen contracts; the merge transaction and the duplicate rule are where data can be damaged. |
+| 2 T4.9a sources | `render-engineer` | opus, high | sonnet, medium | A pure parser against existing fixtures and one method on an existing client. |
+| 2 T4.9b data | `core-dev` | sonnet, medium | sonnet, medium | Migration + a multi-step transaction with rollback tests. |
+| 2 T4.9c UI | `ui-dev` | sonnet, medium | sonnet, medium | A staging-style sheet like the T4.2 one; `high` only on retry. |
+| 3 wiring | `core-dev` | sonnet, medium | sonnet, medium | Composition + one integration test. |
+| gate (each task) | `qa-reviewer` | opus, high | sonnet, medium | Well-defined acceptance criteria. |
+| gate (final, live run) | `qa-reviewer` | opus, high | sonnet, high | Reuses reviewed network code; the new risk is merging data, covered by tests. Escalate to opus if the review finds data problems. |
+| 4 USER-GUIDE | `chore-runner` | haiku | haiku | Prose only. |
+| 4 release | `release-engineer` | sonnet, medium | sonnet, low | Existing scripts. |
+
+Escalation is unchanged: retry once on the same model with the reviewer's findings, then one model up.
+
+### Rules
+
+- Tuttocampo requests only when the user presses the button; no CSI request ever (only lists stored from pages the user opened).
+- Nothing is written before "Salva"; every write is in one transaction.
+- No opponent is deleted. Merging only adds aliases or renames, and only after the user's choice.
+- Logos already present are never replaced; our own club is never added as an opponent.
+- Dev data folder only; no real names, logos or HTML committed.

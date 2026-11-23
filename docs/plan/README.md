@@ -23,6 +23,7 @@ A native Mac app that turns the club's weekend fixtures into ready-to-post Insta
 | D3 | Import (CSV/Excel, website scraping, PDF) comes later, in Wave 4. | User |
 | D4 | Opponent logos will later be downloaded from tuttocampo.it (T4.2, by direct fetch of the club widgets). In v0.1.0 they are added by hand; seed data uses generated placeholder logos. | User |
 | D10 | Teams playing in CSI leagues are imported from CSI Live (`live.centrosportivoitaliano.it`), matches, opponent names and logos, no standings (T4.8). The site runs a Cloudflare bot check, so the app does not fetch it: the user opens the page in an in-app browser window and presses "Importa questa pagina". (Added 2026-11-22.) | User |
+| D11 | "Scarica tutti gli avversari…" in Avversari fills the opponent list in one go (T4.9): tuttocampo from each team's Classifica widget, CSI from the team list kept at the last CSI page read (no new CSI request). Review before saving; existing opponents only get a missing logo; possible duplicates are always asked (keep A, keep B, or separate). (Added 2026-11-24.) | User |
 | D5 | Long team names are **truncated** (with a manual short-name override). | User |
 | D6 | The app must be downloadable from GitHub as a package and run on the Mac. | User |
 | D7 | Review/edit before render is part of v0.1.0. | User |
@@ -130,5 +131,6 @@ Fable, the most capable and most expensive model, is not assigned to any task. I
 | T1.5 | The club crest as a vector file (SVG/PDF) or a PNG of at least 1024×1024. The one inside the demo zips is 500×500, too small for a sharp app icon. Without it the icon is upscaled and slightly soft. |
 | T1.4 (nice to have) | Real list of the club's teams/categories. Fake ones are used otherwise. |
 | T4.2 | A check of tuttocampo.it's terms of use for automated reading, and confirmation of which widget ID belongs to which team. The six widget IDs are already known (see the T4.2 sheet). |
-| T4.1 / T4.3 | A sample fixture document (Excel/CSV/PDF). |
+| T4.1 | A sample fixture document (Excel/CSV). |
+| T4.3 | Sample received (`examples/Calendario_EsordientiMiste_Femm_Aut.pdf`, keep it out of git). Still wanted: a spring-phase PDF (`R.` dates) of the same layout. |
 | T4.8 | A check of CSI Live's terms of use; each CSI girone page saved from Safari ("Archivio web" and "Sorgente pagina") into a folder outside the repo; which club team each CSI page belongs to. |

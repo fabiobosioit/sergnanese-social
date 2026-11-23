@@ -34,7 +34,7 @@ Per section, in the unified toolbar, each item with an icon **and** a label (`La
 | Partite | weekend switcher (‹ · "Questo weekend" · ›), Aggiungi (+), filter menu, search field, **Genera** (prominent) |
 | Genera | weekend switcher, **Genera immagini** (prominent, default action) |
 | Archivio | date-range menu, template filter, Condividi, search |
-| Avversari | Aggiungi (+), search |
+| Avversari | Aggiungi (+), Scarica tutti gli avversari… (T4.9), search |
 | Squadre | Aggiungi (+) |
 | Template | Importa, search |
 
@@ -50,6 +50,7 @@ Built with SwiftUI `Commands` in `SSApp/Shell`. All titles in Italian. Items are
 | | Impostazioni… | ⌘, |
 | **File** | Nuova partita | ⌘N |
 | | Nuovo avversario | ⇧⌘N |
+| | Scarica tutti gli avversari… (T4.9) | |
 | | Importa template… | ⌘O |
 | | Carica dati demo | |
 | | Apri cartella immagini | ⇧⌘O |
