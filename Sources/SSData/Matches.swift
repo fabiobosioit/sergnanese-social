@@ -113,6 +113,8 @@ struct MatchStore: MatchRepository {
       var draft = MatchDraft(original)
       draft.date = date
       draft.status = .scheduled
+      // C4: notes hold the scorers once a result exists, so they are not carried over.
+      if original.score != nil || original.halfTime != nil { draft.notes = nil }
       draft.score = nil
       draft.halfTime = nil
       draft.isLocked = false
