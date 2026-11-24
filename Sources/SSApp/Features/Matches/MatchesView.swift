@@ -9,6 +9,7 @@ public struct MatchesView: View {
   @ViewState private var isInspectorShown = false
   @ViewState private var importModel: ImportModel
   @ViewState private var csiLauncher: CSIImportLauncher
+  @ViewState private var pdfLauncher: PDFImportLauncher
   @Environment(\.openWindow) private var openWindow
   @FocusState private var searchFocused: Bool
   @SceneStorage("matches.scope") private var storedScope = MatchesScope.weekend.rawValue
@@ -20,12 +21,16 @@ public struct MatchesView: View {
     importModel.onDataChanged = { [weak app] in app?.didChangeData() }
     _importModel = ViewState(initialValue: importModel)
     _csiLauncher = ViewState(initialValue: CSIImportLauncher(services: app.services))
+    let pdfLauncher = PDFImportLauncher(services: app.services)
+    pdfLauncher.onDataChanged = { [weak app] in app?.didChangeData() }
+    _pdfLauncher = ViewState(initialValue: pdfLauncher)
   }
 
   public var body: some View {
     @Bindable var vm = model
     @Bindable var importer = importModel
     @Bindable var csi = csiLauncher
+    @Bindable var pdf = pdfLauncher
     content(vm)
       .safeAreaInset(edge: .bottom, spacing: 0) { summaryBar }
       .inspector(isPresented: $isInspectorShown) {
@@ -52,12 +57,26 @@ public struct MatchesView: View {
       .sheet(isPresented: $csi.isPickerPresented) {
         CSITeamPickerSheet(launcher: csi) { openWindow(id: CSIImportLauncher.windowID, value: $0) }
       }
+      .sheet(isPresented: $pdf.isPickerPresented) {
+        PDFTeamPickerSheet(launcher: pdf)
+      }
+      .sheet(
+        isPresented: Binding(get: { pdf.model?.isPresented ?? false }, set: { if !$0 { pdf.dismissModel() } })
+      ) {
+        if let pdfModel = pdf.model { ImportSheet(model: pdfModel) }
+      }
+      .fileImporter(isPresented: $pdf.isFileImporterPresented, allowedContentTypes: [.pdf]) { result in
+        if case .success(let url) = result { Task { await pdf.begin(url: url) } }
+      }
+      .dropDestination(for: URL.self) { urls, _ in pdf.handleDrop(urls) }
+      .overlay { if pdf.isReading { readingOverlay } }
       .confirmDelete(vm.deleteTitle, isPresented: $vm.isConfirmingDelete, onConfirm: vm.confirmDelete)
       .onAppear {
         vm.scope = MatchesScope(rawValue: storedScope) ?? .weekend
         vm.reload()
         importer.refreshAvailability()
         csi.refresh()
+        pdf.refresh()
       }
       .onChange(of: app.weekend) { vm.reload() }
       .onChange(of: vm.scope) { storedScope = vm.scope.rawValue }
@@ -65,6 +84,7 @@ public struct MatchesView: View {
         vm.reload()
         importer.refreshAvailability()
         csi.refresh()
+        pdf.refresh()
       }
       .onChange(of: vm.selection) { isInspectorShown = vm.selection.count == 1 }
       .publishCommand(.newMatch) { vm.beginNewMatch() }
@@ -74,6 +94,16 @@ public struct MatchesView: View {
       .publishCommand(.find) { searchFocused = true }
       .publishCommand(.importTuttocampo, enabled: importer.canStart) { importer.present() }
       .publishCommand(.importCSI, enabled: csi.canStart) { startCSIImport() }
+      .publishCommand(.importPDF, enabled: pdf.canStart) { pdf.chooseFile() }
+  }
+
+  private var readingOverlay: some View {
+    VStack(spacing: 8) {
+      ProgressView()
+      Text(ImportStrings.readingPDF).foregroundStyle(.secondary)
+    }
+    .padding(20)
+    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
   }
 
   /// One team with a CSI page: opens its browser window; several: asks which one.
@@ -275,6 +305,15 @@ public struct MatchesView: View {
       }
       .disabled(!csiLauncher.canStart)
       .help(csiLauncher.unavailableReason ?? ImportStrings.csiToolbarHelp)
+    }
+    ToolbarItem {
+      Button {
+        pdfLauncher.chooseFile()
+      } label: {
+        Label(AppStrings.Menu.importPDF, systemImage: "doc.richtext")
+      }
+      .disabled(!pdfLauncher.canStart)
+      .help(pdfLauncher.unavailableReason ?? ImportStrings.pdfToolbarHelp)
     }
     ToolbarItem {
       Menu {

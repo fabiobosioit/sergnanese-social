@@ -25,6 +25,23 @@ enum ImportStrings {
   }
   static let otherPageImport = "Importa"
 
+  // PDF
+  static let titlePDF = "Importa da PDF"
+  static let pdfToolbarHelp =
+    "Legge il calendario della federazione da un file PDF e mostra le partite prima di importarle."
+  static let noTeamReasonPDF = "Nessuna squadra attiva: aggiungila in Squadre."
+  static func emptyDescriptionPDF(clubShortName: String) -> String {
+    "Nessuna partita della \(clubShortName) in questo calendario."
+  }
+  static let linkMessagePDF =
+    "Il nome letto dal PDF e il nome completo della società verranno salvati come alias dell'avversario scelto."
+  static let readingPDF = "Lettura del PDF…"
+  static func pickTeamPDFTitle(_ competition: String) -> String { "Calendario: \(competition)" }
+  static let pickTeamPDFMessage = "Scegli la squadra a cui appartengono le partite di questo calendario."
+  static let pickTeamContinue = "Continua"
+  static let pickTeamNone = "Scegli una squadra"
+  static let changeCompetition = "Competizione"
+
   // Progress
   static func reading(_ team: String, current: Int, total: Int) -> String {
     "Lettura di \(team)… \(current) di \(total)"
