@@ -44,7 +44,7 @@ enum DemoRender {
     var failures = 0
     for template in templates {
       let manifest = template.manifest
-      for fixture in fixtureNames(for: manifest.kind, all: all) {
+      for fixture in fixtureNames(for: manifest, all: all) {
         let name = all ? "\(manifest.id)__\(fixture).png" : "\(manifest.id).png"
         let file = output.appendingPathComponent(name)
         do {
@@ -84,13 +84,13 @@ enum DemoRender {
     }.sorted { $0.id < $1.id }
   }
 
-  static func fixtureNames(for kind: TemplateKind, all: Bool) -> [String] {
-    switch (kind, all) {
+  static func fixtureNames(for manifest: TemplateManifest, all: Bool) -> [String] {
+    switch (manifest.kind, all) {
     case (.single, false): return ["single"]
-    case (.list, false): return ["list"]
+    case (.list, false): return [manifest.isResultsRecap ? "list-results" : "list"]
     case (.single, true):
       return ["single", "single-long-name", "single-no-logo", "single-away", "single-no-time", "single-goalless"]
-    case (.list, true): return ["list", "list-23"]
+    case (.list, true): return manifest.isResultsRecap ? ["list-results", "list-23"] : ["list", "list-23"]
     }
   }
 

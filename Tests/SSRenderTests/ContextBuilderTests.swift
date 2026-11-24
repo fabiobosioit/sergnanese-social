@@ -83,6 +83,74 @@ import Testing
     #expect(pages.flatMap(\.matches).map(\.id) == TestData.manyMatches(23).map(\.id))
   }
 
+  // MARK: Results recap (T4.5a)
+
+  var recap: TemplateManifest {
+    var manifest = list
+    manifest.id = "results"
+    manifest.purpose = .fulltime
+    manifest.requires = [.score]
+    return manifest
+  }
+
+  @Test func recapTitlesAndLabels() throws {
+    let builder = ContextBuilder(settings: .defaults, manifest: recap)
+    func page(_ matches: [Match]) -> ListContext { builder.pages(matches.map { TestData.detail($0) })[0].context }
+    let weekend = page([TestData.match("s", date: TestData.saturday), TestData.match("u")])
+    #expect(weekend.title == "Risultati del weekend")
+    #expect(weekend.dateLabel == "Dal 21 al 22 novembre")
+    let oneDay = page([TestData.match("u")])
+    #expect(oneDay.title == "Risultati")
+    #expect(oneDay.dateLabel == "Domenica 22 novembre")
+    let twoWeekends = page([
+      TestData.match("a", date: TestData.saturday), TestData.match("b", date: TestData.sunday.adding(days: 7)),
+    ])
+    #expect(twoWeekends.title == "Risultati")
+    #expect(twoWeekends.dateLabel == "Dal 21 al 29 novembre")
+    // Sunday + next Saturday is not one weekend.
+    let split = page([TestData.match("a"), TestData.match("b", date: TestData.sunday.adding(days: 6))])
+    #expect(split.title == "Risultati")
+    // The programme keeps its titles.
+    let programme = ContextBuilder(settings: .defaults, manifest: list).pages([
+      TestData.detail(TestData.match("s", date: TestData.saturday)), TestData.detail(TestData.match("u")),
+    ])[0].context
+    #expect(programme.title == "Weekend in campo")
+  }
+
+  @Test func recapWarnings() {
+    let builder = ContextBuilder(settings: .defaults, manifest: recap)
+    let rows = [
+      TestData.match("p", status: .postponed), TestData.match("c", status: .cancelled),
+      TestData.match("n"), TestData.match("w", score: Score(us: 2, them: 1)),
+    ]
+    let page = builder.pages(rows.map { TestData.detail($0) })[0]
+    #expect(
+      !page.warnings.contains {
+        $0.matchID == "p" && ($0.kind == .matchNotScheduled || $0.kind == .missingRequiredField)
+      })
+    #expect(
+      !page.warnings.contains {
+        $0.matchID == "c" && ($0.kind == .matchNotScheduled || $0.kind == .missingRequiredField)
+      })
+    #expect(page.warnings.filter { $0.matchID == "n" && $0.kind == .missingRequiredField }.count == 1)
+    #expect(!page.warnings.contains { $0.matchID == "w" && $0.kind == .missingRequiredField })
+    // Outside a recap the postponed row is still warned about.
+    let programme = ContextBuilder(settings: .defaults, manifest: list).pages([TestData.detail(rows[0])])[0]
+    #expect(programme.warnings.contains { $0.kind == .matchNotScheduled })
+  }
+
+  @Test func recapRowsCarryTheOutcome() {
+    let builder = ContextBuilder(settings: .defaults, manifest: recap)
+    let rows = [
+      TestData.match("a", time: "10:00", score: Score(us: 2, them: 1)),
+      TestData.match("b", time: "11:00", score: Score(us: 0, them: 0)),
+      TestData.match("c", time: "12:00", isHome: false, score: Score(us: 0, them: 3)),
+      TestData.match("d", time: "13:00"),
+    ]
+    let context = builder.pages(rows.map { TestData.detail($0) })[0].context
+    #expect(context.rows.map(\.outcome) == [.win, .draw, .loss, nil])
+  }
+
   @Test func onePageHasNoPagesFlagAndRangeLabels() {
     let builder = ContextBuilder(settings: .defaults, manifest: list)
     let pages = builder.pages([
