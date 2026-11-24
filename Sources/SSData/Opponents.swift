@@ -67,6 +67,36 @@ struct OpponentStore: OpponentRepository {
     }
   }
 
+  func applyImport(_ plan: OpponentImportPlan) throws -> [Opponent] {
+    try database.write { db in
+      var result: [Opponent] = []
+      for item in plan.items {
+        switch item.action {
+        case .create:
+          guard let draft = try item.action.draft(current: nil)?.validated() else { throw AppError.notFound }
+          let opponent = Opponent(
+            id: newEntityID(), name: draft.name, shortName: draft.shortName, aliases: draft.aliases,
+            logoFile: draft.logoFile)
+          try db.execute(
+            sql: "INSERT INTO opponents (id, name, short_name, aliases, logo_file) VALUES (?, ?, ?, ?, ?)",
+            arguments: [
+              opponent.id, opponent.name, opponent.shortName, encodeJSON(opponent.aliases), opponent.logoFile,
+            ])
+          result.append(opponent)
+        case .update(let id, _, _):
+          let current = try Self.fetch(db, id: id)
+          guard let draft = try item.action.draft(current: current)?.validated() else { throw AppError.notFound }
+          // Name and aliases only: short name and logo stay as stored.
+          try db.execute(
+            sql: "UPDATE opponents SET name = ?, aliases = ? WHERE id = ?",
+            arguments: [draft.name, encodeJSON(draft.aliases), id])
+          result.append(try Self.fetch(db, id: id))
+        }
+      }
+      return result
+    }
+  }
+
   func search(_ query: String) throws -> [Opponent] {
     // Matching is accent- and case-insensitive in Swift (`textMatches`); the table is tiny.
     try list().filter { textMatches(query: query, in: [$0.name, $0.shortName ?? ""] + $0.aliases) }
