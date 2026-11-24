@@ -33,7 +33,10 @@ struct PDFImportTests {
     }
     return try calendar.fixtures.map { fixture in
       let first = make(fixture, try env.database.opponents.list())
-      guard first.reviewReasons == [.opponentNotFound] else { return first }
+      // T4.10: every synthetic club is a different club, but all names share "ESEMPIO": "WOMEN ESEMPIO" (significant
+      // token: esempio) is ambiguous once other clubs are stored, and "S. ESEMPIO CALCIO" is then proposed for it.
+      // Only exact links are kept; every other row is created, as a user would correct the proposals.
+      if [.exact, .linked].contains(first.opponentMatch) { return first }
       let created = try env.database.opponents.create(fixture.newOpponentDraft)
       return make(fixture, try env.database.opponents.list(), linked: created.id)
     }

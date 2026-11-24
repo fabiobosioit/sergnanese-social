@@ -46,8 +46,9 @@ struct ImportModelCSITests {
     #expect(model.phase == .review)
     #expect(model.issues.isEmpty)
     #expect(model.title == ImportStrings.titleCSI)
+    // T4.10: "Valdorso 2016" is proposed (F.C. Valdorso) and pre-filled, so it is .changed (time).
     let expected: [String: ImportCandidate.State] = [
-      "Borgo Lucente": .new, "Prato Fiorito": .changed, "Valdorso 2016": .needsReview,
+      "Borgo Lucente": .new, "Prato Fiorito": .changed, "Valdorso 2016": .changed,
       "Polisportiva Fontanella": .needsReview, "Atletico Montesello": .new,
     ]
     #expect(model.candidates.count == expected.count)

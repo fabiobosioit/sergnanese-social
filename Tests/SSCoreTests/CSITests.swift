@@ -362,10 +362,13 @@ private struct UnusedRenderService: RenderService {
     let candidates = try stage(pulcini)
     #expect(
       candidates.mapValues(\.state) == [
-        "Borgo Lucente": .new, "Prato Fiorito": .changed, "Valdorso 2016": .needsReview,
+        "Borgo Lucente": .new, "Prato Fiorito": .changed, "Valdorso 2016": .changed,
         "Polisportiva Fontanella": .needsReview, "Atletico Montesello": .new,
       ])
-    #expect(candidates["Valdorso 2016"]?.reviewReasons == [.opponentNotFound])
+    // T4.10: the year is on one side only, so F.C. Valdorso is proposed and pre-filled.
+    #expect(candidates["Valdorso 2016"]?.opponentMatch == .proposed)
+    #expect(candidates["Valdorso 2016"]?.opponent?.name == "F.C. Valdorso")
+    #expect(candidates["Polisportiva Fontanella"]?.opponentMatch == .notFound)
     #expect(candidates["Borgo Lucente"]?.draft?.score == Score(us: 4, them: 2))
     #expect(candidates["Borgo Lucente"]?.fixture.opponentLogoURL == nil)
     #expect(candidates["Prato Fiorito"]?.draft?.venue == "Prato Fiorito")  // stored venue kept
@@ -374,6 +377,7 @@ private struct UnusedRenderService: RenderService {
     let valdorso = try #require(try services.opponents.list().first { $0.name == "F.C. Valdorso" })
     let linked = try stage(pulcini, linking: ["Valdorso 2016": valdorso.id])
     #expect(linked["Valdorso 2016"]?.state == .changed)
+    #expect(linked["Valdorso 2016"]?.opponentMatch == .linked)
   }
 
   @Test func scenarioLogos() async throws {

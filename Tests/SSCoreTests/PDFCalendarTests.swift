@@ -101,7 +101,8 @@ import Testing
 
   @Test func linkingAddsOnlyUnknownNames() {
     let added = alcione.draftAddingImportNames(of: fixture("ALCIONE", aliases: ["ALCIONE MILANO SSD A RL"]))
-    #expect(added.aliases == ["Alcione Milano", "ALCIONE MILANO SSD A RL"])
+    // T4.10: the full name equals the alias "Alcione Milano" once the legal suffix is ignored: not added.
+    #expect(added.aliases == ["Alcione Milano"])
     #expect(added.name == "Alcione")
     let both = bernardo.draftAddingImportNames(of: fixture())
     #expect(both.aliases == ["S. BERNARDO CALCIO"])  // the full name already is the opponent's name
@@ -133,7 +134,10 @@ import Testing
     #expect(candidate.state == .needsReview && candidate.reviewReasons == [.opponentAmbiguous])
     let twice = make(fixture(aliases: ["SAN BERNARDO CALCIO", "A.S.D. San Bernardo Calcio"]), opponents: [bernardo])
     #expect(twice.opponent == bernardo)
-    #expect(make(fixture(aliases: []), opponents: [bernardo]).reviewReasons == [.opponentNotFound])
+    // T4.10: "S. BERNARDO CALCIO" alone is now a proposal for "San Bernardo Calcio", not "not found".
+    let proposed = make(fixture(aliases: []), opponents: [bernardo])
+    #expect(proposed.opponentMatch == .proposed && proposed.opponent == bernardo && proposed.reviewReasons.isEmpty)
+    #expect(make(fixture("GAMMA", aliases: []), opponents: [bernardo]).reviewReasons == [.opponentNotFound])
   }
 
   @Test func sourceDefaultsToScrape() {
