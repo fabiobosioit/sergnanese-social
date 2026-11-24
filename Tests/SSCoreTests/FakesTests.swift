@@ -33,7 +33,7 @@ func isConflict(_ body: () throws -> Void) -> Bool {
     #expect(current.count == 10)
     #expect(current == current.sorted(by: MatchDetail.scheduleOrder))
     #expect(try services.teams.list().first?.isFirstTeam == true)
-    #expect(try services.templates.list().count == 4)
+    #expect(try services.templates.list().count == 5)
     #expect(try services.settings.load().socialHandle == "@sergnanese.demo")
     #expect(services.paths.dataFolder.path.hasPrefix(FileManager.default.temporaryDirectory.path))
     #expect(try services.demoData.hasDemoData())
@@ -150,6 +150,31 @@ func isConflict(_ body: () throws -> Void) -> Bool {
     }
     try services.matches.delete(id: copy.id)
     #expect(throws: AppError.notFound) { try services.matches.get(id: copy.id) }
+  }
+
+  /// T4.5 (C4): notes are the scorers, so a duplicate of a match with a result starts without them.
+  @Test func duplicateClearsNotesOnlyWhenTheOriginalHasAResult() throws {
+    let previous = try services.matches.list(
+      from: thisWeekend.previous.saturday, to: thisWeekend.previous.sunday, teamID: nil)
+    let played = try #require(previous.first { $0.match.score != nil && $0.match.notes != nil })
+    let playedCopy = try services.matches.duplicate(id: played.id, to: played.match.date.adding(days: 14))
+    #expect(playedCopy.notes == nil && playedCopy.score == nil && playedCopy.halfTime == nil)
+
+    let current = try services.matches.list(from: thisWeekend.saturday, to: thisWeekend.sunday, teamID: nil)
+    let scheduled = try #require(current.first { $0.match.score == nil && $0.match.halfTime == nil })
+    var draft = MatchDraft(scheduled.match)
+    draft.notes = "Portare le maglie bianche"
+    _ = try services.matches.update(id: scheduled.id, with: draft)
+    let scheduledCopy = try services.matches.duplicate(id: scheduled.id, to: scheduled.match.date.adding(days: 7))
+    #expect(scheduledCopy.notes == "Portare le maglie bianche")
+
+    // A half-time score alone is a result too.
+    var halfOnly = MatchDraft(scheduled.match)
+    halfOnly.notes = "Rossi 12'"
+    halfOnly.halfTime = Score(us: 1, them: 0)
+    _ = try services.matches.update(id: scheduled.id, with: halfOnly)
+    let halfCopy = try services.matches.duplicate(id: scheduled.id, to: scheduled.match.date.adding(days: 14))
+    #expect(halfCopy.notes == nil && halfCopy.halfTime == nil)
   }
 
   @Test func upsertSkipsLockedMatches() throws {
@@ -330,6 +355,39 @@ func isConflict(_ body: () throws -> Void) -> Bool {
       try services.renderer.plan(
         RenderRequest(weekend: thisWeekend, selections: [TemplateSelection(templateID: "nope", matchIDs: [])]))
     }
+  }
+
+  /// T4.5 (C6): a results recap is one set of pages over the whole selection, dated the first match's day.
+  @Test func resultsRecapIsOneSetOverTheWeekend() throws {
+    let services = try makeServices()
+    let previous = try services.matches.list(
+      from: thisWeekend.previous.saturday, to: thisWeekend.previous.sunday, teamID: nil)
+    #expect(Set(previous.map(\.match.date)) == [thisWeekend.previous.saturday, thisWeekend.previous.sunday])
+    let plan = try services.renderer.plan(
+      RenderRequest(
+        weekend: thisWeekend.previous,
+        selections: [TemplateSelection(templateID: "story-results", matchIDs: previous.map(\.id))]))
+    let image = try #require(plan.images.first)
+    let page = try #require(image.page)
+    #expect(plan.images.count == 1)
+    #expect(image.date == thisWeekend.previous.saturday && page == PageInfo(index: 1, total: 1))
+    #expect(
+      image.fileName == renderFileName(date: thisWeekend.previous.saturday, templateID: "story-results", page: page))
+    #expect(Set(image.matchIDs) == Set(previous.map(\.id)))
+    #expect(image.width == 1080 && image.height == 1920)
+
+    // A postponed row in a recap gives no warning; the default plan never includes the recap.
+    let current = try services.matches.list(from: thisWeekend.saturday, to: thisWeekend.sunday, teamID: nil)
+    let recap = try services.renderer.plan(
+      RenderRequest(
+        weekend: thisWeekend, selections: [TemplateSelection(templateID: "story-results", matchIDs: current.map(\.id))])
+    )
+    #expect(recap.images.count == 1 && recap.images.first?.matchIDs.count == 10)
+    #expect(!recap.warnings.contains { $0.kind == .matchNotScheduled })
+    #expect(
+      try !services.renderer.plan(RenderRequest(weekend: thisWeekend.previous)).selections.contains {
+        $0.templateID == "story-results"
+      })
   }
 
   @Test func renderWritesExactSizePNGsAndRecords() async throws {

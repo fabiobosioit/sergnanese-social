@@ -76,6 +76,18 @@ public struct SideContext: Sendable, Codable, Equatable, Hashable {
   }
 }
 
+/// The result of a match from our point of view (T4.5). Mustache cannot compare numbers, so templates get
+/// it as a word: a CSS class (`outcome-{{outcome}}`) and a letter (V / N / P) in a results recap row.
+public enum MatchOutcome: String, Sendable, Codable, CaseIterable {
+  case win, draw, loss
+
+  /// `nil` unless both goals are present.
+  public init?(us: Int?, them: Int?) {
+    guard let us, let them else { return nil }
+    self = us > them ? .win : (us == them ? .draw : .loss)
+  }
+}
+
 public struct MatchContext: Sendable, Codable, Equatable, Hashable {
   /// Our team, cut to `limits.category`: the team's `name` in single contexts, its `shortLabel` in
   /// list rows.
@@ -109,9 +121,13 @@ public struct MatchContext: Sendable, Codable, Equatable, Hashable {
   public var notes: String?
   public var isPostponed: Bool
   public var isCancelled: Bool
+  /// T4.5: the final result from our point of view; absent without a final score, so
+  /// `{{#outcome}}…{{/outcome}}` shows a marker only for a scored match. Older JSON without it decodes
+  /// with `nil`.
+  public var outcome: MatchOutcome?
 
-  /// `isAway`, `hasScore` and `hasHalfTime` are derived: `!isHome`, both sides' `score` present, both
-  /// sides' `halfTimeScore` present.
+  /// `isAway`, `hasScore`, `hasHalfTime` and `outcome` are derived: `!isHome`, both sides' `score`
+  /// present, both sides' `halfTimeScore` present, `MatchOutcome(us: us.score, them: opponent.score)`.
   public init(
     category: String, round: Int?, competition: String?, dateLong: String, dateShort: String, time: String?,
     venue: String, isHome: Bool, home: SideContext, away: SideContext, us: SideContext, opponent: SideContext,
@@ -136,6 +152,7 @@ public struct MatchContext: Sendable, Codable, Equatable, Hashable {
     self.notes = notes
     self.isPostponed = isPostponed
     self.isCancelled = isCancelled
+    self.outcome = MatchOutcome(us: us.score, them: opponent.score)
   }
 }
 
@@ -153,7 +170,7 @@ public struct SingleContext: Sendable, Codable, Equatable, Hashable {
 /// Context of a `list` template: one page of matches.
 public struct ListContext: Sendable, Codable, Equatable, Hashable {
   public var club: ClubContext
-  /// "Oggi in campo" / "Weekend in campo".
+  /// "Oggi in campo" / "Weekend in campo"; for a results recap "Risultati" / "Risultati del weekend".
   public var title: String
   /// One day ("Domenica 22 novembre") or a range.
   public var dateLabel: String

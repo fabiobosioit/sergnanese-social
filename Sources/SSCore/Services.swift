@@ -105,8 +105,9 @@ public protocol TemplateStore: Sendable {
 /// The matches one template is rendered with.
 public struct TemplateSelection: Sendable, Equatable, Hashable {
   public var templateID: String
-  /// A `list` template puts these matches in one set of images per day; a `single` template makes
-  /// one image per match.
+  /// A `list` template puts these matches in one set of images per day, except a results recap
+  /// (`TemplateManifest.isResultsRecap`), which puts all of them in one set of pages dated the first
+  /// match's day; a `single` template makes one image per match.
   public var matchIDs: [EntityID]
 
   public init(templateID: String, matchIDs: [EntityID]) {
@@ -127,9 +128,13 @@ public struct RenderRequest: Sendable, Equatable, Hashable {
   /// - every installed `single` template with purpose `.prematch` takes the first team's scheduled
   ///   match(es) in the range.
   ///
+  /// The default plan never includes a results recap (`TemplateManifest.isResultsRecap`): a recap is
+  /// rendered only through an explicit selection.
+  ///
   /// Postponed and cancelled matches are left out of the default plan and listed in
   /// `RenderPlan.skippedMatchIDs`. Explicit selections are used as given: an explicitly selected
-  /// postponed or cancelled match is rendered, with a `.matchNotScheduled` warning.
+  /// postponed or cancelled match is rendered, with a `.matchNotScheduled` warning, except in a results
+  /// recap, which shows such rows as "Rinviata" / "Annullata" and gives them no warning (T4.5).
   public var selections: [TemplateSelection]?
 
   public init(from: DayDate, to: DayDate, selections: [TemplateSelection]? = nil) {

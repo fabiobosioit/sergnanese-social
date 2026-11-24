@@ -1,0 +1,511 @@
+{
+  "club": {
+    "name": "ASD Sergnanese",
+    "shortName": "Sergnanese",
+    "logo": "assets/club-logo.png",
+    "accent": "#CF3326",
+    "season": "2026/27",
+    "handle": "@sergnanese.demo"
+  },
+  "title": "Risultati del weekend",
+  "dateLabel": "Dal 14 al 15 novembre",
+  "rows": [
+    {
+      "category": "Juniores",
+      "dateLong": "Sabato 14 novembre",
+      "dateShort": "Sab 14 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "away": {
+        "name": "Unione Calcio Brolo Verde",
+        "displayName": "Unione Calcio Brolo…",
+        "initials": "UCB",
+        "isUs": false,
+        "logo": "_logos/fixture-brolo.png",
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "opponent": {
+        "name": "Unione Calcio Brolo Verde",
+        "displayName": "Unione Calcio Brolo…",
+        "initials": "UCB",
+        "isUs": false,
+        "logo": "_logos/fixture-brolo.png",
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": true,
+      "round": 9,
+      "competition": "Juniores Regionali",
+      "time": "15:00",
+      "halfTime": {
+        "us": 0,
+        "them": 0
+      },
+      "outcome": "draw"
+    },
+    {
+      "category": "Allievi U16",
+      "dateLong": "Sabato 14 novembre",
+      "dateShort": "Sab 14 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 1
+      },
+      "away": {
+        "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+        "displayName": "Oratorio…",
+        "initials": "OSE",
+        "isUs": false,
+        "logo": "_logos/fixture-eufrasio.png",
+        "score": 2
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 1
+      },
+      "opponent": {
+        "name": "A.C. Oratorio Sant'Eufrasio di Valfonda Bassa",
+        "displayName": "Oratorio…",
+        "initials": "OSE",
+        "isUs": false,
+        "logo": "_logos/fixture-eufrasio.png",
+        "score": 2
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": false,
+      "time": "15:00",
+      "outcome": "loss"
+    },
+    {
+      "category": "Esordienti",
+      "dateLong": "Sabato 14 novembre",
+      "dateShort": "Sab 14 nov",
+      "venue": "Stadio Novaria",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "S.S.D. Novaria Bassa",
+        "displayName": "Novaria Bassa",
+        "initials": "NB",
+        "isUs": false,
+        "logo": "_logos/fixture-novaria.png",
+        "score": 1
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 3
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 3
+      },
+      "opponent": {
+        "name": "S.S.D. Novaria Bassa",
+        "displayName": "Novaria Bassa",
+        "initials": "NB",
+        "isUs": false,
+        "logo": "_logos/fixture-novaria.png",
+        "score": 1
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": false,
+      "time": "16:00",
+      "outcome": "win"
+    },
+    {
+      "category": "Femminile",
+      "dateLong": "Sabato 14 novembre",
+      "dateShort": "Sab 14 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 4,
+        "halfTimeScore": 2
+      },
+      "away": {
+        "name": "Virtus Campofelice",
+        "displayName": "Virtus Campofelice",
+        "initials": "VC",
+        "isUs": false,
+        "logo": "_logos/fixture-campofelice.png",
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 4,
+        "halfTimeScore": 2
+      },
+      "opponent": {
+        "name": "Virtus Campofelice",
+        "displayName": "Virtus Campofelice",
+        "initials": "VC",
+        "isUs": false,
+        "logo": "_logos/fixture-campofelice.png",
+        "score": 0,
+        "halfTimeScore": 0
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": true,
+      "time": "18:00",
+      "halfTime": {
+        "us": 2,
+        "them": 0
+      },
+      "outcome": "win"
+    },
+    {
+      "category": "Amatori",
+      "dateLong": "Sabato 14 novembre",
+      "dateShort": "Sab 14 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 2
+      },
+      "away": {
+        "name": "F.C. Valdorso",
+        "displayName": "Valdorso",
+        "initials": "VA",
+        "isUs": false,
+        "logo": "_logos/fixture-valdorso.png",
+        "score": 0
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 2
+      },
+      "opponent": {
+        "name": "F.C. Valdorso",
+        "displayName": "Valdorso",
+        "initials": "VA",
+        "isUs": false,
+        "logo": "_logos/fixture-valdorso.png",
+        "score": 0
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": false,
+      "time": "20:30",
+      "outcome": "win"
+    },
+    {
+      "category": "Giov. U15",
+      "dateLong": "Domenica 15 novembre",
+      "dateShort": "Dom 15 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 10
+      },
+      "away": {
+        "name": "Atletico Montesello",
+        "displayName": "Atletico Montesello",
+        "initials": "AM",
+        "isUs": false,
+        "score": 0
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 10
+      },
+      "opponent": {
+        "name": "Atletico Montesello",
+        "displayName": "Atletico Montesello",
+        "initials": "AM",
+        "isUs": false,
+        "score": 0
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": false,
+      "time": "09:30",
+      "outcome": "win"
+    },
+    {
+      "category": "Giov. U14",
+      "dateLong": "Domenica 15 novembre",
+      "dateShort": "Dom 15 nov",
+      "venue": "Campo Cascina…",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "Real Cascina Alta",
+        "displayName": "Real Cascina Alta",
+        "initials": "RCA",
+        "isUs": false,
+        "logo": "_logos/fixture-cascina.png",
+        "score": 2
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 0
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 0
+      },
+      "opponent": {
+        "name": "Real Cascina Alta",
+        "displayName": "Real Cascina Alta",
+        "initials": "RCA",
+        "isUs": false,
+        "logo": "_logos/fixture-cascina.png",
+        "score": 2
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": false,
+      "time": "10:00",
+      "outcome": "loss"
+    },
+    {
+      "category": "Allievi U17",
+      "dateLong": "Domenica 15 novembre",
+      "dateShort": "Dom 15 nov",
+      "venue": "Oratorio…",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "Oratorio Santa Lucia",
+        "displayName": "Oratorio Santa Lucia",
+        "initials": "OSL",
+        "isUs": false,
+        "logo": "_logos/fixture-lucia.png",
+        "score": 3,
+        "halfTimeScore": 2
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 3,
+        "halfTimeScore": 1
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 3,
+        "halfTimeScore": 1
+      },
+      "opponent": {
+        "name": "Oratorio Santa Lucia",
+        "displayName": "Oratorio Santa Lucia",
+        "initials": "OSL",
+        "isUs": false,
+        "logo": "_logos/fixture-lucia.png",
+        "score": 3,
+        "halfTimeScore": 2
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": true,
+      "time": "10:30",
+      "halfTime": {
+        "us": 1,
+        "them": 2
+      },
+      "notes": "Verdi (2), Neri",
+      "outcome": "draw"
+    },
+    {
+      "category": "Prima Squadra",
+      "dateLong": "Domenica 15 novembre",
+      "dateShort": "Dom 15 nov",
+      "venue": "Ripalta Nuova",
+      "isHome": false,
+      "isAway": true,
+      "home": {
+        "name": "Sporting Ripalta Nuova",
+        "displayName": "Sporting Ripalta Nuova",
+        "initials": "SRN",
+        "isUs": false,
+        "logo": "_logos/fixture-ripalta.png",
+        "score": 1,
+        "halfTimeScore": 0
+      },
+      "away": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 2,
+        "halfTimeScore": 1
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true,
+        "score": 2,
+        "halfTimeScore": 1
+      },
+      "opponent": {
+        "name": "Sporting Ripalta Nuova",
+        "displayName": "Sporting Ripalta Nuova",
+        "initials": "SRN",
+        "isUs": false,
+        "logo": "_logos/fixture-ripalta.png",
+        "score": 1,
+        "halfTimeScore": 0
+      },
+      "isPostponed": false,
+      "isCancelled": false,
+      "hasScore": true,
+      "hasHalfTime": true,
+      "round": 11,
+      "competition": "Prima Categoria · Girone C",
+      "time": "14:30",
+      "halfTime": {
+        "us": 1,
+        "them": 0
+      },
+      "notes": "Rossi 23', Bianchi 78'",
+      "outcome": "win"
+    },
+    {
+      "category": "Jun. Femminile",
+      "dateLong": "Domenica 15 novembre",
+      "dateShort": "Dom 15 nov",
+      "venue": "Campo Comunale",
+      "isHome": true,
+      "isAway": false,
+      "home": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "away": {
+        "name": "A.C. Prato Fiorito",
+        "displayName": "Prato Fiorito",
+        "initials": "PF",
+        "isUs": false,
+        "logo": "_logos/fixture-pratofiorito.png"
+      },
+      "us": {
+        "name": "ASD Sergnanese",
+        "displayName": "Sergnanese",
+        "logo": "assets/club-logo.png",
+        "initials": "SE",
+        "isUs": true
+      },
+      "opponent": {
+        "name": "A.C. Prato Fiorito",
+        "displayName": "Prato Fiorito",
+        "initials": "PF",
+        "isUs": false,
+        "logo": "_logos/fixture-pratofiorito.png"
+      },
+      "isPostponed": true,
+      "isCancelled": false,
+      "hasScore": false,
+      "hasHalfTime": false,
+      "time": "16:00"
+    }
+  ],
+  "page": {
+    "index": 1,
+    "total": 1
+  },
+  "hasPages": false,
+  "pageLabel": "1/1"
+}

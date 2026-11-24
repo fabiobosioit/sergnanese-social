@@ -92,6 +92,17 @@ import Testing
     #expect(try TemplateManifest.decode(from: data) == manifest)
   }
 
+  @Test(arguments: [
+    (TemplateKind.list, TemplatePurpose.fulltime, true), (.list, .programme, false), (.single, .fulltime, false),
+    (.single, .prematch, false),
+  ])
+  func resultsRecapIsAListWithPurposeFulltime(_ kind: TemplateKind, _ purpose: TemplatePurpose, _ expected: Bool) {
+    let manifest = TemplateManifest(
+      id: "t", name: "T", version: "1.0.0", format: .story, width: 1080, height: 1920, kind: kind, purpose: purpose,
+      pageSize: kind == .list ? 10 : nil)
+    #expect(manifest.isResultsRecap == expected)
+  }
+
   @Test func templateIDs() {
     #expect(isValidTemplateID("post-prematch"))
     #expect(isValidTemplateID("story2"))

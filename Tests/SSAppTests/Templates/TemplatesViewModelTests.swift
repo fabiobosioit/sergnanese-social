@@ -41,10 +41,10 @@ struct TemplatesViewModelTests {
      "kind":"single","purpose":"other"}
     """
 
-  @Test func listsTheFourBuiltins() {
+  @Test func listsTheFiveBuiltins() {
     let model = makeModel()
     #expect(model.loadState == .loaded)
-    #expect(model.templates.count == 4)
+    #expect(model.templates.count == 5)
     let allBuiltin = model.templates.allSatisfy { $0.isBuiltin }
     #expect(allBuiltin)
   }
@@ -52,14 +52,14 @@ struct TemplatesViewModelTests {
   @Test func thumbnailsLoadForEveryTemplate() async {
     let model = makeModel()
     await model.loadThumbnails()
-    #expect(model.thumbnails.count == 4)
+    #expect(model.thumbnails.count == 5)
   }
 
   @Test func importingAZipInstallsAndSelects() throws {
     let model = makeModel()
     let zip = try makeZip(named: "Story programma extra", in: try tempDir())
     model.importTemplate(from: zip)
-    #expect(model.templates.count == 5)
+    #expect(model.templates.count == 6)
     #expect(model.selectedID == "story-programma-extra")
     #expect(model.importProblems == nil)
     #expect(model.selected?.isBuiltin == false)
@@ -77,11 +77,11 @@ struct TemplatesViewModelTests {
     let folder = try makeFolder(manifest: #"{"id":"BAD id"}"#, in: try tempDir())
     model.importTemplate(from: folder)
     #expect((model.importProblems?.count ?? 0) > 1)
-    #expect(model.templates.count == 4)
+    #expect(model.templates.count == 5)
     let noHTML = try makeFolder(manifest: Self.goodManifest, withHTML: false, in: try tempDir())
     model.importTemplate(from: noHTML)
     #expect(model.importProblems?.count == 1)
-    #expect(model.templates.count == 4)
+    #expect(model.templates.count == 5)
   }
 
   @Test func notAZipOrFolderIsInvalid() throws {
@@ -99,13 +99,13 @@ struct TemplatesViewModelTests {
     #expect(model.replaceRequest == nil)
     model.importTemplate(from: folder)
     #expect(model.replaceRequest?.existing.id == "user-one")
-    #expect(model.templates.count == 5)
+    #expect(model.templates.count == 6)
     model.cancelReplace()
     #expect(model.replaceRequest == nil)
     model.importTemplate(from: folder)
     model.confirmReplace()
     #expect(model.replaceRequest == nil)
-    #expect(model.templates.count == 5)
+    #expect(model.templates.count == 6)
     #expect(model.importProblems == nil)
   }
 
@@ -119,7 +119,7 @@ struct TemplatesViewModelTests {
     model.requestDelete()
     #expect(model.confirmingDelete)
     model.deleteSelected()
-    #expect(model.templates.count == 4)
+    #expect(model.templates.count == 5)
     #expect(model.selectedID == nil)
   }
 
@@ -131,13 +131,13 @@ struct TemplatesViewModelTests {
     model.requestDelete()
     #expect(!model.confirmingDelete)
     model.deleteSelected()  // guarded: nothing happens
-    #expect(model.templates.count == 4)
+    #expect(model.templates.count == 5)
     #expect(model.errorMessage == nil)
     model.requestRestore()
     #expect(model.confirmingRestore)
     model.restoreSelected()
     #expect(model.errorMessage == nil)
-    #expect(model.templates.count == 4)
+    #expect(model.templates.count == 5)
   }
 
   @Test func previewWithAMatchRendersThroughTheService() async throws {

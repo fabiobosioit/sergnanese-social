@@ -13,6 +13,7 @@ logos, people and the social handle are fake. Load the files with `SSCoreFakes.F
 | `single-goalless.context.json` | A played match, 0–0 at half time and at full time. Templates must show the zeros: wrap score blocks in `{{#match.hasScore}}` / `{{#match.hasHalfTime}}`, never in a section on the score itself (Mustache treats 0 as false). |
 | `list.context.json` | `ListContext` with 10 programme rows for one day, page 1/1. |
 | `list-23.context.json` | `ListContext` with 23 rows, **not** paginated: input for pagination tests and for checking overflow. |
+| `list-results.context.json` | Results recap (T4.5): `ListContext` titled "Risultati del weekend", "Dal 14 al 15 novembre", page 1/1, 10 rows over Saturday 14 and Sunday 15 November: the previous weekend's 4 played matches plus 6 invented ones that are **not** in `matches.json`. Home and away wins, a loss, 0–0, 3–3, 10–0, the 45-character opponent (cut to 22), an opponent without a logo, one postponed row without a score. |
 | `matches.json` | The `FakeDataSet` behind `AppServices.fake()`: 13 teams, 14 opponents, 26 matches over three weekends, 4 archive records. Every team but Veterani has a fake tuttocampo widget id `00000000-0000-4000-8000-0000000000NN` (NN = position + 1), the keys of `FakeFixtureSource.scenario` (T4.2). Pulcini also has a fake CSI Live page (`.../C00001/G000008-girone-a-2016/`, no such girone exists), the key of `FakePageFixtureParser.scenario` (T4.8). |
 | `logos/` | Fake opponent crests (256×256 PNG), named as in `Opponent.logoFile`. |
 | `generator/` | The scripts that produced the JSON and the logos. |
@@ -23,6 +24,12 @@ Contexts are built for one template, so they are already cut to its limits. Thes
 example limits: single contexts `teamName` 16, `venue` 14, `category` 22; list rows `teamName` 22,
 `venue` 14, `category` 16 (list rows show the team's `shortLabel`). A tool rendering a template with
 different limits may cut again with `truncateAtWord`.
+
+## Outcome
+
+Every match context with a final score has `outcome` (`win` / `draw` / `loss`, our point of view,
+`MatchOutcome`); it is absent without a score, so `{{#outcome}}…{{/outcome}}` shows a marker only for a
+scored match.
 
 ## Image URLs
 

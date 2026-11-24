@@ -13,13 +13,14 @@ import SSCore
 /// | `single-goalless.context.json` | played 0–0, half time 0–0: zeros must show (`hasScore`) |
 /// | `list.context.json` | 10 programme rows, page 1/1 |
 /// | `list-23.context.json` | 23 rows, not paginated (input for pagination and overflow checks) |
+/// | `list-results.context.json` | results recap (T4.5): 10 rows over a weekend, page 1/1, one postponed |
 /// | `matches.json` | `FakeDataSet` behind `AppServices.fake()` |
 /// | `logos/` | fake opponent crests named by `Opponent.logoFile`; served as `TemplateURLs.logosPrefix` |
 public enum Fixtures {
   public static let singleNames = [
     "single", "single-long-name", "single-no-logo", "single-away", "single-no-time", "single-goalless",
   ]
-  public static let listNames = ["list", "list-23"]
+  public static let listNames = ["list", "list-23", "list-results"]
 
   /// `Resources/Fixtures/`. Throws `AppError.io` when it cannot be found.
   public static func folder() throws -> URL {
@@ -47,7 +48,7 @@ public enum Fixtures {
     try decode(SingleContext.self, from: "\(name).context.json")
   }
 
-  /// `"list"` or `"list-23"`.
+  /// `"list"`, `"list-23"` or `"list-results"`.
   public static func listContext(_ name: String = "list") throws -> ListContext {
     try decode(ListContext.self, from: "\(name).context.json")
   }
