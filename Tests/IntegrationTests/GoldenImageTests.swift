@@ -40,7 +40,9 @@ struct GoldenImageTests {
     runsOnCI
     ? "Run the \"Update goldens\" workflow on GitHub (Actions, workflow_dispatch), download the artifact and commit the PNGs into Tests/IntegrationTests/.golden/ci/."
     : "Run: UPDATE_GOLDEN=1 swift test --filter GoldenImageTests"
-  nonisolated static let templateIDs = ["post-prematch", "story-programme", "story-halftime", "story-fulltime"]
+  nonisolated static let templateIDs = [
+    "post-prematch", "story-programme", "story-halftime", "story-fulltime", "story-results",
+  ]
   static let attempts = 1
   static let agreeingRenders = 3
 

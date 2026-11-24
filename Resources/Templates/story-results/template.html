@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Story risultati</title>
+<style>
+@font-face { font-family: 'Barlow'; font-weight: 500; font-style: normal; src: url('assets/fonts/Barlow-Medium.ttf') format('truetype') }
+@font-face { font-family: 'Barlow'; font-weight: 600; font-style: normal; src: url('assets/fonts/Barlow-SemiBold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow'; font-weight: 700; font-style: normal; src: url('assets/fonts/Barlow-Bold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-style: normal; src: url('assets/fonts/BarlowCondensed-SemiBold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-style: normal; src: url('assets/fonts/BarlowCondensed-Bold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 800; font-style: normal; src: url('assets/fonts/BarlowCondensed-ExtraBold.ttf') format('truetype') }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 800; font-style: italic; src: url('assets/fonts/BarlowCondensed-ExtraBoldItalic.ttf') format('truetype') }
+body { margin: 0 }
+.outcome-win { background: {{club.accent}}; color: #FFFFFF }
+.outcome-draw { background: #D9CFCF; color: #1F1214 }
+.outcome-loss { background: #1F1214; color: #FFFFFF }
+.outcome-win::after { content: 'V' }
+.outcome-draw::after { content: 'N' }
+.outcome-loss::after { content: 'P' }
+</style>
+</head>
+<body>
+<div style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FFFFFF; font-family: 'Barlow', sans-serif; color: #1F1214">
+  <div style="position: absolute; left: 0; top: 0; width: 1080px; height: 680px; background: {{club.accent}}; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 92%)"></div>
+  <div style="position: absolute; right: -170px; top: -130px; width: 520px; height: 520px; background: rgba(255,255,255,0.10); transform: rotate(45deg)"></div>
+  <div style="position: absolute; left: 0; top: 0; width: 1080px; box-sizing: border-box; padding: 250px 60px 0; display: flex; flex-direction: column">
+    <div style="display: flex; align-items: center; gap: 24px">
+      <img src="{{club.logo}}" alt="" style="width: 124px; height: 124px; object-fit: contain">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 48px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; color: #FFFFFF">{{club.name}}</div>
+        <div style="font-weight: 600; font-size: 26px; line-height: 1; letter-spacing: 2px; text-transform: uppercase; color: #FFFFFF">Stagione {{club.season}}</div>
+      </div>
+    </div>
+    <div style="margin-top: 40px; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-style: italic; font-size: 150px; line-height: 0.9; letter-spacing: -1px; text-transform: uppercase; color: #FFFFFF; white-space: nowrap" data-fit="60">{{title}}</div>
+    <div style="margin-top: 16px; font-weight: 700; font-size: 34px; line-height: 1.1; letter-spacing: 3px; text-transform: uppercase; color: #FFFFFF">{{dateLabel}}</div>
+    <div style="margin-top: 110px; display: flex; flex-direction: column; gap: 8px">
+      {{#rows}}
+      <div style="display: flex; align-items: stretch; height: 86px; background: #FFF3F1; border-radius: 14px; overflow: hidden">
+        <div style="width: 180px; flex-shrink: 0; box-sizing: border-box; padding: 0 8px 0 24px; display: flex; align-items: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 29px; line-height: 1.05; text-transform: uppercase; overflow-wrap: break-word; color: #5A4A4C">{{category}}</div>
+        <div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px">
+          {{#home}}<div style="flex: 1 1 0; min-width: 0; font-weight: 700; font-size: 25px; line-height: 1.05; text-align: right; text-transform: uppercase; overflow-wrap: anywhere; color: {{#isUs}}{{club.accent}}{{/isUs}}{{^isUs}}#1F1214{{/isUs}}">{{displayName}}</div>{{/home}}
+          {{#home}}{{#logo}}<img src="{{logo}}" alt="" style="width: 56px; height: 56px; object-fit: contain; flex-shrink: 0">{{/logo}}{{^logo}}<div style="width: 50px; height: 50px; flex-shrink: 0; border-radius: 50%; border: 3px dashed #5A4A4C; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; color: #5A4A4C">{{initials}}</div>{{/logo}}{{/home}}
+          <div style="width: 150px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 54px; line-height: 1; color: #1F1214">{{#hasScore}}{{home.score}} – {{away.score}}{{/hasScore}}{{^hasScore}}{{#isPostponed}}<span style="font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 24px; letter-spacing: 1px; text-transform: uppercase; color: #5A4A4C">Rinviata</span>{{/isPostponed}}{{#isCancelled}}<span style="font-family: 'Barlow', sans-serif; font-weight: 700; font-size: 24px; letter-spacing: 1px; text-transform: uppercase; color: #5A4A4C">Annullata</span>{{/isCancelled}}{{^isPostponed}}{{^isCancelled}}<span style="color: #5A4A4C">–</span>{{/isCancelled}}{{/isPostponed}}{{/hasScore}}</div>
+          {{#away}}{{#logo}}<img src="{{logo}}" alt="" style="width: 56px; height: 56px; object-fit: contain; flex-shrink: 0">{{/logo}}{{^logo}}<div style="width: 50px; height: 50px; flex-shrink: 0; border-radius: 50%; border: 3px dashed #5A4A4C; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; color: #5A4A4C">{{initials}}</div>{{/logo}}{{/away}}
+          {{#away}}<div style="flex: 1 1 0; min-width: 0; font-weight: 700; font-size: 25px; line-height: 1.05; text-align: left; text-transform: uppercase; overflow-wrap: anywhere; color: {{#isUs}}{{club.accent}}{{/isUs}}{{^isUs}}#1F1214{{/isUs}}">{{displayName}}</div>{{/away}}
+        </div>
+        <div style="width: 86px; flex-shrink: 0; display: flex; align-items: center; justify-content: center">{{#outcome}}<div class="outcome outcome-{{outcome}}" style="width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 34px; line-height: 1"></div>{{/outcome}}</div>
+      </div>
+      {{/rows}}
+    </div>
+  </div>
+  <div style="position: absolute; left: 0; bottom: 28px; width: 1080px; box-sizing: border-box; padding: 0 60px; height: 90px; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 28px; color: {{club.accent}}"><div>{{club.handle}}</div>{{#hasPages}}<div style="letter-spacing: 3px; text-transform: uppercase">{{pageLabel}}</div>{{/hasPages}}</div>
+  <div style="position: absolute; left: 0; bottom: 0; width: 1080px; height: 28px; background: {{club.accent}}"></div>
+</div>
+<script>
+// Shrinks a headline that does not fit its line ("Weekend in campo" at 150px is wider than the page).
+window.__ready = document.fonts.ready.then(function () {
+  document.querySelectorAll('[data-fit]').forEach(function (el) {
+    var size = parseFloat(getComputedStyle(el).fontSize), min = parseFloat(el.getAttribute('data-fit'));
+    while (el.scrollWidth > el.clientWidth && size > min) { size -= 2; el.style.fontSize = size + 'px'; }
+  });
+});
+</script>
+</body>
+</html>
