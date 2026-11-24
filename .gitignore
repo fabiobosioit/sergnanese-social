@@ -21,3 +21,6 @@ out/
 .env
 .env.*
 !.env.example
+
+# Real federation PDFs hold club names and addresses (public repo)
+examples/*.pdf
