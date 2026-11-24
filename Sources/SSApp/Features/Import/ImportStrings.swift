@@ -42,6 +42,47 @@ enum ImportStrings {
   static let pickTeamNone = "Scegli una squadra"
   static let changeCompetition = "Competizione"
 
+  // Start panel and season run (T4.11)
+  static let scopeTitle = "Cosa leggere"
+  static let scopeWeekend = "Questo weekend"
+  static let scopeWeekendHelp = "La giornata in corso di ogni squadra, come sempre."
+  static let scopeFromCurrent = "Da oggi a fine stagione"
+  static let scopeFromCurrentHelp =
+    "Dalla giornata attuale all'ultima. Usala di regola: servono meno richieste."
+  static let scopeWhole = "Tutta la stagione"
+  static let scopeWholeHelp =
+    "Dalla giornata 1 all'ultima, risultati compresi. Usala a inizio fase o per completare l'archivio."
+  static let teamsTitle = "Squadre"
+  static let teamsNoneChosen = "Scegli almeno una squadra."
+  static let start = "Avvia"
+  static let estimateAccessibility = "Stima"
+  static func seasonReading(team: Int, of total: Int, matchday: Int, last: Int?) -> String {
+    let day = last.map { "Giornata \(matchday) di \($0)" } ?? "Giornata \(matchday)"
+    return "Squadra \(team) di \(total) · \(day)"
+  }
+  static func seasonPages(_ read: Int) -> String { read == 1 ? "1 richiesta" : "\(read) richieste" }
+  static let cancelledSeasonNote = "Lettura interrotta: sono mostrate le partite già lette."
+  static func capReached(_ limit: Int, teams: [String]) -> String {
+    "Raggiunto il limite di \(limit) richieste per esecuzione. Non lette o lette solo in parte: \(teams.joined(separator: ", "))."
+  }
+
+  // Season review
+  static let filterLabel = "Squadra"
+  static let filterAll = "Tutte le squadre"
+  static let selectAll = "Seleziona tutte"
+  static let selectNone = "Seleziona nessuna"
+  static func seasonSummary(matches: Int, matchdays: Int, teams: Int, byes: Int, unread: Int) -> String {
+    let m = matches == 1 ? "1 partita" : "\(matches) partite"
+    let d = matchdays == 1 ? "1 giornata" : "\(matchdays) giornate"
+    let t = teams == 1 ? "1 squadra" : "\(teams) squadre"
+    let b = byes == 1 ? "1 riposo" : "\(byes) riposi"
+    let u = unread == 1 ? "1 giornata non letta" : "\(unread) giornate non lette"
+    return "\(m) in \(d), \(t); \(b); \(u)"
+  }
+  static func weekendRows(_ count: Int) -> String { count == 1 ? "1 partita" : "\(count) partite" }
+  static let expandWeekend = "Mostra le partite"
+  static let collapseWeekend = "Nascondi le partite"
+
   // Progress
   static func reading(_ team: String, current: Int, total: Int) -> String {
     "Lettura di \(team)… \(current) di \(total)"
