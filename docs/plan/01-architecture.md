@@ -251,6 +251,7 @@ struct MatchContext {
   us: SideContext; opponent: SideContext // the same two, by role
   halfTime: Score?; notes: String?
   isPostponed: Bool; isCancelled: Bool
+  outcome: MatchOutcome?                 // T4.5: win / draw / loss for "us", from the final score; nil without a score
 }
 
 struct SingleContext { club: ClubContext; match: MatchContext }
@@ -264,6 +265,8 @@ struct ListContext {
   pageLabel: String                      // "1/3"
 }
 ```
+
+T4.5 recap: a manifest with `kind: list` and `purpose: fulltime` is a results recap (`TemplateManifest.isResultsRecap`); it receives every match of the weekend on one set of pages, unlike the programme, which makes one set per day. See `tasks/wave-4-t4.5.md`.
 
 Contexts are `Encodable`; the renderer turns them into the dictionary Mustache needs. Optional values that are `nil` are simply absent, so `{{#time}}`/`{{^time}}` sections work.
 

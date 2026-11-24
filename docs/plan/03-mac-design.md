@@ -66,6 +66,8 @@ Built with SwiftUI `Commands` in `SSApp/Shell`. All titles in Italian. Items are
 | | Mostra/Nascondi barra laterale | ⌃⌘S |
 | | Attiva modalità a tutto schermo | ⌃⌘F |
 | **Immagini** | Genera immagini del weekend | ⌘R |
+| | Risultato… (T4.5, on the selected match) | ⌥⌘R |
+| | Riepilogo risultati del weekend (T4.5) | |
 | | Anteprima rapida | Spazio, ⌘Y |
 | | Condividi… | |
 | | Copia immagine | ⌘C (when an image is selected) |
@@ -80,7 +82,7 @@ Menu items act on the current section through SwiftUI focused values (`@FocusedV
 ## 5. Lists, selection, editing
 
 - Matches, opponents and the archive use `Table` or `List` with **selection**: click, ⌘-click, ⇧-click, arrow keys.
-- Editing happens in an **inspector** on the trailing side (`.inspector`) for matches and opponents, so the list stays visible. Sheets are used only for creating a new item and for the template import report.
+- Editing happens in an **inspector** on the trailing side (`.inspector`) for matches and opponents, so the list stays visible. Sheets are used only for creating a new item, for the template import report, and for the quick "Risultato" form (T4.5, accepted exception 2026-11-24: scores are entered in a few seconds, then Genera intervallo / Genera finale).
 - Double-click a row opens it for editing. Return edits the selected row's primary field where that makes sense.
 - **Every row and every image has a context menu** (right-click) with the same actions as the Modifica and Immagini menus for that item.
 - ⌫ on a selection asks for confirmation (`confirmationDialog`), with the destructive button marked `.destructive` and Cancel as the Esc action. Routine saves never show an alert.

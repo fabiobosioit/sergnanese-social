@@ -12,7 +12,7 @@ From here on the user has real data on this Mac. Every task keeps working in the
 | T4.2 Tuttocampo import (matches, names, logos) | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | terms-of-use check, widget → team mapping |
 | T4.3 PDF import (federation calendar: matches, names, venues, times) | `foundation-architect` (contract), `render-engineer`, `ui-dev`, `core-dev` | opus (contract) + sonnet | sample received 2026-11-24; spring-phase sample later |
 | T4.4 Shortcuts support | `ui-dev` | sonnet | — |
-| T4.5 Results workflow | `ui-dev` | sonnet | — |
+| T4.5 Results workflow (full sheet: `wave-4-t4.5.md`) | `foundation-architect` (contract), `render-engineer`, `template-converter`, `ui-dev`, `core-dev` | opus medium (contract) + sonnet | — |
 | T4.6 Captions | `ui-dev` | sonnet | — |
 | T4.7 Developer-ID signing and in-app updates | `release-engineer` | sonnet | paid Apple Developer account |
 | T4.8 CSI Live import (matches, names, logos) through an in-app browser | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | CSI terms-of-use check, a page saved by the user, team → page mapping |
@@ -270,6 +270,7 @@ Escalation is unchanged: retry once on the same model with the reviewer's findin
 - Quick form per match: half-time score, final score, scorers → one click to generate the half-time or full-time story and open the share picker.
 - Weekly results recap template (new built-in, `kind: list`).
 - Model: sonnet. The recap template itself goes to `template-converter`.
+- **Full task sheet:** [`wave-4-t4.5.md`](wave-4-t4.5.md) (decisions, Step 1 contract: `MatchOutcome`, `TemplateManifest.isResultsRecap`, imports keep a typed score, duplicate drops scorers, recap fixture and fake; then T4.5a recap engine `render-engineer`, T4.5b recap template `template-converter`, T4.5c results UI `ui-dev`, T4.5d duplicate `core-dev`). No database migration: scorers are `Match.notes`.
 
 ## T4.6 — Captions
 
