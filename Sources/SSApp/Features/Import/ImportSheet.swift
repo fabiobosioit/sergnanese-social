@@ -75,6 +75,21 @@ struct ImportSheet: View {
   }
 
   private var review: some View {
+    VStack(spacing: 0) {
+      if let counts = model.matchCountsText {
+        Text(counts)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, 16)
+          .padding(.vertical, 8)
+        Divider()
+      }
+      reviewList
+    }
+  }
+
+  private var reviewList: some View {
     List {
       if model.wasCancelled {
         Label(ImportStrings.cancelledNote, systemImage: ImportStrings.infoSymbol)
@@ -208,14 +223,49 @@ private struct ImportRow: View {
         ForEach(model.changes(for: candidate), id: \.self) { change in
           Text(change).font(.callout).foregroundStyle(.secondary)
         }
+        if candidate.opponentMatch == .proposed, let opponent = candidate.opponent {
+          proposalLine(opponent)
+        } else if model.canChangeOpponent(candidate) {
+          Button(ImportStrings.changeOpponentAction) { isLinking = true }
+            .buttonStyle(.link)
+            .controlSize(.small)
+            .accessibilityLabel(ImportStrings.changeOpponentAccessibility(opponentName))
+        }
         if candidate.state == .needsReview { reviewSection }
         if candidate.isVenueMissing && isTickable { venueField }
         if isTickable, let opponent = candidate.opponent, opponent.logoFile != nil { logoToggle(opponent) }
       }
     }
     .padding(.vertical, 2)
+    .popover(isPresented: $isLinking, arrowEdge: .bottom) {
+      OpponentLinkPicker(candidate: candidate, model: model) { isLinking = false }
+    }
     .contextMenu { contextMenu }
     .accessibilityElement(children: .contain)
+  }
+
+  /// "Proposto" tag (symbol and colour, read as "Abbinamento proposto"), the sentence and the two buttons.
+  private func proposalLine(_ opponent: Opponent) -> some View {
+    HStack(spacing: 8) {
+      Label(ImportStrings.proposedTag, systemImage: ImportStrings.proposedSymbol)
+        .font(.caption.weight(.medium))
+        .foregroundStyle(.indigo)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2)
+        .background(Color.indigo.opacity(0.15), in: Capsule())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(ImportStrings.proposedAccessibility)
+      Text(ImportStrings.proposedLine(opponent.name))
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .lineLimit(2)
+        .fixedSize(horizontal: false, vertical: true)
+      Spacer()
+      Button(ImportStrings.confirm) { model.confirm(candidate) }
+        .help(ImportStrings.confirmHelp)
+      Button(ImportStrings.change) { isLinking = true }
+    }
+    .controlSize(.small)
   }
 
   private var tickHelp: String {
@@ -240,9 +290,6 @@ private struct ImportRow: View {
           Button(ImportStrings.createOpponent) { model.createOpponent(for: candidate) }
         }
         Button(ImportStrings.linkOpponent) { isLinking = true }
-          .popover(isPresented: $isLinking, arrowEdge: .bottom) {
-            OpponentLinkPicker(candidate: candidate, model: model) { isLinking = false }
-          }
       }
       .controlSize(.small)
     }
@@ -282,6 +329,12 @@ private struct ImportRow: View {
       candidate.reviewReasons.contains(where: { $0 == .opponentNotFound || $0 == .opponentAmbiguous })
     {
       Button(ImportStrings.linkOpponent) { isLinking = true }
+    }
+    if candidate.opponentMatch == .proposed {
+      Button(ImportStrings.confirm) { model.confirm(candidate) }
+    }
+    if model.canChangeOpponent(candidate) {
+      Button(ImportStrings.changeOpponentAction) { isLinking = true }
     }
   }
 }
@@ -324,7 +377,8 @@ private struct StateBadge: View {
   }
 }
 
-/// "Collega a esistente…": a searchable list of opponents in a popover.
+/// "Collega a esistente…" and "Cambia avversario…": a searchable list of opponents in a popover. Without a search
+/// the proposals come first, then every other opponent; "Crea nuovo" is always at the bottom.
 private struct OpponentLinkPicker: View {
   let candidate: ImportCandidate
   let model: ImportModel
@@ -333,31 +387,53 @@ private struct OpponentLinkPicker: View {
   @ViewState private var query = ""
 
   var body: some View {
-    let choices = model.linkChoices(matching: query)
+    let content = model.pickerContent(for: candidate, matching: query)
     VStack(alignment: .leading, spacing: 8) {
       Text(ImportStrings.linkTitle(candidate.fixture.opponentName)).font(.headline)
-      Text(model.linkMessage).font(.callout).foregroundStyle(.secondary)
+      Text(candidate.opponent == nil ? model.linkMessage : ImportStrings.changeMessage)
+        .font(.callout).foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
       TextField(ImportStrings.linkSearch, text: $query, prompt: Text(ImportStrings.linkSearch))
         .textFieldStyle(.roundedBorder)
       List {
-        ForEach(choices) { opponent in
-          Button {
-            model.link(candidate, to: opponent)
-            onDone()
-          } label: {
-            Text(opponent.name).frame(maxWidth: .infinity, alignment: .leading)
-          }
-          .buttonStyle(.plain)
-          .accessibilityLabel("\(ImportStrings.linkChoose) \(opponent.name)")
+        if content.proposed.isEmpty {
+          ForEach(content.others) { choice($0) }
+        } else {
+          Section(ImportStrings.pickerProposed) { ForEach(content.proposed) { choice($0) } }
+          Section(ImportStrings.pickerAll) { ForEach(content.others) { choice($0) } }
         }
       }
-      .frame(height: 200)
+      .frame(height: 220)
       .overlay {
-        if choices.isEmpty { Text(ImportStrings.linkNoResults).foregroundStyle(.secondary) }
+        if content.isEmpty { Text(ImportStrings.linkNoResults).foregroundStyle(.secondary) }
+      }
+      if model.canCreateOpponent(candidate) {
+        Button(ImportStrings.pickerCreate(candidate.fixture.opponentName)) {
+          model.createOpponent(for: candidate)
+          onDone()
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
       }
     }
     .padding(14)
-    .frame(width: 340)
+    .frame(width: 360)
+  }
+
+  private func choice(_ opponent: Opponent) -> some View {
+    Button {
+      model.choose(opponent, for: candidate)
+      onDone()
+    } label: {
+      HStack {
+        Text(opponent.name)
+        Spacer()
+        if opponent.id == candidate.opponent?.id {
+          Image(systemName: "checkmark").foregroundStyle(.secondary).accessibilityHidden(true)
+        }
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("\(ImportStrings.linkChoose) \(opponent.name)")
   }
 }

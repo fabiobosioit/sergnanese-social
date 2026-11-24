@@ -3,6 +3,8 @@ import SSCore
 import SSImport
 import Testing
 
+@testable import SSApp
+
 private func fixturePDF(_ name: String) throws -> Data {
   let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
     .appendingPathComponent("Fixtures/pdf/\(name).pdf")
@@ -116,5 +118,66 @@ struct PDFImportTests {
     #expect(sunday.match.date == (try DayDate("2026-11-08")))
     #expect(sunday.match.time == (try ClockTime("09:30")))
     #expect(sunday.match.source == .pdf)
+  }
+
+  /// T4.10: opponents already stored under other spellings, through the real `ImportModel` on the real database.
+  /// The review links the exact one, proposes the close one, finds nothing for the rest; after "Importa" every row is
+  /// exact.
+  @Test func storedOpponentsSpelledDifferentlyAreExactProposedOrNone() async throws {
+    let env = try Env()
+    let main = settings(short: "SERGNANESE")
+    try env.database.settings.save(main)
+    let team = try env.database.teams.create(
+      TeamDraft(name: "Esordienti femminile", shortLabel: "Femm", isFirstTeam: true))
+    let tre = try env.database.opponents.create(OpponentDraft(name: "U.S. Esempio Tre 1970 S.r.l."))
+    let quattro = try env.database.opponents.create(OpponentDraft(name: "Esempio Quattro 1911 Milano"))
+    let parser = FederationPDFParser()
+    let calendar = try parser.parse(pdf: try fixturePDF("calendar-sample"), settings: main)
+    let services = AppServices(
+      teams: env.database.teams, opponents: env.database.opponents, matches: env.database.matches,
+      settings: env.database.settings, renders: env.database.renders, logos: env.logos, templates: env.templates,
+      renderer: env.renderer, demoData: env.loader, paths: env.paths,
+      sourceTeamLists: env.database.sourceTeamLists, pdfCalendarParser: parser)
+    func stagedModel() -> ImportModel {
+      let model = ImportModel(
+        services: services, source: .pdf(team: team, calendar: calendar, fileName: "calendario.pdf"),
+        today: { try! DayDate("2026-01-01") })
+      model.stagePDF()
+      return model
+    }
+    func row(_ model: ImportModel, _ name: String) throws -> ImportCandidate {
+      try #require(model.candidates.first { $0.fixture.opponentName == name })
+    }
+
+    let model = stagedModel()
+    #expect(model.phase == .review)
+    let exact = try row(model, "ESEMPIO TRE 1970")
+    #expect(exact.opponentMatch == .exact)
+    #expect(exact.opponent?.id == tre.id)
+    let proposed = try row(model, "ESEMPIO QUATTRO 1911")
+    #expect(proposed.opponentMatch == .proposed)
+    #expect(proposed.opponent?.id == quattro.id)
+    #expect(proposed.reviewReasons.isEmpty)
+    let others = model.candidates.filter { ![.exact, .proposed].contains($0.opponentMatch) }
+    #expect(others.count == 6)
+    #expect(others.allSatisfy { [.notFound, .ambiguous].contains($0.opponentMatch) && $0.draft == nil })
+    #expect(model.matchCounts == ImportModel.MatchCounts(matched: 1, proposed: 1, toLink: 6))
+    #expect(try env.database.opponents.list().count == 2)  // reviewing wrote nothing
+
+    // The user creates the others, accepts the proposal by importing, and Importa saves the names.
+    for other in others { model.createOpponent(for: other) }
+    #expect(model.candidates.allSatisfy { $0.state == .new })
+    await model.commit()
+    #expect(model.phase == .done)
+    #expect(model.summary == ImportSummary(inserted: 8, updated: 0, skippedLocked: 0))
+    let storedQuattro = try env.database.opponents.get(id: quattro.id)
+    #expect(storedQuattro.name == "Esempio Quattro 1911 Milano")
+    #expect(storedQuattro.aliases.contains("ESEMPIO QUATTRO 1911"))
+    #expect(try env.database.opponents.get(id: tre.id).name == "U.S. Esempio Tre 1970 S.r.l.")
+    #expect(try env.database.opponents.list().count == 8)
+
+    // The same file again: every row is exact and unchanged.
+    let again = stagedModel()
+    #expect(again.candidates.allSatisfy { $0.opponentMatch == .exact && $0.state == .unchanged })
   }
 }

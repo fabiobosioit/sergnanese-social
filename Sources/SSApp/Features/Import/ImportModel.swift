@@ -450,17 +450,98 @@ final class ImportModel {
     (try? services.opponents.search(query)) ?? []
   }
 
+  /// What the opponent picker lists. With an empty search: "Proposti" (the candidate's proposals, best first)
+  /// then "Tutti gli avversari" (every other stored opponent, alphabetical). With a search: one flat list of
+  /// the opponents that match it (`proposed` empty).
+  struct PickerContent: Equatable {
+    var proposed: [Opponent]
+    var others: [Opponent]
+    var isEmpty: Bool { proposed.isEmpty && others.isEmpty }
+  }
+
+  func pickerContent(for candidate: ImportCandidate, matching query: String) -> PickerContent {
+    if !query.trimmingCharacters(in: .whitespaces).isEmpty {
+      return PickerContent(proposed: [], others: linkChoices(matching: query))
+    }
+    let all = (try? services.opponents.list()) ?? opponents
+    var seen: Set<EntityID> = []
+    let proposed = candidate.proposals.map(\.opponent.id).compactMap { id in
+      seen.insert(id).inserted ? all.first { $0.id == id } : nil
+    }
+    let others = all.filter { !seen.contains($0.id) }
+      .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    return PickerContent(proposed: proposed, others: others)
+  }
+
+  /// A choice in the picker. A row without an opponent is linked at once (the name is saved as an alias, as
+  /// "Collega a esistente…" always did); a row that has one is only rebuilt, and its names are saved on "Importa".
+  func choose(_ opponent: Opponent, for candidate: ImportCandidate) {
+    if candidate.opponent == nil {
+      link(candidate, to: opponent)
+    } else {
+      rebuild(candidate, linkedTo: opponent.id, keepingTick: true)
+    }
+  }
+
+  /// "Conferma": the proposed opponent becomes a user's link; the draft and the tick stay as they are. No write.
+  func confirm(_ candidate: ImportCandidate) {
+    guard candidate.opponentMatch == .proposed, let opponent = candidate.opponent else { return }
+    rebuild(candidate, linkedTo: opponent.id, keepingTick: true)
+  }
+
+  /// "Crea nuovo «…»" in the picker is for rows without an opponent: creating writes at once, and nothing may be
+  /// written before "Importa" for a row that already has one.
+  func canCreateOpponent(_ candidate: ImportCandidate) -> Bool { candidate.opponent == nil }
+
+  /// "Cambia avversario…" is offered on every row that has an opponent, except a locked match (never written).
+  func canChangeOpponent(_ candidate: ImportCandidate) -> Bool {
+    candidate.opponent != nil && candidate.state != .locked
+  }
+
+  /// Rows that are not locked, by how their opponent was found.
+  struct MatchCounts: Equatable {
+    /// `.exact` and `.linked`.
+    var matched = 0
+    var proposed = 0
+    /// `.notFound` and `.ambiguous`.
+    var toLink = 0
+  }
+
+  var matchCounts: MatchCounts {
+    var counts = MatchCounts()
+    for candidate in candidates where candidate.state != .locked {
+      switch candidate.opponentMatch {
+      case .exact, .linked: counts.matched += 1
+      case .proposed: counts.proposed += 1
+      case .notFound, .ambiguous: counts.toLink += 1
+      }
+    }
+    return counts
+  }
+
+  var matchCountsText: String? {
+    let counts = matchCounts
+    guard counts.matched + counts.proposed + counts.toLink > 0 else { return nil }
+    return ImportStrings.matchCounts(matched: counts.matched, proposed: counts.proposed, toLink: counts.toLink)
+  }
+
   /// Rebuilds the candidate after the opponent was created or linked, and shows its new state. A row
   /// that is now new or changed is ticked.
-  private func rebuild(_ candidate: ImportCandidate, linkedTo opponentID: EntityID) {
+  private func rebuild(_ candidate: ImportCandidate, linkedTo opponentID: EntityID, keepingTick: Bool = false) {
     guard let settings, let index = candidates.firstIndex(where: { $0.id == candidate.id }) else { return }
+    let wasTickable = Self.isTickable(candidates[index])
+    let wasTicked = ticked.contains(candidate.id)
     opponents = (try? services.opponents.list()) ?? opponents
     let rebuilt = ImportCandidate.make(
       fixture: candidate.fixture, team: candidate.team, opponents: opponents,
       existingMatches: candidate.existing.map { [$0] } ?? [], homeVenue: settings.homeVenue,
       linkedOpponentID: opponentID, source: matchSource)
     candidates[index] = rebuilt
-    if Self.isTickable(rebuilt) { ticked.insert(rebuilt.id) } else { ticked.remove(rebuilt.id) }
+    if !Self.isTickable(rebuilt) {
+      ticked.remove(rebuilt.id)
+    } else if !(keepingTick && wasTickable && !wasTicked) {
+      ticked.insert(rebuilt.id)
+    }
   }
 
   // MARK: Changes of an existing match
@@ -510,6 +591,7 @@ final class ImportModel {
       return draft.normalized()
     }
     do {
+      try saveImportNames(of: chosen)
       summary = try services.matches.upsertFromImport(drafts)
     } catch {
       present(error, fallback: ImportStrings.importFailed)
@@ -520,6 +602,25 @@ final class ImportModel {
     await downloadLogos(for: chosen)
     onDataChanged()
     phase = .done
+  }
+
+  /// T4.10: the fixture's names become aliases of the opponent of every ticked row that came from an exact match,
+  /// a proposal or a link, so the next import of the same source is exact. Read fresh from the repository, so two
+  /// rows of one opponent add up. An opponent is never renamed; nothing is written when the draft is unchanged.
+  private func saveImportNames(of chosen: [ImportCandidate]) throws {
+    var changed = false
+    for candidate in chosen {
+      guard let opponent = candidate.opponent, [.exact, .proposed, .linked].contains(candidate.opponentMatch) else {
+        continue
+      }
+      let current = try services.opponents.get(id: opponent.id)
+      let draft = current.draftAddingImportNames(of: candidate.fixture)
+      if draft != OpponentDraft(current) {
+        _ = try services.opponents.update(id: current.id, with: draft)
+        changed = true
+      }
+    }
+    if changed { opponents = (try? services.opponents.list()) ?? opponents }
   }
 
   /// The opponents that need a logo, with the fixture that names them. Opponents of the rows that were
