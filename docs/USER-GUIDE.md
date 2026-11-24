@@ -122,6 +122,10 @@ breve, e lascia spuntato **Attiva** per usarla nelle nuove partite. Per cambiare
 **Sposta su** e **Sposta giù**. La **Prima squadra** è sempre una sola: sceglierne un'altra con
 **Imposta come prima squadra** sposta il marcatore.
 
+### Avversari abbinati e proposti
+
+Quando importi un calendario, l'app cerca di collegare ogni avversario a quelli già salvati. Il confronto ignora le sigle come S.p.A. e A.S.D., le maiuscole, gli accenti e la punteggiatura: se il nome corrisponde, la riga è già collegata e non devi fare nulla. Se c'è un solo avversario simile, la riga è contrassegnata con **Proposto** e il nome è già compilato: premi **Conferma** se è giusto, oppure **Cambia…** per sceglierne un altro. Se gli avversari simili sono più d'uno, non viene compilato nulla e questi sono elencati per primi nel selettore, così puoi scegliere quello giusto. Ogni riga ha il pulsante **Cambia avversario…**. Nulla viene salvato finché non premi **Importa**; al momento dell'importazione il nome importato viene salvato come alias dell'avversario, così la volta successiva l'abbinamento è esatto.
+
 ## Template
 
 I modelli sono nella sezione **Template**. L'app ne include quattro già pronti (Post pre-partita, Story del
