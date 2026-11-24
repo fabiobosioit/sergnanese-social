@@ -12,6 +12,22 @@ public struct FakeFixtureSource: FixtureSource {
     case failure(FixtureFetchError)
   }
 
+  /// A canned season for one widget (T4.11): the default page is `pages[currentMatchday]` with `matchdayCount` in
+  /// its head; every other page answers `pages[n]`, or `FixtureFetchError.httpStatus(404)` when absent. A
+  /// `.fetch(.sourceProblem(.noFixturesOfOurs))` page is a bye.
+  public struct Season: Sendable, Equatable {
+    public var currentMatchday: Int
+    /// `matchesNumber`; `nil` = the head has none (`readSeason` then probes for the end).
+    public var matchdayCount: Int?
+    public var pages: [Int: Response]
+
+    public init(currentMatchday: Int, matchdayCount: Int?, pages: [Int: Response]) {
+      self.currentMatchday = currentMatchday
+      self.matchdayCount = matchdayCount
+      self.pages = pages
+    }
+  }
+
   /// The canned answer for one Classifica widget (T4.9).
   public enum LeagueResponse: Sendable, Equatable {
     case fetch(LeagueTeamsFetch)
@@ -23,6 +39,10 @@ public struct FakeFixtureSource: FixtureSource {
   /// Classifica answers, keyed by widget id in lower case. An id with no entry throws
   /// `FixtureFetchError.httpStatus(404)`. The teams returned get the asking team's id and `.tuttocampo`.
   public var leagueResponses: [String: LeagueResponse]
+  /// Seasons (T4.11), keyed by widget id in lower case. A widget with no season but a `responses` entry gets a
+  /// one-matchday season made of it (matchday 1 of 1), so a run over every team gives each team's weekend outcome.
+  /// A widget with neither throws `FixtureFetchError.httpStatus(404)`.
+  public var seasons: [String: Season]
   public var logos: any LogoStore
   /// The bytes stored for every logo download that succeeds.
   public var logoData: Data
@@ -37,10 +57,11 @@ public struct FakeFixtureSource: FixtureSource {
   public init(
     responses: [String: Response] = [:], logos: any LogoStore, logoData: Data = FakeFixtureSource.defaultLogoData,
     fallbackClubIDs: Set<String> = [], failingClubIDs: Set<String> = [], delay: Duration = .zero,
-    leagueResponses: [String: LeagueResponse] = [:]
+    leagueResponses: [String: LeagueResponse] = [:], seasons: [String: Season] = [:]
   ) {
     self.responses = Dictionary(responses.map { ($0.key.lowercased(), $0.value) }) { _, last in last }
     self.leagueResponses = Dictionary(leagueResponses.map { ($0.key.lowercased(), $0.value) }) { _, last in last }
+    self.seasons = Dictionary(seasons.map { ($0.key.lowercased(), $0.value) }) { _, last in last }
     self.logos = logos
     self.logoData = logoData
     self.fallbackClubIDs = fallbackClubIDs
@@ -70,6 +91,36 @@ public struct FakeFixtureSource: FixtureSource {
     case .failure(let error): throw error
     case nil: throw FixtureFetchError.httpStatus(404)
     }
+  }
+
+  /// Runs `readSeason` over the widget's `Season`, with `delay` before each page. A pause cancelled during a page
+  /// counts as cancellation (the page is not read).
+  public func fetchSeason(
+    for team: Team, settings: ClubSettings, scope: SeasonScope, onProgress: @Sendable (SeasonProgress) async -> Void
+  ) async throws -> SeasonFetch {
+    guard let widgetID = team.tuttocampoWidgetID?.lowercased() else { throw FixtureFetchError.missingWidgetID }
+    let season: Season
+    if let stored = seasons[widgetID] {
+      season = stored
+    } else if let weekend = responses[widgetID] {
+      season = Season(currentMatchday: 1, matchdayCount: 1, pages: [1: weekend])
+    } else {
+      throw FixtureFetchError.httpStatus(404)
+    }
+    let delay = delay
+    return try await readSeason(
+      scope: scope,
+      readPage: { requested in
+        if delay > .zero { try await Task.sleep(for: delay) }
+        try Task.checkCancellation()
+        let matchday = requested ?? season.currentMatchday
+        switch season.pages[matchday] {
+        case .fetch(let outcome):
+          return SeasonPage(matchday: matchday, matchdayCount: season.matchdayCount, outcome: outcome)
+        case .failure(let error): throw error
+        case nil: throw FixtureFetchError.httpStatus(404)
+        }
+      }, onProgress: onProgress)
   }
 
   public func downloadLogos(_ requests: [LogoRequest]) async -> [LogoResult] {
@@ -158,6 +209,10 @@ public struct FakeFixtureSource: FixtureSource {
   ///
   /// Veterani has no widget id.
   ///
+  /// Season (T4.11, `fetchSeason`): widget 9 (Primi Calci) has `scenarioSeason(referenceSaturday:)`; every other
+  /// widget answers a one-matchday season made of its weekend answer (Giovanissimi U14 not yet available,
+  /// Giovanissimi U15 a problem on the default page, Esordienti throws `.network`).
+  ///
   /// Classifica answers (T4.9, `fetchLeagueTeams`), with `FakePageFixtureParser.scenarioTeams` stored for
   /// Pulcini's CSI page (`AppServices.fake` saves it):
   ///
@@ -245,6 +300,62 @@ public struct FakeFixtureSource: FixtureSource {
     return FakeFixtureSource(
       responses: Dictionary(uniqueKeysWithValues: answers.map { (scenarioWidgetID($0.key), $0.value) }), logos: logos,
       fallbackClubIDs: [scenarioFallbackClubID], delay: delay,
-      leagueResponses: Dictionary(uniqueKeysWithValues: leagues.map { (scenarioWidgetID($0.key), $0.value) }))
+      leagueResponses: Dictionary(uniqueKeysWithValues: leagues.map { (scenarioWidgetID($0.key), $0.value) }),
+      seasons: [scenarioWidgetID(9): scenarioSeason(referenceSaturday: referenceSaturday)])
+  }
+
+  /// The 10-matchday season of Primi Calci (widget 9) around `referenceSaturday`: matchday `n` is on the Sunday
+  /// `7 × (n − 5)` days from that weekend's, the current matchday is 5. Pages give no round, so `readSeason` fills
+  /// it. Against `Resources/Fixtures/matches.json` (shifted), with candidate states:
+  ///
+  /// | Matchday | Page | Candidate / report |
+  /// |---|---|---|
+  /// | 1 | played 2–0, home, Novaria Bassa, 11:00 | `.new` (past) |
+  /// | 2 | played 1–1, away, Real Cascina Alta, 10:00 | `.new` (past), away venue missing |
+  /// | 3 | timeout | `.seasonMatchdayFailed(…, .timeout)` |
+  /// | 4 | played 3–2, away, Sporting Ripalta Nuova, 10:30 | `.new` (past), away venue missing |
+  /// | 5 (current) | home, Atletico Montesello, 11:30 (the weekend answer) | `.locked` |
+  /// | 6 | away, Prato Fiorito, 10:00 | `.changed` (the stored match gets round 6) |
+  /// | 7 | no row of ours | `.seasonBye` |
+  /// | 8 | home, Oratorio Santa Lucia, 11:00 | `.new` |
+  /// | 9 | away, "Polisportiva Nuova Aurora", 10:30 | `.needsReview` (opponent not found) |
+  /// | 10 | home, Unione Calcio Brolo Verde, no time | `.new`, without time |
+  ///
+  /// `.wholeSeason` requests 10 pages (5, then 1–4 and 6–10); `.fromCurrentMatchday` 6 (5–10), with only the bye.
+  public static func scenarioSeason(referenceSaturday: DayDate) -> Season {
+    let sunday = referenceSaturday.adding(days: 1)
+    func fixture(
+      _ matchday: Int, _ clock: ClockTime?, home: Bool, _ name: String, club: String, score: Score? = nil
+    ) -> Response {
+      let played = score != nil
+      return .fetch(
+        .fixtures([
+          FetchedFixture(
+            date: sunday.adding(days: 7 * (matchday - 5)), time: clock, isHome: home, opponentName: name,
+            opponentClubID: club,
+            opponentLogoURL: URL(string: "https://b2-content.tuttocampo.it/Teams/40/\(club).png?v=1"),
+            score: score, status: played ? .played : .scheduled,
+            statusText: played ? "Partita terminata" : "Partita da giocare")
+        ]))
+    }
+    return Season(
+      currentMatchday: 5, matchdayCount: 10,
+      pages: [
+        1: fixture(
+          1, ClockTime(hour: 11, minute: 0), home: true, "Novaria Bassa", club: "900204", score: Score(us: 2, them: 0)),
+        2: fixture(
+          2, ClockTime(hour: 10, minute: 0), home: false, "Real Cascina Alta", club: "900221",
+          score: Score(us: 1, them: 1)),
+        3: .failure(.timeout),
+        4: fixture(
+          4, ClockTime(hour: 10, minute: 30), home: false, "Sporting Ripalta Nuova", club: "900222",
+          score: Score(us: 3, them: 2)),
+        5: fixture(5, ClockTime(hour: 11, minute: 30), home: true, "Atletico Montesello", club: scenarioFallbackClubID),
+        6: fixture(6, ClockTime(hour: 10, minute: 0), home: false, "Prato Fiorito", club: "900208"),
+        7: .fetch(.sourceProblem(.noFixturesOfOurs)),
+        8: fixture(8, ClockTime(hour: 11, minute: 0), home: true, "Oratorio Santa Lucia", club: "900223"),
+        9: fixture(9, ClockTime(hour: 10, minute: 30), home: false, "Polisportiva Nuova Aurora", club: "900224"),
+        10: fixture(10, nil, home: true, "Unione Calcio Brolo Verde", club: "900225"),
+      ])
   }
 }
