@@ -1,0 +1,72 @@
+{
+  "category": "ESORDIENTI MISTE FEMM. AUT.",
+  "phase": "FASE AUTUNNALE - GIRONE B",
+  "girone": "GIRONE B",
+  "matchdays": [
+    { "number": 1, "date": "2026-10-03", "matches": [
+      { "home": "WOMEN ESEMPIO", "away": "ESEMPIO DUE" },
+      { "home": "ESEMPIO TRE 1970", "away": "SERGNANESE" },
+      { "home": "S. ESEMPIO CALCIO", "away": "ESEMPIO QUATTRO 1911" },
+      { "home": "REAL ESEMPIO CF Sq.B", "away": "ESEMPIO SEI" }
+    ], "rest": "ESEMPIO UNO" },
+    { "number": 2, "date": "2026-10-10", "matches": [
+      { "home": "WOMEN ESEMPIO", "away": "ESEMPIO UNO" },
+      { "home": "S. ESEMPIO CALCIO", "away": "ESEMPIO DUE" },
+      { "home": "ESEMPIO TRE 1970", "away": "ESEMPIO SEI" },
+      { "home": "REAL ESEMPIO CF Sq.B", "away": "ESEMPIO QUATTRO 1911" }
+    ], "rest": "SERGNANESE" },
+    { "number": 3, "date": "2026-10-17", "matches": [
+      { "home": "ESEMPIO UNO", "away": "SERGNANESE" },
+      { "home": "S. ESEMPIO CALCIO", "away": "WOMEN ESEMPIO" },
+      { "home": "REAL ESEMPIO CF Sq.B", "away": "ESEMPIO DUE" },
+      { "home": "ESEMPIO TRE 1970", "away": "ESEMPIO QUATTRO 1911" }
+    ], "rest": "ESEMPIO SEI" },
+    { "number": 4, "date": "2026-10-24", "matches": [
+      { "home": "S. ESEMPIO CALCIO", "away": "ESEMPIO UNO" },
+      { "home": "SERGNANESE", "away": "ESEMPIO SEI" },
+      { "home": "REAL ESEMPIO CF Sq.B", "away": "WOMEN ESEMPIO" },
+      { "home": "ESEMPIO TRE 1970", "away": "ESEMPIO DUE" }
+    ], "rest": "ESEMPIO QUATTRO 1911" },
+    { "number": 5, "date": "2026-10-31", "matches": [
+      { "home": "ESEMPIO UNO", "away": "ESEMPIO SEI" },
+      { "home": "REAL ESEMPIO CF Sq.B", "away": "S. ESEMPIO CALCIO" },
+      { "home": "SERGNANESE", "away": "ESEMPIO QUATTRO 1911" },
+      { "home": "ESEMPIO TRE 1970", "away": "WOMEN ESEMPIO" }
+    ], "rest": "ESEMPIO DUE" },
+    { "number": 6, "date": "2026-11-07", "matches": [
+      { "home": "REAL ESEMPIO CF Sq.B", "away": "ESEMPIO UNO" },
+      { "home": "ESEMPIO SEI", "away": "ESEMPIO QUATTRO 1911" },
+      { "home": "ESEMPIO TRE 1970", "away": "S. ESEMPIO CALCIO" },
+      { "home": "SERGNANESE", "away": "ESEMPIO DUE" }
+    ], "rest": "WOMEN ESEMPIO" },
+    { "number": 7, "date": "2026-11-14", "matches": [
+      { "home": "ESEMPIO UNO", "away": "ESEMPIO QUATTRO 1911" },
+      { "home": "ESEMPIO TRE 1970", "away": "REAL ESEMPIO CF Sq.B" },
+      { "home": "ESEMPIO SEI", "away": "ESEMPIO DUE" },
+      { "home": "SERGNANESE", "away": "WOMEN ESEMPIO" }
+    ], "rest": "S. ESEMPIO CALCIO" },
+    { "number": 8, "date": "2026-11-21", "matches": [
+      { "home": "ESEMPIO TRE 1970", "away": "ESEMPIO UNO" },
+      { "home": "ESEMPIO QUATTRO 1911", "away": "ESEMPIO DUE" },
+      { "home": "ESEMPIO SEI", "away": "WOMEN ESEMPIO" },
+      { "home": "SERGNANESE", "away": "S. ESEMPIO CALCIO" }
+    ], "rest": "REAL ESEMPIO CF Sq.B" },
+    { "number": 9, "date": "2026-11-28", "matches": [
+      { "home": "ESEMPIO UNO", "away": "ESEMPIO DUE" },
+      { "home": "ESEMPIO QUATTRO 1911", "away": "WOMEN ESEMPIO" },
+      { "home": "SERGNANESE", "away": "REAL ESEMPIO CF Sq.B" },
+      { "home": "ESEMPIO SEI", "away": "S. ESEMPIO CALCIO" }
+    ], "rest": "ESEMPIO TRE 1970" }
+  ],
+  "clubs": [
+    { "short": "ESEMPIO UNO", "long": "ESEMPIO UNO MILANO SSD A RL", "number": 5301, "ground": "CAMPO \"ESEMPIO UNO\" - CITTAUNO", "address": "VIA ESEMPIO, 1", "time": "16.00", "day": "Sabato" },
+    { "short": "ESEMPIO DUE", "long": "ESEMPIO DUE S.P.A.", "number": 4112, "ground": "C.S. ORATORIO \"S.ESEMPIO\" - CITTADUE", "address": "VIA ESEMPIO, 2", "time": "15.00", "day": "Sabato" },
+    { "short": "ESEMPIO TRE 1970", "long": "ESEMPIO TRE 1970", "number": 733, "ground": "STADIO COMUNALE\"E.TRE\"(E.A) - CITTATRE", "address": "VIA ESEMPIO N.3", "time": "14.30", "day": "Sabato" },
+    { "short": "ESEMPIO QUATTRO 1911", "long": "ESEMPIO QUATTRO 1911", "number": 3958, "ground": "C.S.ARENA ESEMPIO CAMPO N.2 - CITTAQUATTRO", "address": "VIA ESEMPIO, 4", "time": "16.00", "day": "Sabato" },
+    { "short": "REAL ESEMPIO CF Sq.B", "long": "REAL ESEMPIO CF sq.B", "number": 2467, "ground": "C.S.\"CITTA'DI ESEMPIO\"N.2 - CITTACINQUE", "address": "VIA ESEMPIO,5/7", "time": "9.30", "day": "Sabato" },
+    { "short": "ESEMPIO SEI", "long": "ESEMPIO SEI A R.L.", "number": 1620, "ground": "C.S.COMUNALE CAMPO 2 E.A. - CITTASEI FRAZ. ESEMPIO", "address": "VIA ESEMPIO SEI", "time": "9.30", "day": "Domenica" },
+    { "short": "S. ESEMPIO CALCIO", "long": "SAN ESEMPIO CALCIO", "number": 3071, "ground": "CAMPO ORATORIO SAN ESEMPIO - CITTASETTE", "address": "P.ZA ESEMPIO", "time": "17.00", "day": "Sabato" },
+    { "short": "SERGNANESE", "long": "SERGNANESE A.S.D.", "number": 905, "ground": "C.S.COMUNALE N.1 - CITTAOTTO - CITTAOTTO", "address": "VIA ESEMPIO OTTO 8", "time": "15.30", "day": "Sabato" },
+    { "short": "WOMEN ESEMPIO", "long": "WOMEN ESEMPIO", "number": 2288, "ground": "C.S.COMUNALE \"E.NOVE\" - CITTANOVE LOC.ESEMPIO", "address": "VIA ESEMPIO NOVE", "time": "11.30", "day": "Sabato" }
+  ]
+}
