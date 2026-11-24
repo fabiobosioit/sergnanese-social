@@ -39,6 +39,15 @@ public struct TuttocampoWidgetSource: FixtureSource {
       season: settings.season)
   }
 
+  public func fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> LeagueTeamsFetch {
+    guard let widgetID = team.tuttocampoWidgetID, isValidTuttocampoWidgetID(widgetID),
+      let url = URL(string: "https://www.tuttocampo.it/WidgetV2/Classifica/\(widgetID)")
+    else { throw FixtureFetchError.missingWidgetID }
+    let data = try await client.page(url)
+    return parseClassifica(
+      html: String(decoding: data, as: UTF8.self), pageURL: url, team: team, clubShortName: settings.clubShortName)
+  }
+
   public func downloadLogos(_ requests: [LogoRequest]) async -> [LogoResult] {
     // One download per distinct, valid ClubId; the first request with a ClubId supplies the fallback.
     var order: [String] = []
