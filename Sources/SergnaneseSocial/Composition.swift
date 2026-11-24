@@ -92,6 +92,32 @@ struct LoggingFixtureSource: FixtureSource {
     }
   }
 
+  /// Forwarded to the base source (the protocol default would report "non disponibile"). One line per page read,
+  /// then the outcome in counts. Never HTML, never an address or widget id. A cancelled run returns what it read,
+  /// so the outcome line says "stopped" when the task is cancelled.
+  func fetchSeason(
+    for team: Team, settings: ClubSettings, scope: SeasonScope, onProgress: @Sendable (SeasonProgress) async -> Void
+  ) async throws -> SeasonFetch {
+    do {
+      let fetch = try await base.fetchSeason(
+        for: team, settings: settings, scope: scope,
+        onProgress: { progress in
+          Log.imports.info(
+            "Season \(team.name, privacy: .public): matchday \(progress.matchday, privacy: .public), page \(progress.pagesRead, privacy: .public)"
+          )
+          await onProgress(progress)
+        })
+      let stopped = fetch.stoppedAfter.map { String($0) } ?? "none"
+      Log.imports.info(
+        "Season \(team.name, privacy: .public): \(fetch.fixtures.count, privacy: .public) fixture(s), \(fetch.byes.count, privacy: .public) bye(s), \(fetch.failedMatchdays.count, privacy: .public) failed, stopped after \(stopped, privacy: .public), \(fetch.pagesRead, privacy: .public) page(s)\(Task.isCancelled ? ", cancelled" : "", privacy: .public)"
+      )
+      return fetch
+    } catch {
+      Log.imports.error("Season \(team.name, privacy: .public): failed, \(String(describing: error), privacy: .public)")
+      throw error
+    }
+  }
+
   func downloadLogos(_ requests: [LogoRequest]) async -> [LogoResult] {
     let results = await base.downloadLogos(requests)
     let stored = results.filter { $0.fileName != nil }.count
