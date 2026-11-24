@@ -15,12 +15,31 @@ import SwiftSoup
 ///   - season: `ClubSettings.season` ("2026/27"); gives the year of dates, which the widget writes
 ///     without one (August to December = first year, January to July = second).
 func parseResults(html: String, pageURL: URL, clubShortName: String, season: String) -> FixtureFetch {
+  parseResultsPage(html: html, pageURL: pageURL, clubShortName: clubShortName, season: season).outcome
+}
+
+/// A results page with the values of its head (`currentMatchDay`, `matchesNumber`), for `readSeason`.
+/// `outcome` is exactly what `parseResults` returns.
+func parseResultsPage(html: String, pageURL: URL, clubShortName: String, season: String) -> SeasonPage {
+  let outcome: FixtureFetch
   do {
-    return try ResultsParser(pageURL: pageURL, clubShortName: clubShortName, season: season).parse(html)
+    outcome = try ResultsParser(pageURL: pageURL, clubShortName: clubShortName, season: season).parse(html)
   } catch {
     // SwiftSoup only throws on markup it cannot make sense of.
-    return .sourceProblem(.structureChanged)
+    outcome = .sourceProblem(.structureChanged)
   }
+  return SeasonPage(
+    matchday: headNumber("currentMatchDay", in: html), matchdayCount: headNumber("matchesNumber", in: html),
+    outcome: outcome)
+}
+
+/// `var <name>='N'` from the page's scripts: a positive number, else `nil` (absent, empty, not a number).
+private func headNumber(_ name: String, in html: String) -> Int? {
+  guard let match = html.firstMatch(of: try! Regex("var\\s+\(name)\\s*=\\s*['\"]([^'\"]*)['\"]")),
+    let text = match.output[1].substring.map({ $0.trimmingCharacters(in: .whitespaces) }),
+    !text.isEmpty, text.count <= 6, text.allSatisfy({ $0.isASCII && $0.isNumber }), let value = Int(text), value >= 1
+  else { return nil }
+  return value
 }
 
 private struct ResultsParser {
