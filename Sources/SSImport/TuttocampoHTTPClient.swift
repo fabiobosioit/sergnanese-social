@@ -108,6 +108,18 @@ final class TuttocampoHTTPClient: Sendable {
   }
 }
 
+/// `https://www.tuttocampo.it/WidgetV2/Risultati/<id>/<n>?y=<yyyy-yy>` for matchday `n` (`1...SeasonLimits.maxMatchdaysPerTeam`).
+/// `season` is `ClubSettings.season` ("2026/27" becomes "2026-27"); an invalid one leaves `y` out, and the site
+/// answers for its current season. `nil` for an invalid widget ID or an `n` out of range.
+func tuttocampoMatchdayURL(widgetID: String, matchday: Int, season: String) -> URL? {
+  guard isValidTuttocampoWidgetID(widgetID), (1...SeasonLimits.maxMatchdaysPerTeam).contains(matchday) else {
+    return nil
+  }
+  var text = "https://www.tuttocampo.it/WidgetV2/Risultati/\(widgetID)/\(matchday)"
+  if isValidSeason(season) { text += "?y=" + season.replacingOccurrences(of: "/", with: "-") }
+  return URL(string: text)
+}
+
 /// Refuses a redirect to an address outside the allowlist and remembers that it did: the response of
 /// the blocked hop is then not followed, so the target is never requested.
 private final class RedirectGuard: NSObject, URLSessionTaskDelegate, Sendable {

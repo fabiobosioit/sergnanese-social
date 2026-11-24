@@ -39,6 +39,32 @@ public struct TuttocampoWidgetSource: FixtureSource {
       season: settings.season)
   }
 
+  public func fetchSeason(
+    for team: Team, settings: ClubSettings, scope: SeasonScope, onProgress: @Sendable (SeasonProgress) async -> Void
+  ) async throws -> SeasonFetch {
+    guard let widgetID = team.tuttocampoWidgetID, isValidTuttocampoWidgetID(widgetID),
+      let defaultURL = URL(string: "https://www.tuttocampo.it/WidgetV2/Risultati/\(widgetID)")
+    else { throw FixtureFetchError.missingWidgetID }
+    let client = self.client
+    return try await readSeason(
+      scope: scope,
+      readPage: { matchday in
+        let url: URL
+        if let matchday {
+          guard let built = tuttocampoMatchdayURL(widgetID: widgetID, matchday: matchday, season: settings.season)
+          else { throw FixtureFetchError.network }
+          url = built
+        } else {
+          url = defaultURL
+        }
+        // Throws FixtureFetchError or CancellationError only (the client maps URLError.cancelled).
+        let data = try await client.page(url)
+        return parseResultsPage(
+          html: String(decoding: data, as: UTF8.self), pageURL: url, clubShortName: settings.clubShortName,
+          season: settings.season)
+      }, onProgress: onProgress)
+  }
+
   public func fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> LeagueTeamsFetch {
     guard let widgetID = team.tuttocampoWidgetID, isValidTuttocampoWidgetID(widgetID),
       let url = URL(string: "https://www.tuttocampo.it/WidgetV2/Classifica/\(widgetID)")
