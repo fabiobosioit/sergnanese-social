@@ -17,6 +17,7 @@ From here on the user has real data on this Mac. Every task keeps working in the
 | T4.7 Developer-ID signing and in-app updates | `release-engineer` | sonnet | paid Apple Developer account |
 | T4.8 CSI Live import (matches, names, logos) through an in-app browser | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | CSI terms-of-use check, a page saved by the user, team → page mapping |
 | T4.9 Download all opponents (names + logos) from the tuttocampo standings and the CSI pages already read | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract) + sonnet | T4.2 and T4.8 merged |
+| T4.10 Opponent matching: pre-filled links and proposals in every import review | `foundation-architect` (contract + matcher), `ui-dev` | opus medium (contract) + sonnet | T4.3 merged (done) |
 
 ---
 
@@ -505,3 +506,99 @@ Escalation is unchanged: retry once on the same model with the reviewer's findin
 - No opponent is deleted. Merging only adds aliases or renames, and only after the user's choice.
 - Logos already present are never replaced; our own club is never added as an opponent.
 - Dev data folder only; no real names, logos or HTML committed.
+
+---
+
+## T4.10 — Opponent matching: pre-filled links and proposals
+
+**Goal (user, 2026-11-24):** when a PDF is imported, its opponents are assumed to be stored already (from tuttocampo or CSI). The review must arrive with every opponent already matched where possible, so the user only corrects what is wrong. The same review serves tuttocampo, CSI and PDF, so all three get the improvement.
+
+### What was checked on 2026-11-24 (real PDF, Dev data, current `main`)
+
+| Observation | Cause |
+|---|---|
+| "Cremonese is not matched." | With the current code and the current Dev data it **is** matched: the G2 row (SERGNANESE–CREMONESE) comes out `new`, linked to the stored "Cremonese" (checked with a throwaway test on the real PDF). The match is exact-only (`opponentsMatching`: equal after `importNameKey`), so it fails for any other spelling: "U.S. Cremonese" works only because `US` is a legal prefix; "Cremonese S.p.A.", "Cremonese Femminile", "Cremonese 1903" do not. The row also does not show whether its opponent was matched or is still the PDF name (only the capitalisation differs). |
+| "The opponents offered are not the ones stored before." | The 8 stored opponents (Albinoleffe, Atalanta, Cremonese, Monterosso, Orceana, Orobica, Pro Palazzolo, Sporting Valentino Mazzola) came from the tuttocampo Classifica of widget `e6c85afd…`, mapped to "U13 Regionale Femminile" (their ClubIds 1252666–1252668 are in the same range as ours there, 1252673). The federation PDF is a **different girone** (Alcione, Fiamma Monza 1970, Pavia Calcio 1911, Real Meda CF Sq.B, San Bernardo Calcio, Women Rivanazzanese, Riozzese, Cremonese). Only Cremonese is in both. So 7 of 8 PDF opponents are genuinely not stored. The link picker does list every stored opponent, but unranked and only on rows marked "non trovato". |
+
+**User action:** check on sergnanese.com which tuttocampo widget shows the U13 femminile girone of the federation calendar. Until its opponents are stored, the first PDF import creates them ("Crea"), with the page-2 full name as alias.
+
+### Matching levels
+
+Computed in SSCore for every fixture (name + `opponentAliases`) against every stored opponent (name, short name, aliases).
+
+1. **Exact → linked.** Equal under the new `opponentMatchKey`: today's `importNameKey` (legal prefixes out, case, accents, spaces, apostrophes) **plus** punctuation treated as spaces and **legal suffixes removed** at the end: `spa`, `srl`, `arl`, `a rl`, `scarl`, `ssd`, `asd`, `ssd arl`, `ssd a rl`, `ssdrl`, in any dotting (`S.p.A.`, `A R.L.`, `S.S.D. a r.l.`). Linked as today, no tag.
+2. **Close → proposed and pre-filled.** Significant tokens are compared: the key's words minus generic ones (`calcio`, `football`, `club`, `fc`, `cf`, `ac`, `as`, `us`, `sc`, `pol`, `polisportiva`, `women`, `femminile`, `femm`). Abbreviations are expanded first (`s` → `san`, `sta` → `santa`, `sto` → `santo`). Two tokens are equal when they are identical, or when both have 6+ letters and their edit distance is 1. A stored opponent is a **proposal** when every significant token of the shorter side is in the longer side (containment), or the Dice score of the two token sets is ≥ 0.8. In both cases:
+   - **years** (4 digits) present on both sides must be equal, else no proposal;
+   - a **squad marker** (`sq b`, `sq. b`, a single trailing letter, `2`) present on one side only, or different, allows a proposal but never an exact link.
+   The row is pre-filled only when exactly **one** opponent is proposed. Two or more → no pre-fill, `opponentAmbiguous`, all of them on top of the picker.
+3. **None → to link or create.** As today ("Crea" / "Collega a esistente…"), with the picker ranked.
+
+### Expected results (these pairs become the core test table)
+
+| Fixture name (aliases) | Stored opponent | Result |
+|---|---|---|
+| CREMONESE (CREMONESE S.P.A.) | Cremonese | exact (works today) |
+| CREMONESE (CREMONESE S.P.A.) | U.S. Cremonese S.p.A. | exact |
+| RIOZZESE (RIOZZESE A R.L.) | Riozzese | exact |
+| ALCIONE (ALCIONE MILANO SSD A RL) | Alcione Milano | exact through the alias |
+| ALCIONE | Alcione Milano | proposed (containment) |
+| S. BERNARDO CALCIO (SAN BERNARDO CALCIO) | San Bernardo | proposed |
+| WOMEN RIVANAZZANESE | Rivanazzanese | proposed |
+| PAVIA CALCIO 1911 | Pavia 1911 | proposed |
+| PAVIA CALCIO 1911 | Pavia 1950 | none (years differ) |
+| REAL MEDA CF Sq.B | Real Meda Cf | proposed, never exact (squad marker) |
+| FIAMMA MONZA 1970 | Atalanta Bc | none |
+| ALCIONE | Alcione Milano, Alcione Bergamo | none pre-filled: ambiguous, both proposed first in the picker |
+| CREMONESE | Cremonese Women, Cremonese | exact on "Cremonese" wins; the proposal is not used |
+
+### Review sheet (all sources)
+
+- **Linked (exact):** as today. The row shows the stored opponent's name.
+- **Proposed:** the row is pre-filled. It has a draft, its state is new / changed / unchanged as for a linked row, and it is ticked by the usual rules. It shows a secondary tag "Proposto" with the line "Abbinato a «Alcione Milano» (proposta automatica)" and two buttons: **Conferma** (removes the tag) and **Cambia…**. Importing without pressing Conferma accepts the proposal.
+- On "Importa", a proposed or exact link is saved like a manual link: the fixture's name and aliases are added to the opponent's aliases when they do not match already (`Opponent.draftAddingImportNames(of:)`, as "Collega a esistente…" does today). The next import of the same PDF is then exact everywhere.
+- **Every row with an opponent** has "Cambia avversario…" (row button and context menu), so a wrong automatic match can be fixed. Today only "non trovato" rows can be linked.
+- **Picker:** with an empty search it lists **all** stored opponents, proposals first (best score first) under "Proposti", then the rest alphabetically under "Tutti gli avversari". At the bottom: "Crea nuovo «<fixture name>»".
+- **Header line:** "N abbinati, N proposti, N da collegare".
+- VoiceOver reads the tag ("abbinamento proposto"); the tag uses a semantic colour and a symbol, not colour alone.
+
+### Contract changes (`foundation-architect`)
+
+- `opponentMatchKey(_:)` (level 1). `opponentsMatching(name:in:)` uses it. `opponentDuplicateKey` (T4.9) builds on it, so T4.9's duplicate pairs improve too. All T4.2/T4.8/T4.9 tests must still pass. Any test whose expectation changes is listed in the report with the reason.
+- `public struct OpponentProposal: Sendable, Equatable { opponent: Opponent; score: Double; kind: .containment | .similar }`.
+- `public func rankOpponents(name: String, aliases: [String], in: [Opponent]) -> [OpponentProposal]`: proposals only, best first, ties by name.
+- `ImportCandidate`:
+  - `opponentMatch: OpponentMatch` (`.exact`, `.proposed`, `.linked` by the user, `.none`, `.ambiguous`);
+  - `proposals: [OpponentProposal]` (at most 5, for the picker);
+  - `make(…)` fills `opponent` and the draft for a single proposal. No new `ReviewReason`: a proposal is not "needs review".
+- `SSCoreFakes`: proposals in the fake data (one exact, one proposed, one ambiguous, one none).
+
+### Steps
+
+**Step 0 — plan edit** (this section, docs only).
+
+**Step 1 — T4.10a contract + matcher** (`foundation-architect`), sequential. Owns `Sources/SSCore/`, `Sources/SSCoreFakes/`, `Tests/SSCoreTests/`. The table above as Swift Testing arguments, plus the legal-suffix list, edit distance, years and squad markers. Writes the short `wave-4-t4.10.md` sheet.
+
+**Step 2 — T4.10b review UI** (`ui-dev`), after Step 1 merges. Owns `Sources/SSApp/Features/Import/` (`ImportModel`, `ImportSheet`, `ImportStrings`), `Tests/SSAppTests/Import/`, and the PDF integration test `Tests/IntegrationTests/PDFImportTests.swift` (one extra case: stored opponents spelled differently → exact + proposed + none, then a re-import is all exact). Tag, Conferma / Cambia…, "Cambia avversario…" on every linked row, ranked picker with sections, header counts, Italian strings.
+
+No wiring step: no new service.
+
+**Step 3 — gate.** `qa-reviewer`: acceptance, Light/Dark, VoiceOver labels. One live run with the user: the real PDF on the Dev data, after storing the girone's opponents with different spellings. `chore-runner`: one paragraph in the USER-GUIDE import section ("Avversari abbinati e proposti").
+
+### Model and effort per step
+
+| Step | Agent | Agent default | Dispatch with | Why |
+|---|---|---|---|---|
+| 0 plan edit | main session | — | done | This section. |
+| 1 T4.10a contract + matcher | `foundation-architect` | opus, high | **opus, medium** | Frozen code used by four import paths, and a wrong match writes wrong data. But the rules and the test table are fixed here, so `medium` is enough. |
+| 2 T4.10b UI | `ui-dev` | sonnet, medium | **sonnet, medium** | Changes to an existing sheet and picker against fakes. |
+| gate | `qa-reviewer` | opus, high | **sonnet, medium** | Fixed acceptance table; no network, no new storage. |
+| 3 USER-GUIDE | `chore-runner` | haiku | **haiku** | Prose only. |
+
+Escalation is unchanged: retry once on the same model with the reviewer's findings, then one model up.
+
+### Rules
+
+- Nothing is written before "Importa". Proposals change nothing in the database until then.
+- An automatic link (exact or proposed) never renames an opponent. It only adds aliases on import.
+- A proposal never replaces an exact match, and two proposals never pre-fill.
+- Dev data folder only. Test names are invented, apart from the club names already in this sheet (public league data).
