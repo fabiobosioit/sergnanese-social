@@ -322,6 +322,9 @@ struct AppServices {
   var renderer: any RenderService
   var demoData: any DemoDataLoader
   var paths: AppPaths
+  var fixtureSource: any FixtureSource            // T4.2: Risultati, Classifica (T4.9), logos
+  var csiPageParser: any PageFixtureParser        // T4.8: fixtures and (T4.9) teams of a CSI page
+  var sourceTeamLists: any SourceTeamListRepository  // T4.9
 }
 ```
 
@@ -335,6 +338,10 @@ struct AppServices {
 | `TemplateStore` | `installBuiltins`, `list`, `get`, `install(from: URL, replace:)` → problems, `remove`, `restoreBuiltin` | T1.3 |
 | `RenderService` (`@MainActor`) | `plan(request)` → `RenderPlan`, `render(request)` → `AsyncThrowingStream<RenderEvent>`, `preview(templateID:matchIDs:)` → temp PNG URL | T1.3 |
 | `DemoDataLoader` | `load(today:)`, `hasDemoData` | T1.4 |
+| `FixtureSource` | `fetchFixtures`, `fetchLeagueTeams(for:settings:)` (T4.9, the Classifica widget), `downloadLogos` | T4.2, T4.9a |
+| `PageFixtureParser` | `parse(html:pageURL:settings:)`, `teams(html:pageURL:for:settings:)` (T4.9) | T4.8, T4.9a |
+| `SourceTeamListRepository` | `save(teamID:source:teams:readAt:)`, `latest(teamID:source:)`: the teams of the last CSI page read, kept in `source_team_lists` | T4.9b |
+| `OpponentRepository.applyImport` | writes an `OpponentImportPlan` in one transaction (T4.9) | T4.9b |
 
 `SSCoreFakes` has an in-memory implementation of every protocol, filled from the fixtures. `AppServices.fake()` is what the UI runs on in Wave 1 and Wave 2 (`Scripts/run.sh --mock`) and in view-model tests.
 
