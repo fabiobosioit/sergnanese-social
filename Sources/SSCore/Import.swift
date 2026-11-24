@@ -174,6 +174,30 @@ public protocol FixtureSource: Sendable {
   /// Never throws: every failure is in its result. When the task is cancelled, the requests not yet
   /// done come back with `fileName == nil` and `issue == nil`.
   func downloadLogos(_ requests: [LogoRequest]) async -> [LogoResult]
+
+  /// T4.9: reads `team`'s Classifica widget (one request, `https://www.tuttocampo.it/WidgetV2/Classifica/<id>`
+  /// with the team's widget id, under the same rules as `fetchFixtures`) and returns every team of the league
+  /// except ours, in table order, each with `source == .tuttocampo` and `teamID == team.id`.
+  ///
+  /// - Rows: `table.table_ranking tbody tr`. Name: the text of `td.team > a`, trimmed, whitespace collapsed.
+  ///   Logo: `td.team_logo > img[src]` made absolute (`logoURL`) and its `tuttocampoClubID(fromLogoURL:)`
+  ///   (`logoID`); a row without an image has neither.
+  /// - Ours: a row with the class `selected`, or whose name equals `settings.clubShortName` (compared with
+  ///   `searchKey` after `stripLegalPrefixes`). A table without our row is not an error: all its rows are returned.
+  /// - A name seen twice (same comparison) is returned once, the first time.
+  /// - `.structureChanged` when there is no standings table, no row, or a row without a name.
+  ///
+  /// Throws `FixtureFetchError` when the page cannot be read (`.missingWidgetID` when the team has no widget id)
+  /// and `CancellationError` when the task is cancelled; nothing else. The default implementation (used by
+  /// `UnavailableFixtureSource` and by sources written before T4.9) throws `FixtureFetchError.unavailable`.
+  func fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> LeagueTeamsFetch
+}
+
+extension FixtureSource {
+  /// Throws `FixtureFetchError.unavailable`: this source cannot read standings.
+  public func fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> LeagueTeamsFetch {
+    throw FixtureFetchError.unavailable
+  }
 }
 
 /// The source `AppServices` uses when none is given: every fetch throws
@@ -222,6 +246,13 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
   /// T4.8: no logo was stored for the opponent: the page shows none (placeholder shield), or it could
   /// not be read or stored. Information: the import goes on and the logo can be added by hand.
   case csiLogoUnavailable(opponent: String)
+  /// T4.9: the team's Classifica widget could not be read: "Tuttocampo: impossibile leggere la classifica di …".
+  case standingsReadFailed(team: String, reason: FixtureFetchError)
+  /// T4.9: the team's Classifica widget was read but cannot be trusted (`LeagueTeamsFetch.structureChanged`).
+  case standingsChanged(team: String)
+  /// T4.9: the team has a CSI page but no team list is stored yet: "CSI: nessuna lettura per …, usa prima Importa
+  /// da CSI…". Information.
+  case csiTeamListMissing(team: String)
 
   public var message: String {
     switch self {
@@ -248,15 +279,22 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
       return CoreStrings.csiNoFixturesOfOurs(team, club)
     case .csiLogoUnavailable(let opponent):
       return CoreStrings.csiLogoUnavailable(opponent)
+    case .standingsReadFailed(let team, let reason):
+      return CoreStrings.standingsReadFailed(team) + " " + Self.text(for: reason)
+    case .standingsChanged(let team):
+      return CoreStrings.standingsReadFailed(team) + " " + CoreStrings.importSourceChanged
+    case .csiTeamListMissing(let team):
+      return CoreStrings.csiTeamListMissing(team)
     }
   }
 
-  /// `false` for `.notYetAvailable`, `.logoFallback` and `.csiLogoUnavailable`, which are information.
+  /// `false` for `.notYetAvailable`, `.logoFallback`, `.csiLogoUnavailable` and `.csiTeamListMissing`, which are
+  /// information.
   public var isError: Bool {
     switch self {
-    case .notYetAvailable, .logoFallback, .csiLogoUnavailable: return false
+    case .notYetAvailable, .logoFallback, .csiLogoUnavailable, .csiTeamListMissing: return false
     case .fetchFailed, .sourceProblem, .logoNotRecognised, .logoFailed, .csiPageReadFailed, .csiNotAGirone,
-      .csiNoFixturesOfOurs:
+      .csiNoFixturesOfOurs, .standingsReadFailed, .standingsChanged:
       return true
     }
   }

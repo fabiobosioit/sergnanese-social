@@ -11,6 +11,8 @@ public final class FakeDatabase: Sendable {
     var opponents: [Opponent]
     var matches: [Match]
     var renders: [RenderRecord]
+    /// T4.9: the stored team lists (`FakeSourceTeamListRepository`), at most one per team and source.
+    var sourceTeamLists: [SourceTeamList] = []
   }
 
   let state: Mutex<State>
@@ -136,6 +138,7 @@ public struct FakeTeamRepository: TeamRepository {
       }
       if state.teams[index].isFirstTeam && state.teams.count > 1 { throw AppError.firstTeamCannotBeDeleted }
       state.teams.remove(at: index)
+      state.sourceTeamLists.removeAll { $0.teamID == id }
     }
   }
 
@@ -226,6 +229,55 @@ public struct FakeOpponentRepository: OpponentRepository {
   public func matchCounts() throws -> [EntityID: Int] {
     database.read { state in
       state.matches.reduce(into: [:]) { counts, match in counts[match.opponentID, default: 0] += 1 }
+    }
+  }
+
+  /// All or nothing: the items are applied to a copy of the opponents, which replaces them only at the end.
+  public func applyImport(_ plan: OpponentImportPlan) throws -> [Opponent] {
+    try database.write { state in
+      var working = state.opponents
+      var results: [Opponent] = []
+      for item in plan.items {
+        let index: Int?
+        switch item.action {
+        case .create: index = nil
+        case .update(let id, _, _):
+          guard let found = working.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+          index = found
+        }
+        guard let draft = try item.action.draft(current: index.map { working[$0] })?.validated() else {
+          throw AppError.notFound
+        }
+        let opponent = Opponent(
+          id: index.map { working[$0].id } ?? newEntityID(), name: draft.name, shortName: draft.shortName,
+          aliases: draft.aliases, logoFile: draft.logoFile)
+        if let index { working[index] = opponent } else { working.append(opponent) }
+        results.append(opponent)
+      }
+      state.opponents = working
+      return results
+    }
+  }
+}
+
+// MARK: - Source team lists
+
+public struct FakeSourceTeamListRepository: SourceTeamListRepository {
+  public let database: FakeDatabase
+  public init(database: FakeDatabase) { self.database = database }
+
+  public func save(teamID: EntityID, source: TeamListSource, teams: [SourceTeam], readAt: Date) throws {
+    try database.write { state in
+      guard state.teams.contains(where: { $0.id == teamID }) else { throw AppError.notFound }
+      state.sourceTeamLists.removeAll { $0.teamID == teamID && $0.source == source }
+      state.sourceTeamLists.append(SourceTeamList(teamID: teamID, source: source, readAt: readAt, teams: teams))
+    }
+  }
+
+  public func latest(teamID: EntityID, source: TeamListSource) throws -> SourceTeamList? {
+    try database.read { state in
+      guard state.teams.contains(where: { $0.id == teamID }) else { throw AppError.notFound }
+      return state.sourceTeamLists.first { $0.teamID == teamID && $0.source == source }
     }
   }
 }

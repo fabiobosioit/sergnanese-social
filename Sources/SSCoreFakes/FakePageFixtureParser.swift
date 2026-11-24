@@ -9,15 +9,21 @@ public struct FakePageFixtureParser: PageFixtureParser {
   /// Keyed by `csiPageKey` of the page address. A page with no entry, or an address that is not a CSI
   /// page, answers `.sourceProblem(.structureChanged)` ("not a CSI girone").
   public var responses: [String: FixtureFetch]
+  /// T4.9: the teams of each page, keyed like `responses`. A page with no entry has no team.
+  public var teamResponses: [String: [SourceTeam]]
 
-  /// `responses` is keyed by page address; each address is turned into its `csiPageKey` (addresses that
-  /// are not valid CSI pages are dropped).
-  public init(responses: [String: FixtureFetch] = [:]) {
-    var keyed: [String: FixtureFetch] = [:]
-    for (address, fetch) in responses {
-      if let key = csiPageKey(address) { keyed[key] = fetch }
+  /// `responses` and `teamResponses` are keyed by page address; each address is turned into its `csiPageKey`
+  /// (addresses that are not valid CSI pages are dropped).
+  public init(responses: [String: FixtureFetch] = [:], teamResponses: [String: [SourceTeam]] = [:]) {
+    func keyed<Value>(_ values: [String: Value]) -> [String: Value] {
+      var result: [String: Value] = [:]
+      for (address, value) in values {
+        if let key = csiPageKey(address) { result[key] = value }
+      }
+      return result
     }
-    self.responses = keyed
+    self.responses = keyed(responses)
+    self.teamResponses = keyed(teamResponses)
   }
 
   public func parse(html: String, pageURL: URL, settings: ClubSettings) -> FixtureFetch {
@@ -25,6 +31,12 @@ public struct FakePageFixtureParser: PageFixtureParser {
       return .sourceProblem(.structureChanged)
     }
     return fetch
+  }
+
+  /// The canned teams of the page, with `team.id` and `.csi`; none for a page with no entry.
+  public func teams(html: String, pageURL: URL, for team: Team, settings: ClubSettings) -> [SourceTeam] {
+    guard let key = csiPageKey(pageURL.absoluteString), let teams = teamResponses[key] else { return [] }
+    return SourceTeamList(teamID: team.id, source: .csi, readAt: Date(), teams: teams).teams
   }
 
   // MARK: Scenario
@@ -83,7 +95,29 @@ public struct FakePageFixtureParser: PageFixtureParser {
         saturday.adding(days: 14), time(16, 0), home: false, "Atletico Montesello", logo: "90000104", round: 10,
         venue: "Campo Montesello Via Manzoni 2 - 26000 Montesello CR"),
     ]
-    return FakePageFixtureParser(responses: [scenarioPageURL: .fixtures(fixtures)])
+    return FakePageFixtureParser(
+      responses: [scenarioPageURL: .fixtures(fixtures)], teamResponses: [scenarioPageURL: scenarioTeams(teamID: "")])
+  }
+
+  /// The teams of Pulcini's page (T4.9), for `teamID`, in page order:
+  ///
+  /// | Name | Logo | With the fixture opponents |
+  /// |---|---|---|
+  /// | "Prato Fiorito" | id 90000101 | `.present` |
+  /// | "Valdorso 2016" | id 90000102 | `.possibleDuplicate` with F.C. Valdorso |
+  /// | "Polisportiva Fontanella" | id 90000103 | `.new` |
+  /// | "Atletico Montesello" | id 90000104 | `.missingLogo`, stored as `csi-90000104.png` |
+  /// | "Borgo Lucente" | placeholder (none) | `.missingLogo` with the tuttocampo logo |
+  /// | "Real Fontanile B" | id 90000105 | `.possibleDuplicate` with tuttocampo's "Real Fontanile" |
+  public static func scenarioTeams(teamID: EntityID) -> [SourceTeam] {
+    func listed(_ name: String, _ id: String?) -> SourceTeam {
+      SourceTeam(source: .csi, teamID: teamID, name: name, logoID: id, logoURL: id.flatMap(scenarioLogoURL))
+    }
+    return [
+      listed("Prato Fiorito", "90000101"), listed("Valdorso 2016", "90000102"),
+      listed("Polisportiva Fontanella", "90000103"), listed("Atletico Montesello", "90000104"),
+      listed("Borgo Lucente", nil), listed("Real Fontanile B", "90000105"),
+    ]
   }
 }
 

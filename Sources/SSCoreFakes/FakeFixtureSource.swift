@@ -12,8 +12,17 @@ public struct FakeFixtureSource: FixtureSource {
     case failure(FixtureFetchError)
   }
 
+  /// The canned answer for one Classifica widget (T4.9).
+  public enum LeagueResponse: Sendable, Equatable {
+    case fetch(LeagueTeamsFetch)
+    case failure(FixtureFetchError)
+  }
+
   /// Keyed by widget id in lower case. An id with no entry throws `FixtureFetchError.httpStatus(404)`.
   public var responses: [String: Response]
+  /// Classifica answers, keyed by widget id in lower case. An id with no entry throws
+  /// `FixtureFetchError.httpStatus(404)`. The teams returned get the asking team's id and `.tuttocampo`.
+  public var leagueResponses: [String: LeagueResponse]
   public var logos: any LogoStore
   /// The bytes stored for every logo download that succeeds.
   public var logoData: Data
@@ -27,9 +36,11 @@ public struct FakeFixtureSource: FixtureSource {
 
   public init(
     responses: [String: Response] = [:], logos: any LogoStore, logoData: Data = FakeFixtureSource.defaultLogoData,
-    fallbackClubIDs: Set<String> = [], failingClubIDs: Set<String> = [], delay: Duration = .zero
+    fallbackClubIDs: Set<String> = [], failingClubIDs: Set<String> = [], delay: Duration = .zero,
+    leagueResponses: [String: LeagueResponse] = [:]
   ) {
     self.responses = Dictionary(responses.map { ($0.key.lowercased(), $0.value) }) { _, last in last }
+    self.leagueResponses = Dictionary(leagueResponses.map { ($0.key.lowercased(), $0.value) }) { _, last in last }
     self.logos = logos
     self.logoData = logoData
     self.fallbackClubIDs = fallbackClubIDs
@@ -43,6 +54,19 @@ public struct FakeFixtureSource: FixtureSource {
     try Task.checkCancellation()
     switch responses[widgetID.lowercased()] {
     case .fetch(let fetch): return fetch
+    case .failure(let error): throw error
+    case nil: throw FixtureFetchError.httpStatus(404)
+    }
+  }
+
+  public func fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> LeagueTeamsFetch {
+    guard let widgetID = team.tuttocampoWidgetID else { throw FixtureFetchError.missingWidgetID }
+    if delay > .zero { try await Task.sleep(for: delay) }
+    try Task.checkCancellation()
+    switch leagueResponses[widgetID.lowercased()] {
+    case .fetch(.teams(let teams)):
+      return .teams(SourceTeamList(teamID: team.id, source: .tuttocampo, readAt: Date(), teams: teams).teams)
+    case .fetch(.structureChanged): return .structureChanged
     case .failure(let error): throw error
     case nil: throw FixtureFetchError.httpStatus(404)
     }
@@ -133,6 +157,24 @@ public struct FakeFixtureSource: FixtureSource {
   /// | 12 | Amatori | Sat 20:30, home, "Virtus Campofelice" | `.new` |
   ///
   /// Veterani has no widget id.
+  ///
+  /// Classifica answers (T4.9, `fetchLeagueTeams`), with `FakePageFixtureParser.scenarioTeams` stored for
+  /// Pulcini's CSI page (`AppServices.fake` saves it):
+  ///
+  /// | Widget | Team | Answer |
+  /// |---|---|---|
+  /// | 1 | Prima Squadra | "Oratorio San Gerolamo", "Borgo Lucente" (ClubId 900301), "Real Fontanile" (900302), "Aurora Pianengo" (900303), "Virtus Campofelice" |
+  /// | 2 | Juniores | "Aurora Pianengo" (another ClubId, 900304), "Sporting Ripalta Nuova" |
+  /// | 5 | Giovanissimi U15 | `.structureChanged` |
+  /// | 6 | Giovanissimi U14 | "Atletico Nuovo Borgo" (unrecognised logo address), "Novaria Bassa" |
+  /// | 7 | Esordienti | network failure |
+  /// | others | | no other team |
+  ///
+  /// With the fixture opponents, `OpponentCandidate.make` gives: `.new` Aurora Pianengo (seen twice),
+  /// Polisportiva Fontanella (CSI), Atletico Nuovo Borgo (logo not recognised); `.missingLogo` Borgo Lucente
+  /// (tuttocampo logo, also in the CSI list with the placeholder), Atletico Montesello (CSI logo
+  /// `csi-90000104.png`); `.possibleDuplicate` "Real Fontanile" with "Real Fontanile B" (CSI, two new rows),
+  /// "Valdorso 2016" (CSI) with F.C. Valdorso; `.present` the others.
   public static func scenario(
     referenceSaturday: DayDate, logos: any LogoStore, delay: Duration = .milliseconds(250)
   ) -> FakeFixtureSource {
@@ -182,8 +224,27 @@ public struct FakeFixtureSource: FixtureSource {
       12: .fetch(
         .fixtures([scheduled(saturday, time(20, 30), home: true, "Virtus Campofelice", club: "900212", round: 8)])),
     ]
+    func listed(_ name: String, club: String?) -> SourceTeam {
+      SourceTeam(source: .tuttocampo, teamID: "", name: name, logoID: club, logoURL: club.flatMap(logo))
+    }
+    var nuovoBorgo = listed("Atletico Nuovo Borgo", club: nil)
+    nuovoBorgo.logoURL = URL(string: "https://b2-content.tuttocampo.it/Web/Images/stemma.png")
+    var leagues: [Int: LeagueResponse] = [
+      1: .fetch(
+        .teams([
+          listed("Oratorio San Gerolamo", club: "900201"), listed("Borgo Lucente", club: "900301"),
+          listed("Real Fontanile", club: "900302"), listed("Aurora Pianengo", club: "900303"),
+          listed("Virtus Campofelice", club: "900212"),
+        ])),
+      2: .fetch(.teams([listed("Aurora Pianengo", club: "900304"), listed("Sporting Ripalta Nuova", club: "900305")])),
+      5: .fetch(.structureChanged),
+      6: .fetch(.teams([nuovoBorgo, listed("Novaria Bassa", club: "900204")])),
+      7: .failure(.network),
+    ]
+    for index in 1...12 where leagues[index] == nil { leagues[index] = .fetch(.teams([])) }
     return FakeFixtureSource(
       responses: Dictionary(uniqueKeysWithValues: answers.map { (scenarioWidgetID($0.key), $0.value) }), logos: logos,
-      fallbackClubIDs: [scenarioFallbackClubID], delay: delay)
+      fallbackClubIDs: [scenarioFallbackClubID], delay: delay,
+      leagueResponses: Dictionary(uniqueKeysWithValues: leagues.map { (scenarioWidgetID($0.key), $0.value) }))
   }
 }
