@@ -27,6 +27,14 @@ public struct CSIPageParser: PageFixtureParser {
       return .sourceProblem(.structureChanged)
     }
   }
+
+  public func teams(html: String, pageURL: URL, for team: Team, settings: ClubSettings) -> [SourceTeam] {
+    do {
+      return try PageReader(pageURL: pageURL, clubShortName: settings.clubShortName).readTeams(html, team: team)
+    } catch {
+      return []
+    }
+  }
 }
 
 private struct PageReader {
@@ -84,12 +92,48 @@ private struct PageReader {
     return .fixtures(fixtures)
   }
 
+  /// The teams of the match list (T4.9), deduplicated by 8-digit CSI id (`img alt`, else the logo address), else by
+  /// name; ours left out. Empty when `read` would answer `.structureChanged`. The standings table of the sample
+  /// does not mark its teams like the match list (no `span.nome-squadra`), so only the match list is read.
+  func readTeams(_ html: String, team: Team) throws -> [SourceTeam] {
+    let document = try SwiftSoup.parse(html)
+    let elements = try document.select("a.btn-gara").array()
+    let base = try baseURL(document)
+
+    var seen = Set<String>()
+    var seenCodes = Set<String>()
+    var readableRows = 0
+    var teams: [SourceTeam] = []
+    for element in elements {
+      let code = Self.matchCode(href: try element.attr("href"))
+      if let code, !seenCodes.insert(code).inserted { continue }
+      guard let row = try Row(element: element, base: base) else { continue }
+      readableRows += 1
+      let homeIsOurs = !clubKey.isEmpty && Self.nameKey(row.home.name) == clubKey
+      let awayIsOurs = !clubKey.isEmpty && Self.nameKey(row.away.name) == clubKey
+      if homeIsOurs != awayIsOurs, Self.date(from: row.dateText) == nil { return [] }
+      for (side, isOurs) in [(row.home, homeIsOurs), (row.away, awayIsOurs)] where !isOurs {
+        let id =
+          side.altID ?? side.logoURL.flatMap { csiTeamID(fromLogoURL: $0) }
+        let key = id.map { "id:" + $0 } ?? "name:" + Self.nameKey(side.name)
+        guard seen.insert(key).inserted else { continue }
+        teams.append(
+          SourceTeam(
+            source: .csi, teamID: team.id, name: side.name, logoID: side.logoURL.flatMap { csiTeamID(fromLogoURL: $0) },
+            logoURL: side.logoURL))
+      }
+    }
+    return readableRows == 0 ? [] : teams
+  }
+
   // MARK: Rows
 
   /// One side of a match row.
   private struct Side {
     var name: String
     var logoURL: URL?
+    /// The 8-digit id in the image's `alt`, when it is one.
+    var altID: String?
   }
 
   /// The raw values of a match row, before our side is known.
@@ -111,7 +155,11 @@ private struct PageReader {
         let name = collapse(try nameElement.text())
         guard !name.isEmpty else { continue }
         let source = try block.select("img").first()?.attr("src") ?? ""
-        sides.append(Side(name: name, logoURL: PageReader.absoluteLogoURL(source, base: base)))
+        let alt = try block.select("img").first()?.attr("alt").trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        sides.append(
+          Side(
+            name: name, logoURL: PageReader.absoluteLogoURL(source, base: base),
+            altID: alt.count == 8 && alt.allSatisfy { $0.isASCII && $0.isNumber } ? alt : nil))
       }
       guard sides.count == 2 else { return nil }
       home = sides[0]

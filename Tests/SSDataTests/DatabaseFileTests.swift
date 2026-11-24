@@ -28,7 +28,7 @@ import Testing
     let migrationsBefore = try first.queue.read { db in
       try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations")
     }
-    #expect(migrationsBefore == ["v1", "v2", "v3"])
+    #expect(migrationsBefore == ["v1", "v2", "v3", "v4"])
 
     let second = try AppDatabase.open(at: url)
     let schemaAfter = try second.queue.read { db in
@@ -38,7 +38,7 @@ import Testing
     #expect(try second.teams.list() == [team])
     #expect(
       try second.queue.read { db in try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations") } == [
-        "v1", "v2", "v3",
+        "v1", "v2", "v3", "v4",
       ])
   }
 

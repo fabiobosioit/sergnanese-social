@@ -26,6 +26,10 @@ final class OpponentsViewModel {
   private(set) var loadError: String?
   /// Smallest `teamName` limit among the installed templates; drives the "Come apparirà" line.
   private(set) var teamNameLimit: Int?
+  /// The teams, to know whether "Scarica tutti gli avversari…" has a source to read.
+  private(set) var teams: [Team] = []
+  /// The open "Scarica tutti gli avversari" sheet.
+  var download: OpponentDownloadModel?
 
   var searchText = ""
   var selection: Set<EntityID> = []
@@ -54,6 +58,7 @@ final class OpponentsViewModel {
       opponents = try services.opponents.search(searchText)
       matchCounts = try services.opponents.matchCounts()
       teamNameLimit = (try? services.templates.list())?.compactMap(\.manifest.limits.teamName).min()
+      teams = (try? services.teams.list()) ?? []
       loadError = nil
     } catch {
       loadError = message(for: error, fallback: OpponentsStrings.errorTitle)
@@ -231,6 +236,28 @@ final class OpponentsViewModel {
   func cancelCreate() {
     removeNewLogo()
     isCreating = false
+  }
+
+  // MARK: Download all opponents
+
+  /// `nil` when "Scarica tutti gli avversari…" can run; else why it cannot (shown as help text).
+  var downloadUnavailableReason: String? {
+    OpponentDownloadModel.sourceTeams(teams).isEmpty ? OpponentsStrings.downloadUnavailable : nil
+  }
+
+  var canDownload: Bool { downloadUnavailableReason == nil && download == nil }
+
+  /// Opens the sheet and starts reading. Closing it reloads the list.
+  func beginDownload() {
+    guard canDownload else { return }
+    let model = OpponentDownloadModel(services: services)
+    model.onClose = { [weak self] in
+      self?.download = nil
+      self?.reload()
+      self?.onDataChanged()
+    }
+    download = model
+    model.start()
   }
 
   // MARK: Delete

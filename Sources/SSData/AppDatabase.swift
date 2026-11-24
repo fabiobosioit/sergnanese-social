@@ -62,6 +62,7 @@ public final class AppDatabase: Sendable {
   public var matches: any MatchRepository { MatchStore(database: self) }
   public var settings: any SettingsRepository { SettingsStore(database: self) }
   public var renders: any RenderRepository { RenderStore(database: self) }
+  public var sourceTeamLists: any SourceTeamListRepository { SourceTeamListStore(database: self) }
 
   // MARK: Migrations
 
@@ -143,6 +144,19 @@ public final class AppDatabase: Sendable {
     // T4.8: the CSI Live girone page of a team. No index: pages are compared by `csiPageKey` in code.
     migrator.registerMigration("v3") { db in
       try db.execute(sql: "ALTER TABLE teams ADD COLUMN csi_page_url TEXT")
+    }
+    // T4.9: the teams a source listed for each of our teams' leagues (JSON), one row per team and source.
+    migrator.registerMigration("v4") { db in
+      try db.execute(
+        sql: """
+          CREATE TABLE source_team_lists (
+            team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+            source TEXT NOT NULL,
+            read_at REAL NOT NULL,
+            teams TEXT NOT NULL,
+            PRIMARY KEY (team_id, source)
+          );
+          """)
     }
     return migrator
   }

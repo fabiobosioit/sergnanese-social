@@ -40,7 +40,8 @@ enum Composition {
       settings: database.settings, renders: database.renders, logos: logos, templates: templates,
       renderer: renderer, demoData: demo, paths: paths,
       fixtureSource: LoggingFixtureSource(base: TuttocampoWidgetSource(logos: logos)),
-      csiPageParser: LoggingPageFixtureParser(base: CSIPageParser()))
+      csiPageParser: LoggingPageFixtureParser(base: CSIPageParser()),
+      sourceTeamLists: database.sourceTeamLists)
   }
 }
 
@@ -65,6 +66,27 @@ struct LoggingFixtureSource: FixtureSource {
       throw CancellationError()
     } catch {
       Log.imports.error("Import \(team.name, privacy: .public): failed, \(String(describing: error), privacy: .public)")
+      throw error
+    }
+  }
+
+  /// Forwarded to the base source (the protocol default would report "unavailable"). Logs the outcome only.
+  func fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> LeagueTeamsFetch {
+    do {
+      let fetch = try await base.fetchLeagueTeams(for: team, settings: settings)
+      switch fetch {
+      case .teams(let teams):
+        Log.imports.info("Classifica \(team.name, privacy: .public): \(teams.count) team(s)")
+      case .structureChanged:
+        Log.imports.error("Classifica \(team.name, privacy: .public): structure changed")
+      }
+      return fetch
+    } catch is CancellationError {
+      Log.imports.info("Classifica \(team.name, privacy: .public): cancelled")
+      throw CancellationError()
+    } catch {
+      Log.imports.error(
+        "Classifica \(team.name, privacy: .public): failed, \(String(describing: error), privacy: .public)")
       throw error
     }
   }
@@ -95,6 +117,13 @@ struct LoggingPageFixtureParser: PageFixtureParser {
       Log.imports.error("CSI import: source problem \(problem.rawValue, privacy: .public)")
     }
     return fetch
+  }
+
+  /// Forwarded to the base parser (the protocol default returns no team). Logs the count only.
+  func teams(html: String, pageURL: URL, for team: Team, settings: ClubSettings) -> [SourceTeam] {
+    let teams = base.teams(html: html, pageURL: pageURL, for: team, settings: settings)
+    Log.imports.info("CSI team list \(team.name, privacy: .public): \(teams.count) team(s)")
+    return teams
   }
 }
 
