@@ -104,6 +104,32 @@ enum CoreStrings {
   static let opponentImportUnavailable =
     "Il salvataggio degli avversari scaricati non è disponibile in questa versione."
 
+  // Import from a federation PDF (T4.3)
+  static func pdfReadFailed(_ file: String) -> String { "PDF: impossibile leggere «\(file)»." }
+  static let pdfNotAPDF = "Il file non è un PDF."
+  static func pdfTooLarge(megabytes: Int, pages: Int) -> String {
+    "Il file è troppo grande: al massimo \(megabytes) MB e \(pages) pagine."
+  }
+  static let pdfEncrypted = "Il PDF è protetto da password."
+  static let pdfLayoutNotRecognised =
+    "Formato PDF non riconosciuto: serve il calendario della federazione con la tabella delle società."
+  static let pdfUnavailable = "L'importazione da PDF non è disponibile in questa versione."
+  static func pdfIncomplete(teams: Int, clubs: Int) -> String {
+    "Il PDF sembra incompleto: \(teams) squadre nel calendario e \(clubs) società nella tabella. "
+      + "Controlla le partite prima di importarle."
+  }
+  static func pdfClubNotLinked(_ name: String) -> String {
+    "PDF: «\(name)» non trovata nella tabella delle società: giorno, orario e campo delle sue partite in casa "
+      + "vanno inseriti a mano."
+  }
+  static func pdfUnreadableRow(_ matchday: Int, _ text: String) -> String {
+    "PDF: giornata \(matchday), riga non letta: «\(text)»."
+  }
+  static func pdfBye(_ matchday: Int) -> String { "Giornata \(matchday): riposo." }
+  static func reviewScheduleUnknown(_ name: String) -> String {
+    "Giorno e orario della partita con «\(name)» non trovati nel calendario: inseriscila a mano."
+  }
+
   // Manifest
   static let manifestNotJSON = "manifest.json non è un oggetto JSON valido."
   static func manifestMissing(_ key: String) -> String { "manifest.\(key) manca." }

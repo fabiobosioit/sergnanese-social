@@ -1,7 +1,8 @@
 import Foundation
 
 // Match import from an outside source: T4.2 reads tuttocampo.it widgets; T4.8 reads CSI Live pages the
-// user opens (see `CSI.swift`); T4.1 (CSV) reuses the staging types. The tuttocampo flow, driven by the UI:
+// user opens (see `CSI.swift`); T4.3 reads federation calendar PDFs (see `PDFCalendar.swift`); T4.1 (CSV) reuses
+// the staging types. The tuttocampo flow, driven by the UI:
 //
 // 1. `FixtureSource.fetchFixtures(for:settings:)` once per active team with a widget id;
 // 2. `ImportCandidate.make(…)` for every fetched fixture; the user reviews the candidates (staging);
@@ -40,11 +41,24 @@ public struct FetchedFixture: Sendable, Codable, Equatable, Hashable {
   /// and address, with the trailing match code removed). `nil` when the source does not say (tuttocampo).
   /// `ImportCandidate.make` uses it for away matches only; at home the club's `homeVenue` is used.
   public var venue: String?
+  /// T4.3: other names of the opponent in the same source (the PDF's full club name, `SAN BERNARDO CALCIO`, when
+  /// `opponentName` is the short `S. BERNARDO CALCIO`). `ImportCandidate.make` tries them when no opponent
+  /// matches `opponentName`; "Crea avversario" (`newOpponentDraft`) and "Collega a esistente…"
+  /// (`Opponent.draftAddingImportNames(of:)`) save them as aliases. Empty for tuttocampo and CSI; absent from older
+  /// JSON, which decodes as empty.
+  public var opponentAliases: [String]
+  /// T4.3: the championship as the source writes it (`PDFCalendar.competition`); `nil` when the source does not
+  /// say (tuttocampo, CSI). `ImportCandidate.make` puts it in new drafts and in existing matches without one.
+  public var competition: String?
+  /// T4.3: `true` when the source could not give the day and time of the match (the PDF's home club is missing
+  /// from its club table): `date` is only the weekend's Saturday. The candidate needs review
+  /// (`ImportCandidate.ReviewReason.scheduleUnknown`) and cannot be imported. `false` for tuttocampo and CSI.
+  public var scheduleUnknown: Bool
 
   public init(
     date: DayDate, time: ClockTime?, isHome: Bool, opponentName: String, opponentClubID: String? = nil,
     opponentLogoURL: URL? = nil, score: Score? = nil, round: Int? = nil, status: MatchStatus?, statusText: String,
-    venue: String? = nil
+    venue: String? = nil, opponentAliases: [String] = [], competition: String? = nil, scheduleUnknown: Bool = false
   ) {
     self.date = date
     self.time = time
@@ -57,7 +71,70 @@ public struct FetchedFixture: Sendable, Codable, Equatable, Hashable {
     self.status = status
     self.statusText = statusText
     self.venue = venue
+    self.opponentAliases = opponentAliases
+    self.competition = competition
+    self.scheduleUnknown = scheduleUnknown
   }
+
+  enum CodingKeys: String, CodingKey {
+    case date, time, isHome, opponentName, opponentClubID, opponentLogoURL, score, round, status, statusText, venue
+    case opponentAliases, competition, scheduleUnknown
+  }
+
+  /// Keys added after T4.2 (`venue`, `opponentAliases`, `competition`, `scheduleUnknown`) may be absent.
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.init(
+      date: try container.decode(DayDate.self, forKey: .date),
+      time: try container.decodeIfPresent(ClockTime.self, forKey: .time),
+      isHome: try container.decode(Bool.self, forKey: .isHome),
+      opponentName: try container.decode(String.self, forKey: .opponentName),
+      opponentClubID: try container.decodeIfPresent(String.self, forKey: .opponentClubID),
+      opponentLogoURL: try container.decodeIfPresent(URL.self, forKey: .opponentLogoURL),
+      score: try container.decodeIfPresent(Score.self, forKey: .score),
+      round: try container.decodeIfPresent(Int.self, forKey: .round),
+      status: try container.decodeIfPresent(MatchStatus.self, forKey: .status),
+      statusText: try container.decode(String.self, forKey: .statusText),
+      venue: try container.decodeIfPresent(String.self, forKey: .venue),
+      opponentAliases: try container.decodeIfPresent([String].self, forKey: .opponentAliases) ?? [],
+      competition: try container.decodeIfPresent(String.self, forKey: .competition),
+      scheduleUnknown: try container.decodeIfPresent(Bool.self, forKey: .scheduleUnknown) ?? false)
+  }
+
+  /// T4.3, "Crea avversario": a new opponent named `opponentName` (whitespace collapsed, cut with `truncateAtWord`
+  /// to `FieldLimits.opponentName`), with `opponentAliases` as aliases, each whitespace collapsed, kept only when it
+  /// fits `FieldLimits.alias` and matches neither the name nor an earlier alias (`opponentsMatching` rules).
+  /// For tuttocampo and CSI fixtures it is `OpponentDraft(name: opponentName)`.
+  public var newOpponentDraft: OpponentDraft {
+    let name = truncateAtWord(opponentName.collapsedWhitespace, max: FieldLimits.opponentName).text
+    return OpponentDraft(name: name, aliases: importAliases(opponentAliases, notMatching: [name]))
+  }
+}
+
+extension Opponent {
+  /// T4.3, "Collega a esistente…": this opponent's draft with `fixture.opponentName`, then each of
+  /// `fixture.opponentAliases`, appended to `aliases` when it does not already match the opponent (its name, short
+  /// name or an alias, compared as `opponentsMatching` does) nor an earlier addition, and fits `FieldLimits.alias`.
+  /// Equal to `OpponentDraft(self)` when there is nothing to add (the caller may then skip the update).
+  public func draftAddingImportNames(of fixture: FetchedFixture) -> OpponentDraft {
+    var draft = OpponentDraft(self)
+    let known = [name] + [shortName].compactMap { $0 } + aliases
+    draft.aliases += importAliases([fixture.opponentName] + fixture.opponentAliases, notMatching: known)
+    return draft
+  }
+}
+
+/// `names` whitespace collapsed, without empty ones, those over `FieldLimits.alias`, and those whose
+/// `importNameKey` equals one of `known` or of an earlier name.
+func importAliases(_ names: [String], notMatching known: [String]) -> [String] {
+  var seen = Set(known.map(importNameKey))
+  var result: [String] = []
+  for name in names.map(\.collapsedWhitespace) where !name.isEmpty && name.count <= FieldLimits.alias {
+    let key = importNameKey(name)
+    guard !key.isEmpty, seen.insert(key).inserted else { continue }
+    result.append(name)
+  }
+  return result
 }
 
 /// Why a page that was read cannot be trusted. Nothing is imported for that team.
@@ -253,6 +330,18 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
   /// T4.9: the team has a CSI page but no team list is stored yet: "CSI: nessuna lettura per …, usa prima Importa
   /// da CSI…". Information.
   case csiTeamListMissing(team: String)
+  /// T4.3: the PDF `file` (its file name) gave no calendar; nothing is staged. `.layoutNotRecognised` reads
+  /// "Formato PDF non riconosciuto".
+  case pdfReadFailed(file: String, reason: PDFCalendarError)
+  /// T4.3: `PDFCalendar.Problem.incomplete`: "il PDF sembra incompleto". The rows read are still listed.
+  case pdfIncomplete(teams: Int, clubs: Int)
+  /// T4.3: `PDFCalendar.Problem.clubNotLinked`: the club `name` (page 1) is not in the club table; its home
+  /// matches need review.
+  case pdfClubNotLinked(name: String)
+  /// T4.3: `PDFCalendar.Problem.unreadableRow`: a match row that could not be split into two sides.
+  case pdfUnreadableRow(matchday: Int, text: String)
+  /// T4.3: our club rests on matchday `matchday` (`PDFCalendar.byes`): "Giornata 8: riposo". Information.
+  case pdfBye(matchday: Int)
 
   public var message: String {
     switch self {
@@ -285,18 +374,41 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
       return CoreStrings.standingsReadFailed(team) + " " + CoreStrings.importSourceChanged
     case .csiTeamListMissing(let team):
       return CoreStrings.csiTeamListMissing(team)
+    case .pdfReadFailed(let file, let reason):
+      return CoreStrings.pdfReadFailed(file) + " " + Self.text(for: reason)
+    case .pdfIncomplete(let teams, let clubs):
+      return CoreStrings.pdfIncomplete(teams: teams, clubs: clubs)
+    case .pdfClubNotLinked(let name):
+      return CoreStrings.pdfClubNotLinked(name)
+    case .pdfUnreadableRow(let matchday, let text):
+      return CoreStrings.pdfUnreadableRow(matchday, text)
+    case .pdfBye(let matchday):
+      return CoreStrings.pdfBye(matchday)
     }
   }
 
-  /// `false` for `.notYetAvailable`, `.logoFallback`, `.csiLogoUnavailable` and `.csiTeamListMissing`, which are
-  /// information.
+  /// `false` for `.notYetAvailable`, `.logoFallback`, `.csiLogoUnavailable`, `.csiTeamListMissing` and `.pdfBye`,
+  /// which are information.
   public var isError: Bool {
     switch self {
-    case .notYetAvailable, .logoFallback, .csiLogoUnavailable, .csiTeamListMissing: return false
+    case .notYetAvailable, .logoFallback, .csiLogoUnavailable, .csiTeamListMissing, .pdfBye: return false
     case .fetchFailed, .sourceProblem, .logoNotRecognised, .logoFailed, .csiPageReadFailed, .csiNotAGirone,
-      .csiNoFixturesOfOurs, .standingsReadFailed, .standingsChanged:
+      .csiNoFixturesOfOurs, .standingsReadFailed, .standingsChanged, .pdfReadFailed, .pdfIncomplete,
+      .pdfClubNotLinked, .pdfUnreadableRow:
       return true
     }
+  }
+
+  /// T4.3: the notices shown above the review of `calendar`: one per problem, in `problems` order
+  /// (`.pdfUnreadableRow`, `.pdfClubNotLinked`, `.pdfIncomplete`), then one `.pdfBye` per bye, in `byes` order.
+  public static func pdfNotices(for calendar: PDFCalendar) -> [ImportIssue] {
+    calendar.problems.map { problem in
+      switch problem {
+      case .clubNotLinked(let name): return .pdfClubNotLinked(name: name)
+      case .incomplete(let teams, let clubs): return .pdfIncomplete(teams: teams, clubs: clubs)
+      case .unreadableRow(let matchday, let text): return .pdfUnreadableRow(matchday: matchday, text: text)
+      }
+    } + calendar.byes.map { .pdfBye(matchday: $0) }
   }
 
   /// T4.8: the report line for a CSI page whose `PageFixtureParser` outcome gave nothing to stage;
@@ -310,6 +422,17 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
       return .csiNotAGirone(team: team)
     case .sourceProblem(.noFixturesOfOurs), .notYetAvailable:
       return .csiNoFixturesOfOurs(team: team, clubShortName: clubShortName)
+    }
+  }
+
+  private static func text(for reason: PDFCalendarError) -> String {
+    switch reason {
+    case .notAPDF: return CoreStrings.pdfNotAPDF
+    case .tooLarge:
+      return CoreStrings.pdfTooLarge(megabytes: PDFCalendar.maxFileSize / 1_048_576, pages: PDFCalendar.maxPages)
+    case .encrypted: return CoreStrings.pdfEncrypted
+    case .layoutNotRecognised: return CoreStrings.pdfLayoutNotRecognised
+    case .unavailable: return CoreStrings.pdfUnavailable
     }
   }
 
@@ -340,6 +463,15 @@ public func opponentsMatching(name: String, in opponents: [Opponent]) -> [Oppone
   }
 }
 
+/// The opponents `fixture` refers to: `opponentsMatching` on its `opponentName`; when none, those matching any of
+/// its `opponentAliases`, each once, in the order of `opponents`.
+func opponentsMatching(fixture: FetchedFixture, in opponents: [Opponent]) -> [Opponent] {
+  let byName = opponentsMatching(name: fixture.opponentName, in: opponents)
+  guard byName.isEmpty, !fixture.opponentAliases.isEmpty else { return byName }
+  let ids = Set(fixture.opponentAliases.flatMap { opponentsMatching(name: $0, in: opponents) }.map(\.id))
+  return opponents.filter { ids.contains($0.id) }
+}
+
 func importNameKey(_ name: String) -> String {
   searchKey(stripLegalPrefixes(name).replacingOccurrences(of: "’", with: "'"))
 }
@@ -368,6 +500,8 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
     case opponentAmbiguous
     /// `FetchedFixture.status` is `nil`.
     case unknownStatus
+    /// T4.3: `FetchedFixture.scheduleUnknown`: the day and time are not known; the match is entered by hand.
+    case scheduleUnknown
   }
 
   public var team: Team
@@ -376,8 +510,8 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
   public var opponent: Opponent?
   /// The team's match on the fixture's date (the `MatchDraft.importKey` row), if any.
   public var existing: MatchDetail?
-  /// What the import writes, with source `.scrape`. `nil` when the opponent is not resolved or the
-  /// status not recognised (state `.needsReview`, or `.locked`). The UI may edit it before
+  /// What the import writes, with the source given to `make`. `nil` when the opponent is not resolved, the
+  /// status not recognised or the schedule unknown (state `.needsReview`, or `.locked`). The UI may edit it before
   /// committing (the away venue, see `isVenueMissing`).
   public var draft: MatchDraft?
   public var state: State
@@ -400,6 +534,7 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
       case .opponentNotFound: return CoreStrings.reviewOpponentNotFound(fixture.opponentName)
       case .opponentAmbiguous: return CoreStrings.reviewOpponentAmbiguous(fixture.opponentName)
       case .unknownStatus: return CoreStrings.reviewUnknownStatus(fixture.statusText)
+      case .scheduleUnknown: return CoreStrings.reviewScheduleUnknown(fixture.opponentName)
       }
     }
   }
@@ -419,39 +554,46 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
 
   /// Matches `fixture` of `team` to our data.
   ///
-  /// - Opponent: `linkedOpponentID` when given (the user linked it), else `opponentsMatching`; none
-  ///   or several → review.
+  /// - Opponent: `linkedOpponentID` when given (the user linked it), else `opponentsMatching` on
+  ///   `fixture.opponentName`; when that finds none, the opponents matching any of `fixture.opponentAliases`
+  ///   (each once, in the order of `opponents`); none or several → review.
   /// - Existing match: the one in `existingMatches` with the same team and date.
-  /// - Draft, when the opponent is known and the status recognised:
+  /// - Draft, when the opponent is known, the status recognised and the schedule known:
   ///   - new match: team, opponent, date, time, home/away, round, status, score from the fixture;
   ///     venue `homeVenue` at home; away, the fixture's `venue` (whitespace collapsed, cut with
-  ///     `truncateAtWord` to `FieldLimits.venue`), or empty when it has none;
+  ///     `truncateAtWord` to `FieldLimits.venue`), or empty when it has none; competition the fixture's
+  ///     (whitespace collapsed, cut to `FieldLimits.competition`), `nil` when it has none;
   ///   - existing match: starts from it and takes the opponent, home/away, status and score from the
   ///     fixture, plus time and round when the fixture has them; half-time is kept only for a played
   ///     match; the venue is kept unless it is empty or home/away changed, then it becomes the new
-  ///     match's venue (above). Competition and notes are kept.
-  ///   - source is always `.scrape`; `isLocked` is the existing match's.
+  ///     match's venue (above). Notes are kept; competition is kept, or becomes the fixture's when the match
+  ///     has none.
+  ///   - source is `source` (`.scrape` for tuttocampo and CSI, `.pdf` for T4.3); `isLocked` is the existing match's.
   /// - State: `.locked` when the existing match is locked (draft still shown); else `.needsReview`
   ///   when there is a review reason; else `.new` without an existing match; else `.unchanged` when
   ///   the normalised draft equals the existing match's (ignoring `source`), `.changed` otherwise.
   public static func make(
     fixture: FetchedFixture, team: Team, opponents: [Opponent], existingMatches: [MatchDetail], homeVenue: String,
-    linkedOpponentID: EntityID? = nil
+    linkedOpponentID: EntityID? = nil, source: MatchSource = .scrape
   ) -> ImportCandidate {
     let found =
       linkedOpponentID.map { id in opponents.filter { $0.id == id } }
-      ?? opponentsMatching(name: fixture.opponentName, in: opponents)
+      ?? opponentsMatching(fixture: fixture, in: opponents)
     let opponent = found.count == 1 ? found[0] : nil
     var reasons: [ReviewReason] = []
     if found.isEmpty { reasons.append(.opponentNotFound) }
     if found.count > 1 { reasons.append(.opponentAmbiguous) }
     if fixture.status == nil { reasons.append(.unknownStatus) }
+    if fixture.scheduleUnknown { reasons.append(.scheduleUnknown) }
     let existing = existingMatches.first { $0.match.teamID == team.id && $0.match.date == fixture.date }
 
     var draft: MatchDraft?
-    if let opponent, let status = fixture.status {
+    if let opponent, let status = fixture.status, !fixture.scheduleUnknown {
       let awayVenue = fixture.venue.map { truncateAtWord($0.collapsedWhitespace, max: FieldLimits.venue).text } ?? ""
       let venueForSide = fixture.isHome ? homeVenue : awayVenue
+      let competition = fixture.competition.map {
+        truncateAtWord($0.collapsedWhitespace, max: FieldLimits.competition).text
+      }
       if let existing {
         var updated = MatchDraft(existing.match)
         updated.opponentID = opponent.id
@@ -464,12 +606,14 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
         updated.score = fixture.score
         if status != .played { updated.halfTime = nil }
         if let round = fixture.round { updated.round = round }
-        updated.source = .scrape
+        if updated.competition?.collapsedWhitespace.nilIfEmpty == nil { updated.competition = competition }
+        updated.source = source
         draft = updated.normalized()
       } else {
         draft = MatchDraft(
           teamID: team.id, opponentID: opponent.id, date: fixture.date, time: fixture.time, isHome: fixture.isHome,
-          venue: venueForSide, round: fixture.round, status: status, score: fixture.score, source: .scrape
+          venue: venueForSide, competition: competition, round: fixture.round, status: status, score: fixture.score,
+          source: source
         ).normalized()
       }
     }

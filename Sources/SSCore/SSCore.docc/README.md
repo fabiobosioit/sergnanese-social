@@ -43,6 +43,8 @@ what the contract means.
 | `Import.swift` | T4.2: `FixtureSource`, `FetchedFixture`, `FixtureFetch`, `FixtureHealthProblem`, `FixtureFetchError`, `LogoRequest`, `LogoResult`, `ImportIssue`, `ImportCandidate`, `opponentsMatching` |
 | `Tuttocampo.swift` | T4.2: widget ids, ClubIds, `Teams/200` logo URLs, imported logo file names (pure functions) |
 | `CSI.swift` | T4.8: CSI page addresses and keys, CSI team ids and logo file names, `CSIPageReadError`, `PageFixtureParser`, `CSILogoRequest`, `CSILogoData`, `CSILogoResult`, `PageLogoSource`, `storeCSILogos(_:in:)` |
+| `OpponentDownload.swift` | T4.9: `TeamListSource`, `SourceTeam`, `SourceTeamList`, `LeagueTeamsFetch`, `OpponentCandidate`, `OpponentImportPlan` and the merge choices |
+| `PDFCalendar.swift` | T4.3: `PDFCalendar` (matchdays, clubs, our fixtures, byes, problems), `PDFCalendarError`, `PDFCalendarParser` |
 | `Warnings.swift` | `RenderWarning`, `matchWarnings(for:teamNameLimit:)` |
 | `RenderContext.swift` | `SingleContext`, `ListContext` and their parts, `TemplateURLs` |
 | `TemplateManifest.swift` | `TemplateManifest`, its enums and limits, `isValidTemplateID`, `compareTemplateVersions` |
@@ -83,6 +85,14 @@ These are deliberate. They were made in T0.2 and the plan text still shows the e
   `isValidImportedLogoFileName` also accepts `csi-[a-z0-9-]{1,60}.png`; `AppServices.csiPageParser` (defaults to a
   parser that answers "not a CSI girone"); the types and functions in `CSI.swift`. `FixtureSource` is unchanged.
   `PageLogoSource` is not in `AppServices`: the CSI browser window is the logo source while it is open.
+- T4.3 contract step (Wave 4, backward compatible): the types in `PDFCalendar.swift`; `AppServices.pdfCalendarParser`
+  (defaults to a parser that throws `PDFCalendarError.unavailable`); `FetchedFixture.opponentAliases`, `competition`
+  and `scheduleUnknown` (all defaulted, and optional in JSON); `FetchedFixture.newOpponentDraft` and
+  `Opponent.draftAddingImportNames(of:)` for "Crea avversario" / "Collega a esistente…";
+  `ImportCandidate.make(…, source:)` (default `.scrape`), which also finds the opponent through
+  `opponentAliases`, fills an empty competition, and has the review reason `.scheduleUnknown`; five PDF cases of
+  `ImportIssue` and `ImportIssue.pdfNotices(for:)`. Whether the team picked for a PDF is remembered per category
+  is decided "no" (no stored setting).
 - Added, because Wave 1–2 tasks need them: `MatchRepository.get`, `count(source:)` and
   `deleteAll(source:)`; `OpponentRepository.matchCounts`; `DemoDataLoader.remove`;
   `AppPaths.latestBackupDate`; and the pure helpers `matchWarnings`, `formatWeekend`,

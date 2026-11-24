@@ -301,6 +301,9 @@ public struct AppServices: Sendable {
   /// Team lists kept from the CSI pages the user read (T4.9). Containers built without one get a store that
   /// keeps nothing.
   public var sourceTeamLists: any SourceTeamListRepository
+  /// Federation calendar PDFs (T4.3). Containers built without one get a parser that throws
+  /// `PDFCalendarError.unavailable`.
+  public var pdfCalendarParser: any PDFCalendarParser
 
   public init(
     teams: any TeamRepository, opponents: any OpponentRepository, matches: any MatchRepository,
@@ -308,7 +311,8 @@ public struct AppServices: Sendable {
     templates: any TemplateStore, renderer: any RenderService, demoData: any DemoDataLoader, paths: AppPaths,
     fixtureSource: any FixtureSource = UnavailableFixtureSource(),
     csiPageParser: any PageFixtureParser = UnavailablePageFixtureParser(),
-    sourceTeamLists: any SourceTeamListRepository = UnavailableSourceTeamListRepository()
+    sourceTeamLists: any SourceTeamListRepository = UnavailableSourceTeamListRepository(),
+    pdfCalendarParser: any PDFCalendarParser = UnavailablePDFCalendarParser()
   ) {
     self.teams = teams
     self.opponents = opponents
@@ -323,5 +327,6 @@ public struct AppServices: Sendable {
     self.fixtureSource = fixtureSource
     self.csiPageParser = csiPageParser
     self.sourceTeamLists = sourceTeamLists
+    self.pdfCalendarParser = pdfCalendarParser
   }
 }

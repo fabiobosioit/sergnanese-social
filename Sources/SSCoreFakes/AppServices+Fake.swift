@@ -21,8 +21,9 @@ extension AppServices {
   /// app). The fixture source is `FakeFixtureSource.scenario` around `dataSet.referenceSaturday`, with
   /// `renderDelay` as its fetch delay; the CSI page parser is `FakePageFixtureParser.scenario` around the
   /// same Saturday. The team lists hold `FakePageFixtureParser.scenarioTeams` for the team with the scenario's
-  /// CSI page (Pulcini), read two days before that Saturday. Render `file` paths that are relative are resolved against the output folder, and a
-  /// flat PNG is written for each record except those in `missingRenderFileIDs`.
+  /// CSI page (Pulcini), read two days before that Saturday. The PDF parser is `FakePDFCalendarParser.scenario` around
+  /// the same Saturday. Render `file` paths that are relative are resolved against the output folder, and a flat PNG
+  /// is written for each record except those in `missingRenderFileIDs`.
   @MainActor
   public static func fake(dataSet: FakeDataSet, renderDelay: Duration = .milliseconds(150)) throws -> AppServices {
     let paths = try AppPaths.temporary()
@@ -77,6 +78,7 @@ extension AppServices {
       fixtureSource: FakeFixtureSource.scenario(
         referenceSaturday: data.referenceSaturday, logos: logos, delay: renderDelay),
       csiPageParser: FakePageFixtureParser.scenario(referenceSaturday: data.referenceSaturday),
-      sourceTeamLists: sourceTeamLists)
+      sourceTeamLists: sourceTeamLists,
+      pdfCalendarParser: FakePDFCalendarParser.scenario(referenceSaturday: data.referenceSaturday))
   }
 }
