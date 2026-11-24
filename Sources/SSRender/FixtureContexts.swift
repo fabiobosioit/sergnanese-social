@@ -5,9 +5,15 @@ import SSCore
 /// `ss-tool demo-render`). Fixture contexts were built for the documented example limits, so they
 /// are cut again to the template's own limits before use.
 public enum FixtureContexts {
-  /// The standard fixture of a template kind: `single.context.json` or `list.context.json`.
-  public static func standardFile(for kind: TemplateKind, in fixtures: URL) -> URL {
-    fixtures.appendingPathComponent(kind == .single ? "single.context.json" : "list.context.json")
+  /// The standard fixture of a template: recap → `list-results.context.json`, other lists →
+  /// `list.context.json`, singles → `single.context.json`.
+  public static func standardFile(for manifest: TemplateManifest, in fixtures: URL) -> URL {
+    let name =
+      switch manifest.kind {
+      case .single: "single"
+      case .list: manifest.isResultsRecap ? "list-results" : "list"
+      }
+    return fixtures.appendingPathComponent("\(name).context.json")
   }
 
   /// Decodes a fixture file for `manifest`, cut to its limits. A list fixture is sliced to the

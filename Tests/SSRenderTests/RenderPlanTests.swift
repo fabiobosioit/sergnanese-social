@@ -44,6 +44,80 @@ import Testing
     #expect(Set(plan.warnings) == Set(plan.images.flatMap(\.warnings)))
   }
 
+  // MARK: Results recap (T4.5a)
+
+  /// `count` matches: the first `saturdayCount` on Saturday, the rest on Sunday.
+  func recapMatches(saturday saturdayCount: Int, sunday sundayCount: Int) -> [Match] {
+    TestData.manyMatches(saturdayCount, date: TestData.saturday).map {
+      var m = $0; m.id = "s" + m.id; return m
+    }
+      + TestData.manyMatches(sundayCount)
+  }
+
+  func recapPlan(_ matches: [Match], template: String = "story-results") throws -> RenderPlan {
+    try service(TestData.database(matches: matches)).plan(
+      RenderRequest(
+        from: TestData.saturday, to: TestData.sunday,
+        selections: [TemplateSelection(templateID: template, matchIDs: matches.map(\.id))]))
+  }
+
+  @Test func recapIsOneSetOfPagesForTheWholeWeekend() throws {
+    let plan = try recapPlan(recapMatches(saturday: 3, sunday: 5))
+    #expect(plan.images.count == 1)
+    #expect(plan.images[0].date == TestData.saturday)
+    #expect(plan.images[0].fileName == "2026-11-21_story-results_1of1.png")
+    #expect(plan.images[0].matchIDs.count == 8)
+  }
+
+  @Test func recapWith13MatchesGivesTwoPagesBothDatedSaturday() throws {
+    let plan = try recapPlan(recapMatches(saturday: 6, sunday: 7))
+    #expect(plan.images.map { $0.page?.label } == ["1/2", "2/2"])
+    #expect(plan.images.allSatisfy { $0.date == TestData.saturday })
+    #expect(plan.images.map(\.fileName) == ["2026-11-21_story-results_1of2.png", "2026-11-21_story-results_2of2.png"])
+  }
+
+  @Test func programmeStillGivesOneSetPerDay() throws {
+    let plan = try recapPlan(recapMatches(saturday: 3, sunday: 5), template: "story-programme")
+    #expect(plan.images.count == 2)
+    #expect(Set(plan.images.map(\.date)) == [TestData.saturday, TestData.sunday])
+  }
+
+  @Test func defaultPlanNeverIncludesARecap() throws {
+    let played = recapMatches(saturday: 2, sunday: 2).map {
+      var m = $0; m.score = Score(us: 1, them: 0); return m
+    }
+    let plan = try service(TestData.database(matches: played)).plan(
+      RenderRequest(from: TestData.saturday, to: TestData.sunday))
+    #expect(!plan.selections.contains { $0.templateID == "story-results" })
+    #expect(!plan.images.contains { $0.templateID == "story-results" })
+  }
+
+  @Test func standardFixtureFollowsTheManifest() {
+    let fixtures = URL(fileURLWithPath: "/f")
+    func name(_ id: String) -> String {
+      let manifest = FakeTemplateStore.builtinManifests.first { $0.id == id }!
+      return FixtureContexts.standardFile(for: manifest, in: fixtures).lastPathComponent
+    }
+    #expect(name("story-results") == "list-results.context.json")
+    #expect(name("story-programme") == "list.context.json")
+    #expect(name("post-prematch") == "single.context.json")
+  }
+
+  @Test func previewOfARecapWithoutMatchesUsesTheResultsFixture() async throws {
+    let paths = try AppPaths.temporary()
+    let database = TestData.database(matches: [])
+    let builder = TemplateRenderService(
+      templates: FakeTemplateStore(folder: paths.templates), matches: FakeMatchRepository(database: database),
+      renders: FakeRenderRepository(database: database), settings: FakeSettingsRepository(database: database),
+      paths: paths)
+    let manifest = FakeTemplateStore.builtinManifests.first { $0.id == "story-results" }!
+    let context = try FixtureContexts.load(
+      FixtureContexts.standardFile(for: manifest, in: paths.fixtures), for: manifest)
+    guard case .list(let list) = context else { Issue.record("not a list"); return }
+    #expect(list.title == "Risultati del weekend")
+    _ = builder
+  }
+
   @Test func nextFixtureWeekendNeedsTwoProgrammePages() throws {
     let dataSet = try Fixtures.dataSet()
     let plan = try service(FakeDatabase(dataSet)).plan(

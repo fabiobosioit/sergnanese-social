@@ -46,11 +46,19 @@ public struct ContextBuilder: Sendable {
 
   /// The pages of a `list` template: matches sorted by `MatchDetail.scheduleOrder` and sliced to the
   /// manifest's `pageSize`. The title and date label describe all the given matches (one day: "Oggi in
-  /// campo" and the long date; several days: "Weekend in campo" and the range). Empty input → no pages.
+  /// campo" and the long date; several days: "Weekend in campo" and the range). A results recap
+  /// (`manifest.isResultsRecap`) is titled "Risultati del weekend" for one Saturday + Sunday, else
+  /// "Risultati". Empty input → no pages.
   public func pages(_ details: [MatchDetail]) -> [Page] {
     let sorted = details.sorted(by: MatchDetail.scheduleOrder)
     guard let first = sorted.first?.match.date, let last = sorted.last?.match.date else { return [] }
-    let title = first == last ? RenderStrings.titleOneDay : RenderStrings.titleManyDays
+    let title: String
+    if manifest.isResultsRecap {
+      let oneWeekend = first.isoWeekday == 6 && last == first.adding(days: 1)
+      title = oneWeekend ? RenderStrings.recapTitleWeekend : RenderStrings.recapTitle
+    } else {
+      title = first == last ? RenderStrings.titleOneDay : RenderStrings.titleManyDays
+    }
     let dateLabel = first == last ? formatDateLong(first) : Self.rangeLabel(from: first, to: last)
     let pageSize = max(manifest.pageSize ?? 10, 1)
     let chunks = stride(from: 0, to: sorted.count, by: pageSize).map {
@@ -110,8 +118,13 @@ public struct ContextBuilder: Sendable {
       name: opponent.name, displayName: displayName(for: opponent, limit: limits.teamName).text, logo: opponentLogo,
       initials: initials(opponent.name), isUs: false, score: match.score?.them, halfTimeScore: match.halfTime?.them)
 
-    warnings += requiredFieldWarnings(match)
+    let notPlayed = match.status == .postponed || match.status == .cancelled
+    // In a results recap a postponed or cancelled row is shown as such ("Rinviata"), not warned about.
+    let quiet = manifest.isResultsRecap && notPlayed
+    if !quiet { warnings += requiredFieldWarnings(match) }
     switch match.status {
+    case _ where quiet:
+      break
     case .postponed:
       warnings.append(RenderWarning(kind: .matchNotScheduled, message: RenderStrings.matchPostponed, matchID: match.id))
     case .cancelled:

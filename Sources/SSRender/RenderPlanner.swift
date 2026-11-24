@@ -13,7 +13,8 @@ struct PlanItem: Sendable {
 /// Default plan (no selections): every `list` template with purpose `.programme` takes every match
 /// in the range, and every `single` template with purpose `.prematch` takes the first team's matches;
 /// postponed and cancelled matches are left out and reported as skipped. A `list` template makes one
-/// set of pages per day; a `single` template one image per match.
+/// set of pages per day; a `single` template one image per match; a results recap
+/// (`isResultsRecap`, never in the default plan) one set of pages for the whole selection.
 struct RenderPlanner: Sendable {
   var templates: any TemplateStore
   var matches: any MatchRepository
@@ -73,6 +74,16 @@ struct RenderPlanner: Sendable {
           templateID: manifest.id, matchIDs: [detail.id], date: detail.match.date, page: nil, fileName: fileName,
           width: manifest.width, height: manifest.height, warnings: Self.unique(warnings))
         return PlanItem(image: image, template: template, context: .single(context))
+      }
+    case .list where manifest.isResultsRecap:
+      guard let day = sorted.first?.match.date else { return [] }
+      return builder.pages(sorted).map { page in
+        let info = page.context.page
+        let image = PlannedImage(
+          templateID: manifest.id, matchIDs: page.matches.map(\.id), date: day, page: info,
+          fileName: renderFileName(date: day, templateID: manifest.id, page: info), width: manifest.width,
+          height: manifest.height, warnings: Self.unique(page.warnings))
+        return PlanItem(image: image, template: template, context: .list(page.context))
       }
     case .list:
       let days = Dictionary(grouping: sorted, by: \.match.date)

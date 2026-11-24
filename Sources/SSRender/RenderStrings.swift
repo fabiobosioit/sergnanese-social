@@ -77,6 +77,8 @@ enum RenderStrings {
   // List titles
   static let titleOneDay = "Oggi in campo"
   static let titleManyDays = "Weekend in campo"
+  static let recapTitle = "Risultati"
+  static let recapTitleWeekend = "Risultati del weekend"
 
   private static func format(_ value: Double) -> String {
     value.rounded() == value ? String(Int(value)) : String(format: "%.1f", value)

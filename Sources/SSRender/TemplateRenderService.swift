@@ -164,7 +164,7 @@ public final class TemplateRenderService: RenderService {
     if matchIDs.isEmpty {
       let builder = ContextBuilder(settings: clubSettings, manifest: manifest)
       context = try FixtureContexts.load(
-        FixtureContexts.standardFile(for: manifest.kind, in: paths.fixtures), for: manifest, club: builder.club)
+        FixtureContexts.standardFile(for: manifest, in: paths.fixtures), for: manifest, club: builder.club)
       logosFolder = paths.fixtures.appendingPathComponent("logos", isDirectory: true)
     } else {
       let details = try matchIDs.map { try matches.get(id: $0) }
