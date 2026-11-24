@@ -162,11 +162,35 @@ import Testing
     #expect(candidate.draft?.score == nil && candidate.draft?.halfTime == nil)
   }
 
-  @Test func withoutAStoredScoreTheFixtureStatusIsTaken() {
-    // C3 protects a stored final score only: a half-time score alone follows the fixture, as before T4.5.
-    let halfOnly = make(fixture(), existing: [stored(status: .played, halfTime: Score(us: 1, them: 0))])
-    #expect(halfOnly.state == .changed && halfOnly.draft?.status == .scheduled)
-    #expect(halfOnly.draft?.score == nil && halfOnly.draft?.halfTime == nil)
+  @Test(arguments: [MatchStatus.scheduled, .played])
+  func fixtureWithoutScoreKeepsATypedHalfTimeAlone(_ status: MatchStatus) {
+    let half = Score(us: 1, them: 0)
+    // Stored as scheduled with only the half-time typed: nothing changes.
+    let scheduled = make(fixture(status: status), existing: [stored(status: .scheduled, halfTime: half)])
+    #expect(scheduled.draft?.halfTime == half && scheduled.draft?.score == nil)
+    #expect(scheduled.draft?.status == status && scheduled.state == (status == .scheduled ? .unchanged : .changed))
+    // The status still follows the fixture: a half-time alone does not protect it.
+    let played = make(fixture(status: status), existing: [stored(status: .played, halfTime: half)])
+    #expect(played.draft?.halfTime == half && played.draft?.status == status)
+  }
+
+  @Test func fixtureScoreWinsOverATypedHalfTimeAlone() {
+    let half = Score(us: 1, them: 0)
+    let candidate = make(
+      fixture(status: .played, score: Score(us: 2, them: 0)), existing: [stored(status: .scheduled, halfTime: half)])
+    #expect(candidate.state == .changed && candidate.draft?.status == .played)
+    #expect(candidate.draft?.score == Score(us: 2, them: 0) && candidate.draft?.halfTime == half)
+  }
+
+  @Test(arguments: [MatchStatus.postponed, .cancelled])
+  func postponedOrCancelledFixtureClearsATypedHalfTimeAlone(_ status: MatchStatus) {
+    let candidate = make(
+      fixture(status: status), existing: [stored(status: .scheduled, halfTime: Score(us: 1, them: 0))])
+    #expect(candidate.state == .changed && candidate.draft?.status == status)
+    #expect(candidate.draft?.score == nil && candidate.draft?.halfTime == nil)
+  }
+
+  @Test func withoutAStoredResultTheFixtureIsTaken() {
     let plain = make(fixture(status: .played, score: Score(us: 1, them: 1)), existing: [stored()])
     #expect(plain.state == .changed && plain.draft?.score == Score(us: 1, them: 1))
   }
