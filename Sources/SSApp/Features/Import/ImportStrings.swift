@@ -107,6 +107,26 @@ enum ImportStrings {
   static let linkNoResults = "Nessun avversario trovato"
   static let linkChoose = "Collega"
 
+  // Opponent matching (T4.10)
+  static let proposedTag = "Proposto"
+  static let proposedAccessibility = "Abbinamento proposto"
+  static let proposedSymbol = "link.badge.plus"
+  static func proposedLine(_ name: String) -> String { "Abbinato a «\(name)» (proposta automatica)" }
+  static let confirm = "Conferma"
+  static let confirmHelp = "Accetta l'abbinamento proposto."
+  static let change = "Cambia…"
+  static let changeOpponentAction = "Cambia avversario…"
+  static func changeOpponentAccessibility(_ name: String) -> String { "Cambia avversario di \(name)" }
+  static func matchedTo(_ name: String) -> String { "Abbinato a «\(name)»" }
+  static let pickerProposed = "Proposti"
+  static let pickerAll = "Tutti gli avversari"
+  static func pickerCreate(_ name: String) -> String { "Crea nuovo «\(name)»" }
+  static let changeMessage =
+    "L'avversario scelto sostituisce quello abbinato; i nomi letti vengono salvati come alias quando importi."
+  static func matchCounts(matched: Int, proposed: Int, toLink: Int) -> String {
+    "\(matched) abbinati, \(proposed) proposti, \(toLink) da collegare"
+  }
+
   // Footer and summary
   static func selected(_ count: Int, of total: Int) -> String {
     count == 1 ? "1 partita selezionata su \(total)" : "\(count) partite selezionate su \(total)"

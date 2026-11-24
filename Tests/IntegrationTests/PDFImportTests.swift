@@ -117,4 +117,73 @@ struct PDFImportTests {
     #expect(sunday.match.time == (try ClockTime("09:30")))
     #expect(sunday.match.source == .pdf)
   }
+
+  /// T4.10: opponents already stored under other spellings. The review links the exact one, proposes the close one,
+  /// finds nothing for the rest; after the import (names saved as aliases, as `ImportModel.commit` does) every
+  /// row is exact.
+  @Test func storedOpponentsSpelledDifferentlyAreExactProposedOrNone() async throws {
+    let env = try Env()
+    let main = settings(short: "SERGNANESE")
+    try env.database.settings.save(main)
+    let team = try env.database.teams.create(
+      TeamDraft(name: "Esordienti femminile", shortLabel: "Femm", isFirstTeam: true))
+    let tre = try env.database.opponents.create(OpponentDraft(name: "U.S. Esempio Tre 1970 S.r.l."))
+    let quattro = try env.database.opponents.create(OpponentDraft(name: "Esempio Quattro 1911 Milano"))
+    let calendar = try FederationPDFParser().parse(pdf: try fixturePDF("calendar-sample"), settings: main)
+
+    func review() throws -> [ImportCandidate] {
+      let existing = try env.database.matches.list(from: from, to: to, teamID: team.id)
+      let opponents = try env.database.opponents.list()
+      return calendar.fixtures.map {
+        ImportCandidate.make(
+          fixture: $0, team: team, opponents: opponents, existingMatches: existing, homeVenue: main.homeVenue,
+          source: .pdf)
+      }
+    }
+    func candidate(_ rows: [ImportCandidate], _ name: String) throws -> ImportCandidate {
+      try #require(rows.first { $0.fixture.opponentName == name })
+    }
+
+    let first = try review()
+    let exact = try candidate(first, "ESEMPIO TRE 1970")
+    #expect(exact.opponentMatch == .exact)
+    #expect(exact.opponent?.id == tre.id)
+    let proposed = try candidate(first, "ESEMPIO QUATTRO 1911")
+    #expect(proposed.opponentMatch == .proposed)
+    #expect(proposed.opponent?.id == quattro.id)
+    #expect(proposed.reviewReasons.isEmpty)
+    #expect(proposed.draft != nil)
+    let others = first.filter { ![.exact, .proposed].contains($0.opponentMatch) }
+    #expect(others.count == 6)
+    #expect(others.allSatisfy { [.notFound, .ambiguous].contains($0.opponentMatch) })
+    #expect(others.allSatisfy { $0.opponent == nil && $0.draft == nil })
+    #expect(try env.database.opponents.list().count == 2)  // reviewing wrote nothing
+
+    // The user creates the others and accepts the proposal; Importa saves the names, then the matches.
+    var rows = [exact, proposed]
+    for row in others {
+      let created = try env.database.opponents.create(row.fixture.newOpponentDraft)
+      let rebuilt = ImportCandidate.make(
+        fixture: row.fixture, team: team, opponents: try env.database.opponents.list(), existingMatches: [],
+        homeVenue: main.homeVenue, linkedOpponentID: created.id, source: .pdf)
+      rows.append(rebuilt)
+    }
+    for row in rows {
+      guard let opponent = row.opponent, [.exact, .proposed, .linked].contains(row.opponentMatch) else { continue }
+      let current = try env.database.opponents.get(id: opponent.id)
+      let draft = current.draftAddingImportNames(of: row.fixture)
+      if draft != OpponentDraft(current) { _ = try env.database.opponents.update(id: current.id, with: draft) }
+    }
+    let summary = try env.database.matches.upsertFromImport(rows.compactMap(\.draft))
+    #expect(summary == ImportSummary(inserted: 8, updated: 0, skippedLocked: 0))
+    #expect(try env.database.opponents.get(id: quattro.id).aliases.contains("ESEMPIO QUATTRO 1911"))
+    #expect(try env.database.opponents.get(id: quattro.id).name == "Esempio Quattro 1911 Milano")
+    #expect(try env.database.opponents.get(id: tre.id).name == "U.S. Esempio Tre 1970 S.r.l.")
+    #expect(try env.database.opponents.list().count == 8)
+
+    // The same file again: every row is exact and unchanged.
+    let again = try review()
+    #expect(again.allSatisfy { $0.opponentMatch == .exact })
+    #expect(again.allSatisfy { $0.state == .unchanged })
+  }
 }
