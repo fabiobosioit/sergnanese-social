@@ -17,7 +17,8 @@ From here on the user has real data on this Mac. Every task keeps working in the
 | T4.7 Developer-ID signing and in-app updates | `release-engineer` | sonnet | paid Apple Developer account |
 | T4.8 CSI Live import (matches, names, logos) through an in-app browser | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | CSI terms-of-use check, a page saved by the user, team → page mapping |
 | T4.9 Download all opponents (names + logos) from the tuttocampo standings and the CSI pages already read | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract) + sonnet | T4.2 and T4.8 merged |
-| T4.10 Opponent matching: pre-filled links and proposals in every import review | `foundation-architect` (contract + matcher), `ui-dev` | opus medium (contract) + sonnet | T4.3 merged (done) |
+| T4.10 Opponent matching: pre-filled links and proposals in every import review | `foundation-architect` (contract + matcher), `ui-dev` | opus medium (contract) + sonnet | **merged 2026-11-24** |
+| T4.11 Tuttocampo season import: every matchday of each team, from today or the whole season | `render-engineer` (spike, source), `foundation-architect` (contract), `ui-dev`, `core-dev` | opus medium (contract) + sonnet | T4.2 merged (done); tuttocampo terms check covering ~30 requests per team |
 
 ---
 
@@ -602,3 +603,116 @@ Escalation is unchanged: retry once on the same model with the reviewer's findin
 - An automatic link (exact or proposed) never renames an opponent. It only adds aliases on import.
 - A proposal never replaces an exact match, and two proposals never pre-fill.
 - Dev data folder only. Test names are invented, apart from the club names already in this sheet (public league data).
+
+---
+
+## T4.11 — Tuttocampo season import: every matchday of each team
+
+**Goal (user, 2026-11-24):** import all the season's matches of each team at once, not only this weekend's. CSI (T4.8) and PDF (T4.3) already bring a whole calendar per page or file. Tuttocampo (T4.2) reads only the widget's default matchday, so this task covers tuttocampo.
+
+### Facts (T4.2 spike, `docs/plan/notes/t4.2-spike.md`)
+
+- Any matchday can be read: `https://www.tuttocampo.it/WidgetV2/Risultati/<id>/<N>?y=2026-27`. The page's own matchday strip links to these; `y` is optional and defaults to the current season.
+- The page head has `var currentMatchDay='11';var matchesNumber='30';`. The spike read `matchesNumber` as "matches in the season". But the widget with `30` is a **16-team** league, and (16 − 1) × 2 = 30, so it is most likely the **number of matchdays**. Step 1 confirms this.
+- The empty state ("Risultati non ancora disponibili.") has `matchesNumber=''`, no table and no strip.
+- A request costs ~1 s of spacing (`TuttocampoHTTPClient`'s `RequestSpacer`, `minimumInterval` 1 s), with no retries.
+
+### Decisions in this plan (change them before Step 2 if you disagree)
+
+| # | Decision |
+|---|---|
+| 1 | The import scope is chosen in a small start panel of the existing "Importa da Tuttocampo…" command. **Questo weekend** is today's behaviour and the default. **Da oggi a fine stagione** reads from the current matchday to the last; use it regularly, it needs fewer requests. **Tutta la stagione** reads from matchday 1 to the last, results included; use it at the start of a phase or to fill the archive. |
+| 2 | Team choice: a checklist of active teams with a widget ID, all ticked by default. One team or all of them in one run. |
+| 3 | Before starting, the panel shows an estimate: "circa N richieste, circa M minuti". N = the remaining (or all) matchdays summed over the ticked teams, taken from the last import when known, else 30 per team. |
+| 4 | Requests run **one at a time**, through the existing spacing (≥ 1 s apart), only after the user presses Avvia. No polling, no background or scheduled run, no retries. Hard caps: 60 matchdays per team, 400 page requests per run. |
+| 5 | A matchday page without our row is a **bye** ("Giornata 8: riposo"), shown as information, not an error. |
+| 6 | A failed matchday is listed in the report and the run goes on. After 3 failures in a row for one team, that team stops ("lettura interrotta dopo la giornata N"). Cancelling keeps every row already read. |
+| 7 | The usual review sheet. Default ticks: every new or changed row dated today or later; with **Tutta la stagione**, past new or changed rows too (the user asked for them). Unchanged and locked rows are never ticked; locked matches are never overwritten (existing rule). |
+| 8 | Opponents are matched as in every import (T4.10: exact, proposed, none). Logos are deduplicated by ClubId over the whole run, and only missing ones are downloaded (existing logo rule). |
+| 9 | Season length: `matchesNumber` when Step 1 confirms it. Otherwise, after the current matchday, read on until the first page with no results table, or the page whose matchday strip has no higher entry, within the 60-matchday cap. |
+
+### Review sheet with many rows
+
+A season run gives up to ~30 rows per team (≈ 240 for 8 teams). Grouping by weekend stays. Added:
+- a **team filter** (pop-up: "Tutte le squadre" or one team);
+- **past weekends collapsed** by default when the scope includes them;
+- a header line: "N partite in N giornate, N squadre; N riposi; N giornate non lette";
+- "Seleziona tutte / nessuna" for the visible rows.
+
+### Step 1 — spike (no app code; notes and sanitised fixtures only)
+
+On two widgets (the 16-team adult one and one youth widget), about 10 requests in total, spaced. Record:
+- `matchesNumber` against the number of teams in the Classifica: is it the number of matchdays?
+- matchday 1, the last matchday, and last + 1: what does a page beyond the end return (empty state, error, the last matchday again)?
+- a matchday where Sergnanese rests (from the strip, if the league has an odd number of teams);
+- future matchdays: are dates shown, are times shown or blank ("da definire")?
+- whether `?y=` must be sent for the season after the turn of the year.
+
+Output: a "Season" section in `docs/plan/notes/t4.2-spike.md` and sanitised fixtures under `Tests/Fixtures/tuttocampo/`: `risultati-matchday-1.html`, `risultati-matchday-last.html`, `risultati-beyond-end.html`, `risultati-bye.html`, `risultati-future-no-time.html` (invented names, placeholder logos).
+
+### Contract changes (`foundation-architect`)
+
+- `public enum SeasonScope: Sendable { case fromCurrentMatchday, wholeSeason }`.
+- `public struct SeasonProgress: Sendable, Equatable { matchday: Int; lastMatchday: Int? }`.
+- `public struct SeasonFetch: Sendable, Equatable`, with:
+  - `fixtures` (ours, in date order; one per date, the later-read page wins);
+  - `byes: [Int]`;
+  - `lastMatchday: Int?`;
+  - `failedMatchdays: [MatchdayFailure]` (matchday + `FixtureFetchError`);
+  - `problems: [MatchdayProblem]` (matchday + `FixtureHealthProblem`, except `noFixturesOfOurs`, which is a bye);
+  - `stoppedAfter: Int?` (the three-failures rule).
+- `FixtureSource.fetchSeason(for:settings:scope:onProgress:) async throws -> SeasonFetch`:
+  - first reads the default matchday (gives the current matchday and the season length), then the others in ascending order;
+  - throws `FixtureFetchError` only when that first page cannot be read;
+  - on cancellation it stops before the next request and **returns** what was read, with `stoppedAfter` set; it never throws `CancellationError`; callers check `Task.isCancelled`;
+  - `.notYetAvailable` on the first page → an empty `SeasonFetch` and `lastMatchday == nil`.
+- `ImportIssue`: `.seasonBye(team:, matchday:)` (information), `.seasonMatchdayFailed(team:, matchday:, reason:)`, `.seasonStopped(team:, afterMatchday:)`; their `CoreStrings` messages.
+- `SSCoreFakes`: `FakeFixtureSource.fetchSeason` with a season of 10 matchdays: one bye, one failing matchday, one locked existing match, progress callbacks.
+
+### Step 2 — contract step (`foundation-architect`), sequential
+
+Owns `Sources/SSCore/`, `Sources/SSCoreFakes/`, `Tests/SSCoreTests/`. Writes `wave-4-t4.11.md`.
+
+### Step 3 — two tasks in parallel, after Step 2 merges
+
+| Task | Agent | Owns | Work |
+|---|---|---|---|
+| T4.11a season source | `render-engineer` | `Sources/SSImport/TuttocampoParser.swift`, `TuttocampoWidgetSource.swift`, `TuttocampoHTTPClient.swift` (matchday URL only), `Tests/SSImportTests/Tuttocampo*`, the new fixtures | Matchday URL builder (`/<id>/<N>`; allowlist unchanged). The parser also returns `currentMatchDay` and `matchesNumber`. `fetchSeason` per decisions 4, 5, 6 and 9: sequential, through the spacer, caps, bye detection, three-in-a-row stop, cancellation between requests, progress per page. Tests: a `URLProtocol` stub serving a 10-matchday season, scope from current vs whole (exact request lists), bye, a failing matchday, three failures, beyond-end, cancellation after page 4, caps. **No live network in tests.** |
+| T4.11b UI | `ui-dev` | `Sources/SSApp/Features/Import/` (start panel as a new `TuttocampoScopeSheet.swift`, season path in `ImportModel`, sheet additions, `ImportStrings`), `Tests/SSAppTests/Import/` | The start panel: scope, team checklist, estimate, Avvia/Annulla. Progress "Squadra 2 di 8 · Giornata 14 di 30" with a determinate bar and Annulla. The season fetch loop over teams; issues for byes, failed matchdays and stops. The ticks of decision 7. Team filter, collapsed past weekends, header line, select all/none. Italian strings. Built against the fake source. |
+
+**Step 4 — wiring** (`core-dev`). `LoggingFixtureSource` in `Sources/SergnaneseSocial/Composition.swift` forwards and logs `fetchSeason` (one line per matchday). Integration test: the stubbed 10-matchday season → staging → database → logos in the temp `SS_DATA_DIR`; a second run of "Da oggi a fine stagione" makes no changes (all unchanged).
+
+**Step 5 — gate and release.** `qa-reviewer` checks:
+- the acceptance criteria;
+- Light/Dark, keyboard and VoiceOver on the start panel and the progress;
+- one live run with the user on one team: request count = matchdays read + 1, spacing ≥ 1 s in the log, no requests after Annulla.
+
+`chore-runner`: USER-GUIDE subsection "Importare la stagione intera". `release-engineer`: next release.
+
+### Model and effort per step
+
+| Step | Agent | Agent default | Dispatch with | Why |
+|---|---|---|---|---|
+| 0 plan edit | main session | — | done | This section. |
+| 1 spike | `render-engineer` | opus, high | **sonnet, low** | ~10 requests against a fixed checklist, plus sanitising 5 files. |
+| 2 contract + sheet | `foundation-architect` | opus, high | **opus, medium** | Frozen protocol shared by fakes, source and UI. The shapes are fixed here, so `medium` is enough. |
+| 3 T4.11a season source | `render-engineer` | opus, high | **sonnet, medium** | A sequential loop over the existing client: cancellation, partial failures, caps. Patterns already in T4.2. |
+| 3 T4.11b UI | `ui-dev` | sonnet, medium | **sonnet, medium** | A small panel, a progress view and a filter on the existing sheet. |
+| 4 wiring | `core-dev` | sonnet, medium | **sonnet, low** | One forwarding method + one integration test. |
+| gate (each task) | `qa-reviewer` | opus, high | **sonnet, medium** | Fixed acceptance; the network code was reviewed in T4.2. |
+| gate (final, live run) | `qa-reviewer` | opus, high | **sonnet, medium** | The live check is counting requests and spacing in the log. |
+| 5 USER-GUIDE | `chore-runner` | haiku | **haiku** | Prose only. |
+| 5 release | `release-engineer` | sonnet, medium | **sonnet, low** | Existing scripts. |
+
+Escalation is unchanged: retry once on the same model with the reviewer's findings, then one model up.
+
+### Order with the other tasks
+
+T4.10 is merged (2026-11-24), so T4.11 builds on its review sheet and matcher; nothing to combine. Order: Step 1 spike (can start now) → Step 2 contract → T4.11a ∥ T4.11b → Step 4 wiring → Step 5 gates.
+
+### Rules
+
+- Network only after Avvia, one request at a time, ≥ 1 s apart, within the caps; nothing in the background.
+- The tuttocampo terms-of-use check (T4.2's blocking input) must cover reading every matchday (~30 requests per team per run). If it does not, this task stops; T4.2's weekend import stays.
+- Nothing is written before "Importa"; locked matches are never overwritten; existing logos are never replaced automatically.
+- Dev data folder only; fixtures sanitised; no real HTML, names or logos committed.
