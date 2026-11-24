@@ -172,6 +172,8 @@ score and the recap.
 
 ## T4.5b — Recap template "Story · Risultati del weekend"
 
+**Added 2026-11-24 (user decision):** the recap rows must not print `{{notes}}`. In `story-halftime` (and `story-fulltime`), a missing result is left **blank** instead of "–" (the `{{^match.hasHalfTime}}–` / `{{^hasScore}}` fallbacks); update their golden images through the "Update goldens" workflow. The recap keeps "–" only if the layout needs a placeholder; ask if unsure. A missing result never blocks generation (warnings never stop a render).
+
 | | |
 |---|---|
 | **Agent / model** | `template-converter` · sonnet · effort medium |
@@ -229,8 +231,7 @@ score and the recap.
    the scoreboard): "Primo tempo" [ ] – [ ], "Finale" [ ] – [ ], "Marcatori" (multi-line, stored in `notes`,
    placeholder "Rossi 23', Bianchi 78'"). Mapping to `Score(us:them:)` by `isHome` in `ResultFormState` (pure).
    Focus starts in the half-time home field when there is no half-time score yet, else in the final home field.
-   Buttons: **Annulla** (Esc), **Salva** (Return), **Genera intervallo** (enabled with a complete half-time score),
-   **Genera finale** (enabled with a complete final score). Each "Genera" saves first.
+   Buttons: **Annulla** (Esc), **Salva** (Return), **Genera intervallo** and **Genera finale** (both always enabled; user decision 2026-11-24: the story is filled with the stored result, and where there is none the result is left blank, the user edits the image on the phone). Each "Genera" saves first.
 3. **Saving:** the existing match's draft with the three values changed, `normalized()` and `validate()` (problems
    next to the field), plus decision 11 (message "Il finale non può avere meno gol del primo tempo") and decision 10.
    Nothing else changes (time, venue, source, lock). Through `MatchRepository.update`; then the Partite list and the
@@ -263,10 +264,10 @@ score and the recap.
 - Juniores away: typing home 0, away 3 stores us 3, them 0.
 - Half-time 1 – 0 with final 0 – 1 → field problem, nothing stored, nothing rendered.
 - Femminile (postponed): Risultato… disabled in the menu, the context menu and the inspector.
-- Previous weekend (4 played matches): Riepilogo risultati → one `story-results` image with those 4 match ids, dated
+- Previous weekend (4 played matches): Riepilogo risultati → one `story-results` image with the ids of every match of that weekend (the 4 played ones plus any without a score), dated
   the Saturday, share called with 1 URL. Reference weekend before any score: the button is hidden and the menu item
   disabled.
-- Genera with every match checked and `story-results` checked: its selection holds only matches with a score.
+- Genera with every match checked and `story-results` checked: its selection holds every match checked.
 - Cancelling during a render: no share, the sheet stays open, the result stays saved. A render failure
   (`failingTemplateIDs`): alert, no share, result saved.
 - Light and Dark Mode; keyboard: Tab through the fields in order, Return = Salva, Esc = Annulla / stop; VoiceOver
