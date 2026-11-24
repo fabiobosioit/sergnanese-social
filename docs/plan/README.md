@@ -1,6 +1,6 @@
 # Sergnanese Social — implementation plan
 
-**Status:** plan only. No application code exists yet. The repo holds this plan and the four demo templates in `template-demo/`.
+**Status (2026-11-24):** v0.1.0 is released (Waves 0–3 done). Wave 4 import work is merged: T4.2 tuttocampo, T4.3 PDF, T4.8 CSI Live, T4.9 all opponents, T4.10 opponent matching, T4.11 season import. T4.1 is suspended. Next: T4.5 results workflow, then T4.6 captions; T4.4 and T4.7 wait. See `tasks/wave-4-later.md`.
 
 **Written:** 2026-11-16 · **Revised:** 2026-11-16 (native Mac app instead of Electron) · **Target:** v0.1.0, a Mac app downloadable from GitHub Releases.
 
@@ -133,7 +133,7 @@ Fable, the most capable and most expensive model, is not assigned to any task. I
 | T1.5 | The club crest as a vector file (SVG/PDF) or a PNG of at least 1024×1024. The one inside the demo zips is 500×500, too small for a sharp app icon. Without it the icon is upscaled and slightly soft. |
 | T1.4 (nice to have) | Real list of the club's teams/categories. Fake ones are used otherwise. |
 | T4.2 | A check of tuttocampo.it's terms of use for automated reading, and confirmation of which widget ID belongs to which team. The six widget IDs are already known (see the T4.2 sheet). |
-| T4.1 | A sample fixture document (Excel/CSV). |
+| T4.1 | Suspended 2026-11-24, no input needed. |
 | T4.3 | Sample received (`examples/Calendario_EsordientiMiste_Femm_Aut.pdf`, keep it out of git). Still wanted: a spring-phase PDF (`R.` dates) of the same layout. |
 | T4.10 | Which tuttocampo widget shows the U13 femminile girone of the federation calendar: widget `e6c85afd…` (mapped to "U13 Regionale Femminile") shows a different girone; only Cremonese is in both. |
 | T4.11 | The tuttocampo terms check (T4.2) must also allow reading every matchday of a team (~30 requests per team per run). |

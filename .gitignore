@@ -24,3 +24,5 @@ out/
 
 # Real federation PDFs hold club names and addresses (public repo)
 examples/*.pdf
+
+.vscode/

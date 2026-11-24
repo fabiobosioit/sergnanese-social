@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Import matches from tuttocampo (one matchday, the rest of the season, or the whole season), from CSI Live through an in-app browser, and from the federation PDF calendar. Every import goes through a review before saving.
+- "Scarica tutti gli avversari…" fills the opponent list with names and logos in one go.
+- Opponents are pre-matched in every import review; confirmed links are remembered as aliases.
+- Matches: Weekend / Tutte switch to manage every recorded match.
+
 ## 0.1.0 - first release
 
 First version for the weekend routine of ASD Sergnanese.

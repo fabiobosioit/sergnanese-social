@@ -8,7 +8,7 @@ From here on the user has real data on this Mac. Every task keeps working in the
 
 | Task | Agent | Model | Blocked on |
 |---|---|---|---|
-| T4.1 CSV/Excel import | `core-dev` + `ui-dev` | sonnet | sample file from the user |
+| T4.1 CSV/Excel import | — | — | **Suspended 2026-11-24** (user: no longer necessary; tuttocampo, CSI and PDF import cover it) |
 | T4.2 Tuttocampo import (matches, names, logos) | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | terms-of-use check, widget → team mapping |
 | T4.3 PDF import (federation calendar: matches, names, venues, times) | `foundation-architect` (contract), `render-engineer`, `ui-dev`, `core-dev` | opus (contract) + sonnet | sample received 2026-11-24; spring-phase sample later |
 | T4.4 Shortcuts support | `ui-dev` | sonnet | — |
@@ -23,6 +23,8 @@ From here on the user has real data on this Mac. Every task keeps working in the
 ---
 
 ## T4.1 — CSV/Excel import with review
+
+**Suspended 2026-11-24.** Not needed any more; do not implement. The text below is kept for reference only.
 
 - Open or drop a `.csv` or `.xlsx`; column mapping screen (date, time, team, opponent, home/away, venue) with the mapping remembered per file layout.
 - Rows land in a **staging list**, never straight in the database. Each row is marked new / changed / unchanged / conflict with a locked match.
