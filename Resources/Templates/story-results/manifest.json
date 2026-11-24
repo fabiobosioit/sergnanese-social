@@ -1,0 +1,13 @@
+{
+  "id": "story-results",
+  "name": "Story · Risultati del weekend",
+  "version": "1.0.0",
+  "format": "story",
+  "width": 1080,
+  "height": 1920,
+  "kind": "list",
+  "purpose": "fulltime",
+  "pageSize": 10,
+  "requires": ["score"],
+  "limits": { "teamName": 22, "category": 16 }
+}

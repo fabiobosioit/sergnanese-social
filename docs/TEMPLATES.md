@@ -24,7 +24,7 @@ mio-template/
   "format": "post",                // "post" (1080×1350) oppure "story" (1080×1920)
   "width": 1080, "height": 1350,
   "kind": "single",                // "single": una partita per immagine; "list": più partite per immagine
-  "purpose": "prematch",           // "prematch" | "programme" | "halftime" | "fulltime" | "other"
+  "purpose": "prematch",           // "prematch" | "programme" | "halftime" | "fulltime" | "other" (`list` + `fulltime` = riepilogo risultati)
   "pageSize": null,                // solo per "list": righe per immagine (programma = 10)
   "requires": ["time", "venue"],   // campi che devono esserci, altrimenti l'app mostra un avviso
   "limits": { "teamName": 16, "venue": 14, "category": 22 }   // lunghezza massima in caratteri
@@ -73,6 +73,7 @@ Un template `single` riceve `{club, match}`. Un template `list` riceve
 | `match.hasScore`, `match.hasHalfTime` | entrambe le squadre hanno quel punteggio |
 | `match.halfTime`, `match.notes` | risultato del primo tempo e note, testo libero (assenti se vuoti) |
 | `match.isPostponed`, `match.isCancelled` | booleani |
+| `match.outcome` | `win`, `draw` o `loss` dal nostro punto di vista; assente senza punteggio. Serve per una classe CSS e la lettera V / N / P |
 
 I loghi degli avversari sono `_logos/<file>`, lo stemma della società è `assets/club-logo.png`: entrambi vanno
 direttamente in `<img src>`.
@@ -86,7 +87,7 @@ direttamente in `<img src>`.
 - **Punteggi: usa sempre `match.hasScore` / `match.hasHalfTime`.** In Mustache i numeri, compreso lo 0, sono sempre
   veri, quindi una sezione sul punteggio non distingue "0" da "nessun punteggio" (e `{{^score}}` non scatta mai).
   `hasScore` dice se il punteggio c'è davvero:
-  `{{#match.hasScore}}{{score}}{{/match.hasScore}}{{^match.hasScore}}–{{/match.hasScore}}`.
+  `{{#match.hasScore}}{{score}}{{/match.hasScore}}`. Un risultato mancante si lascia vuoto: l'app non blocca mai la generazione (gli avvisi non fermano il rendering) e il risultato si completa a mano sull'immagine.
 - **Casa e trasferta**: stampa `match.home` a sinistra e `match.away` a destra (o in prima e seconda riga), poi usa
   `{{#isUs}}…{{/isUs}}` dentro il lato per evidenziare la nostra squadra:
   `{{#match.home}}…{{displayName}}…{{/match.home}}`.
@@ -95,6 +96,14 @@ direttamente in `<img src>`.
 - **Indicatore casa/trasferta in una riga di lista**: icona casa (`{{#isHome}}`) o auto (`{{^isHome}}`) in SVG inline.
 - **Righe ripetute**: `{{#rows}}…{{/rows}}`; dentro, i campi sono quelli della riga (`{{category}}`,
   `{{opponent.displayName}}`).
+- **Riepilogo risultati** (`kind: list` + `purpose: fulltime`, per esempio `story-results`): l'app crea un solo gruppo di pagine
+  per tutta la selezione, non uno per giorno come nel programma. Il titolo è "Risultati" (un giorno o due weekend) oppure
+  "Risultati del weekend" (sabato e domenica dello stesso weekend), con la data o l'intervallo in `dateLabel`. Le righe non
+  stampano `match.notes`. Usa `rows` con `requires: ["score"]`; il dato di prova è `list-results`.
+- **Rinviata / Annullata / senza punteggio**: dentro il blocco del punteggio,
+  `{{#hasScore}}{{home.score}} – {{away.score}}{{/hasScore}}{{^hasScore}}{{#isPostponed}}Rinviata{{/isPostponed}}{{#isCancelled}}Annullata{{/isCancelled}}{{^isPostponed}}{{^isCancelled}}–{{/isCancelled}}{{/isPostponed}}{{/hasScore}}`.
+- **Esito con lettera**: `{{#outcome}}<div class="outcome-{{outcome}}"></div>{{/outcome}}` e nel CSS `.outcome-win::after { content: 'V' }`
+  (N per `draw`, P per `loss`), così l'esito non è affidato solo al colore.
 - **Numero di pagina solo se le pagine sono più d'una**: `{{#hasPages}}{{pageLabel}}{{/hasPages}}`.
 
 ## Provarlo
