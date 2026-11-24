@@ -352,6 +352,7 @@ public struct FakeMatchRepository: MatchRepository {
       var draft = MatchDraft(original)
       draft.date = date
       draft.status = .scheduled
+      if draft.score != nil || draft.halfTime != nil { draft.notes = nil }
       draft.score = nil
       draft.halfTime = nil
       draft.isLocked = false

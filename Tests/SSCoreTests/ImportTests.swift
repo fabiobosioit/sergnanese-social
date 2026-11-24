@@ -25,14 +25,14 @@ import Testing
 
   func stored(
     opponent: Opponent? = nil, home: Bool = true, time: ClockTime? = ClockTime(hour: 14, minute: 30),
-    venue: String = "Campo Comunale", status: MatchStatus = .scheduled, round: Int? = 12, halfTime: Score? = nil,
-    locked: Bool = false, source: MatchSource = .manual
+    venue: String = "Campo Comunale", status: MatchStatus = .scheduled, round: Int? = 12, score: Score? = nil,
+    halfTime: Score? = nil, locked: Bool = false, source: MatchSource = .manual
   ) -> MatchDetail {
     let opponent = opponent ?? gerolamo
     let date = Date(timeIntervalSince1970: 0)
     let match = Match(
       id: "m1", teamID: team.id, opponentID: opponent.id, date: sunday, time: time, isHome: home, venue: venue,
-      competition: "Juniores Regionali", round: round, status: status, halfTime: halfTime, notes: "Note",
+      competition: "Juniores Regionali", round: round, status: status, score: score, halfTime: halfTime, notes: "Note",
       source: source, isLocked: locked, createdAt: date, updatedAt: date)
     return MatchDetail(match: match, team: team, opponent: opponent)
   }
@@ -118,6 +118,57 @@ import Testing
     #expect(played.draft?.halfTime == half)
     let postponed = make(fixture(status: .postponed), existing: [stored(status: .played, halfTime: half)])
     #expect(postponed.draft?.halfTime == nil && postponed.draft?.score == nil)
+  }
+
+  // MARK: A typed result is never erased (T4.5, C3)
+
+  @Test func fixtureWithoutScoreKeepsTheTypedResult() throws {
+    let score = Score(us: 2, them: 1)
+    let half = Score(us: 1, them: 0)
+    // Sunday evening: the user typed the result, the source still says "da giocare".
+    let scheduled = make(fixture(), existing: [stored(status: .played, score: score, halfTime: half)])
+    #expect(scheduled.state == .unchanged)
+    let draft = try #require(scheduled.draft)
+    #expect(draft.score == score && draft.halfTime == half && draft.status == .played)
+    // A half-time score typed on a match still scheduled is kept with its status.
+    let halfTyped = make(fixture(), existing: [stored(status: .scheduled, score: score, halfTime: half)])
+    #expect(halfTyped.state == .unchanged && halfTyped.draft?.status == .scheduled)
+    // The source already says played but has no score yet.
+    let playedNoScore = make(
+      fixture(status: .played), existing: [stored(status: .played, score: score, halfTime: half)])
+    #expect(playedNoScore.state == .unchanged && playedNoScore.draft?.score == score)
+    // Other differences still show: the row is changed, the result kept.
+    let later = make(
+      fixture(time: ClockTime(hour: 16, minute: 0)), existing: [stored(status: .played, score: score, halfTime: half)])
+    #expect(later.state == .changed && later.draft?.score == score && later.draft?.halfTime == half)
+  }
+
+  @Test func fixtureScoreWinsOverTheTypedOne() {
+    let half = Score(us: 1, them: 0)
+    let candidate = make(
+      fixture(status: .played, score: Score(us: 3, them: 1)),
+      existing: [stored(status: .played, score: Score(us: 2, them: 1), halfTime: half)])
+    #expect(candidate.state == .changed)
+    #expect(candidate.draft?.score == Score(us: 3, them: 1) && candidate.draft?.halfTime == half)
+    #expect(candidate.draft?.status == .played)
+  }
+
+  @Test(arguments: [MatchStatus.postponed, .cancelled])
+  func postponedOrCancelledFixtureClearsTheTypedResult(_ status: MatchStatus) {
+    let candidate = make(
+      fixture(status: status),
+      existing: [stored(status: .played, score: Score(us: 2, them: 1), halfTime: Score(us: 1, them: 0))])
+    #expect(candidate.state == .changed && candidate.draft?.status == status)
+    #expect(candidate.draft?.score == nil && candidate.draft?.halfTime == nil)
+  }
+
+  @Test func withoutAStoredScoreTheFixtureStatusIsTaken() {
+    // C3 protects a stored final score only: a half-time score alone follows the fixture, as before T4.5.
+    let halfOnly = make(fixture(), existing: [stored(status: .played, halfTime: Score(us: 1, them: 0))])
+    #expect(halfOnly.state == .changed && halfOnly.draft?.status == .scheduled)
+    #expect(halfOnly.draft?.score == nil && halfOnly.draft?.halfTime == nil)
+    let plain = make(fixture(status: .played, score: Score(us: 1, them: 1)), existing: [stored()])
+    #expect(plain.state == .changed && plain.draft?.score == Score(us: 1, them: 1))
   }
 
   @Test func reviewReasons() {

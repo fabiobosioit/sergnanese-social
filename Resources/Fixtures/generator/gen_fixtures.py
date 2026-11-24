@@ -276,6 +276,9 @@ def mctx(m, *, list_row=False, team_limit=16, venue_limit=14, cat_limit=22):
     for k in ("round", "competition", "time", "halfTime", "notes"):
         if k in m:
             c[k] = m[k]
+    if "score" in m:  # MatchOutcome (T4.5), absent without a score
+        us, them = m["score"]["us"], m["score"]["them"]
+        c["outcome"] = "win" if us > them else ("draw" if us == them else "loss")
     return c
 
 
@@ -312,6 +315,29 @@ twenty3 = [m for m in matches if m["date"] >= "2026-11-21"] + [M[uid("match", "p
 assert len(twenty3) == 23, len(twenty3)
 files["list-23.context.json"] = lst(twenty3, "Weekend in campo", "Dal 14 al 29 novembre")
 assert len(files["list.context.json"]["rows"]) == 10
+# Results recap (T4.5): the previous weekend's 4 played matches plus 6 invented ones that are not in the data set,
+# 10 rows over Saturday 14 and Sunday 15 November. Home and away wins, a loss, 0-0, 3-3, 10-0, the 45-character
+# opponent, an opponent without a logo and one postponed row without a score.
+RECAP_EXTRA = [
+    # (key, team, opponent, date, time, home, status, score)
+    ("x1", "Allievi U16", "eufrasio", "2026-11-14", "15:00", True, "played", (1, 2)),
+    ("x2", "Giovanissimi U15", "montesello", "2026-11-15", "09:30", True, "played", (10, 0)),
+    ("x3", "Giovanissimi U14", "cascina", "2026-11-15", "10:00", False, "played", (0, 2)),
+    ("x4", "Esordienti", "novaria", "2026-11-14", "16:00", False, "played", (3, 1)),
+    ("x5", "Amatori", "valdorso", "2026-11-14", "20:30", True, "played", (2, 0)),
+    ("x6", "Juniores Femminile", "pratofiorito", "2026-11-15", "16:00", True, "postponed", None),
+]
+recap_extra = []
+for key, team, opp, date, time, home, status, score in RECAP_EXTRA:
+    m = {"id": uid("match", key), "teamID": T[team]["id"], "opponentID": O[opp]["id"], "date": date, "time": time,
+         "isHome": home, "venue": SETTINGS["homeVenue"] if home else AWAY_VENUE[opp], "status": status}
+    if score:
+        m["score"] = {"us": score[0], "them": score[1]}
+    recap_extra.append(m)
+previous = [m for m in matches if m["date"] in ("2026-11-14", "2026-11-15")]
+assert len(previous) == 4, len(previous)
+files["list-results.context.json"] = lst(previous + recap_extra, "Risultati del weekend", "Dal 14 al 15 novembre")
+assert len(files["list-results.context.json"]["rows"]) == 10
 files["matches.json"] = dataset
 
 for name, content in files.items():

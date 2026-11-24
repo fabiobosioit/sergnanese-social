@@ -677,9 +677,12 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
   ///     (whitespace collapsed, cut to `FieldLimits.competition`), `nil` when it has none;
   ///   - existing match: starts from it and takes the opponent, home/away, status and score from the
   ///     fixture, plus time and round when the fixture has them; half-time is kept only for a played
-  ///     match; the venue is kept unless it is empty or home/away changed, then it becomes the new
-  ///     match's venue (above). Notes are kept; competition is kept, or becomes the fixture's when the match
-  ///     has none.
+  ///     match. Exception (T4.5, a typed result is never erased): when the fixture has no score, its status
+  ///     is `.scheduled` or `.played` and the existing match has a `score`, the existing `score`,
+  ///     `halfTime` and `status` are kept. A fixture with a score still wins over a typed one; a postponed
+  ///     or cancelled fixture still clears both scores. The venue is kept unless it is empty or home/away
+  ///     changed, then it becomes the new match's venue (above). Notes are kept; competition is kept, or
+  ///     becomes the fixture's when the match has none.
   ///   - source is `source` (`.scrape` for tuttocampo and CSI, `.pdf` for T4.3); `isLocked` is the existing match's.
   /// - State: `.locked` when the existing match is locked (draft still shown); else `.needsReview`
   ///   when there is a review reason; else `.new` without an existing match; else `.unchanged` when
@@ -727,9 +730,14 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
           updated.venue = venueForSide
         }
         updated.isHome = fixture.isHome
-        updated.status = status
-        updated.score = fixture.score
-        if status != .played { updated.halfTime = nil }
+        // T4.5: an import never erases a result the user typed before the source had it.
+        let keepsTypedResult =
+          fixture.score == nil && (status == .scheduled || status == .played) && existing.match.score != nil
+        if !keepsTypedResult {
+          updated.status = status
+          updated.score = fixture.score
+          if status != .played { updated.halfTime = nil }
+        }
         if let round = fixture.round { updated.round = round }
         if updated.competition?.collapsedWhitespace.nilIfEmpty == nil { updated.competition = competition }
         updated.source = source

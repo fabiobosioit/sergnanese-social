@@ -29,6 +29,38 @@ import Testing
   @Test func listSizes() throws {
     #expect(try Fixtures.listContext("list").rows.count == 10)
     #expect(try Fixtures.listContext("list-23").rows.count == 23)
+    #expect(try Fixtures.listContext("list-results").rows.count == 10)
+  }
+
+  /// T4.5: every context with a final score carries the outcome that agrees with it; none without.
+  @Test func outcomesAgreeWithScores() throws {
+    let singles = try Fixtures.singleNames.map { try Fixtures.singleContext($0).match }
+    let rows = try Fixtures.listNames.flatMap { try Fixtures.listContext($0).rows }
+    for match in singles + rows {
+      #expect(match.outcome == MatchOutcome(us: match.us.score, them: match.opponent.score), "\(match.category)")
+    }
+    #expect(singles.contains { $0.outcome != nil })
+  }
+
+  @Test func resultsRecapFixtureCoversTheEdgeCases() throws {
+    let recap = try Fixtures.listContext("list-results")
+    #expect(recap.title == "Risultati del weekend" && recap.dateLabel == "Dal 14 al 15 novembre")
+    #expect(recap.page == PageInfo(index: 1, total: 1) && !recap.hasPages)
+    let rows = recap.rows
+    #expect(Set(rows.map(\.dateShort)) == ["Sab 14 nov", "Dom 15 nov"])
+    #expect(rows.contains { $0.isHome && $0.outcome == .win })
+    #expect(rows.contains { $0.isAway && $0.outcome == .win })
+    #expect(rows.contains { $0.outcome == .loss })
+    #expect(rows.contains { $0.us.score == 0 && $0.opponent.score == 0 && $0.outcome == .draw })
+    #expect(rows.contains { $0.us.score == 3 && $0.opponent.score == 3 })
+    #expect(rows.contains { $0.us.score == 10 && $0.opponent.score == 0 })
+    let long = try #require(rows.first { $0.opponent.name.count == 45 })
+    #expect(long.opponent.displayName == truncateAtWord(stripLegalPrefixes(long.opponent.name), max: 22).text)
+    #expect(rows.contains { $0.opponent.logo == nil })
+    let postponed = rows.filter(\.isPostponed)
+    #expect(postponed.count == 1 && postponed.allSatisfy { !$0.hasScore && $0.outcome == nil })
+    #expect(rows.filter { !$0.isPostponed }.allSatisfy { $0.hasScore && $0.outcome != nil })
+    #expect(rows.allSatisfy { $0.category.count <= 16 })
   }
 
   @Test func requiredEdgeCasesArePresent() throws {

@@ -10,7 +10,11 @@ public enum TemplateKind: String, Sendable, Codable, CaseIterable {
 }
 
 public enum TemplatePurpose: String, Sendable, Codable, CaseIterable {
-  case prematch, programme, halftime, fulltime, other
+  case prematch, programme, halftime
+  /// With `kind: single` the full-time story of one match; with `kind: list` a results recap
+  /// (`TemplateManifest.isResultsRecap`, T4.5).
+  case fulltime
+  case other
 }
 
 /// Match fields a template needs. A missing one produces a warning, never an error.
@@ -57,6 +61,10 @@ public struct TemplateManifest: Sendable, Encodable, Equatable, Hashable {
   public var pageSize: Int?
   public var requires: [RequiredField]
   public var limits: TemplateLimits
+
+  /// T4.5: `kind == .list && purpose == .fulltime`, a results recap. It takes all its matches in one set
+  /// of pages (not one per day) and is never in the default plan.
+  public var isResultsRecap: Bool { kind == .list && purpose == .fulltime }
 
   public init(
     id: String, name: String, version: String, format: TemplateFormat, width: Int, height: Int,

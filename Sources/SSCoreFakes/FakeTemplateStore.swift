@@ -8,7 +8,8 @@ import Synchronization
 /// a `.zip` it checks the zip signature and installs a template made up from the file name, so the
 /// import can be demonstrated under `--mock`. Anything else is `.invalid`.
 public final class FakeTemplateStore: TemplateStore {
-  /// The four built-ins of v0.1.0, with the limits used throughout the fixtures.
+  /// The four built-ins of v0.1.0 and the results recap of T4.5, with the limits used throughout the
+  /// fixtures.
   public static let builtinManifests: [TemplateManifest] = [
     TemplateManifest(
       id: "post-prematch", name: "Post · Pre-partita", version: "1.0.0", format: .post, width: 1080, height: 1350,
@@ -25,12 +26,16 @@ public final class FakeTemplateStore: TemplateStore {
       id: "story-fulltime", name: "Story · Risultato finale", version: "1.0.0", format: .story, width: 1080,
       height: 1920, kind: .single, purpose: .fulltime, requires: [.score],
       limits: TemplateLimits(teamName: 16, category: 22)),
+    TemplateManifest(
+      id: "story-results", name: "Story · Risultati del weekend", version: "1.0.0", format: .story, width: 1080,
+      height: 1920, kind: .list, purpose: .fulltime, pageSize: 10, requires: [.score],
+      limits: TemplateLimits(teamName: 22, category: 16)),
   ]
 
   public let folder: URL
   private let templates: Mutex<[String: InstalledTemplate]>
 
-  /// `installBuiltins()` is called here, so the list starts with the four built-ins.
+  /// `installBuiltins()` is called here, so the list starts with the five built-ins.
   public init(folder: URL) {
     self.folder = folder
     self.templates = Mutex([:])

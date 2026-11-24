@@ -133,8 +133,9 @@ public protocol MatchRepository: Sendable {
   /// Deletes every match from `source`, locked ones included. Returns how many were deleted.
   func deleteAll(source: MatchSource) throws -> Int
   /// A copy of the match on `date` with a new id: status `.scheduled`, no score, no half-time score,
-  /// not locked, source `.manual`; team, opponent, time, home/away, venue, competition, round and
-  /// notes are kept.
+  /// not locked, source `.manual`; team, opponent, time, home/away, venue, competition and round are
+  /// kept. `notes` (the scorers, T4.5) are cleared when the original has a `score` or a `halfTime`,
+  /// kept otherwise.
   func duplicate(id: EntityID, to date: DayDate) throws -> Match
   /// For each draft: a match with the same `importKey` (team + date) is updated unless it is locked,
   /// otherwise a new match is inserted. All or nothing: on error nothing is written.

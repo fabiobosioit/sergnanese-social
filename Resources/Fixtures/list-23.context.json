@@ -63,7 +63,8 @@
       "halfTime": {
         "us": 0,
         "them": 0
-      }
+      },
+      "outcome": "draw"
     },
     {
       "category": "Allievi U17",

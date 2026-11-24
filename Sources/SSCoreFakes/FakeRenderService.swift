@@ -5,7 +5,8 @@ import SSCore
 
 /// A render service that "renders" by writing a flat-colour PNG of the template's exact size after a
 /// short delay. It follows the documented planning rules (default plan, one set per day for list
-/// templates, pagination, warnings, skipped matches), names files like the real engine, never
+/// templates, one set over the whole selection for a results recap dated the first match's day,
+/// pagination, warnings, skipped matches), names files like the real engine, never
 /// overwrites, stores a `RenderRecord` per image and stops after the current image when cancelled.
 @MainActor
 public final class FakeRenderService: RenderService {
@@ -79,9 +80,15 @@ public final class FakeRenderService: RenderService {
         }
       case .list:
         let pageSize = manifest.pageSize ?? 10
-        let days = Dictionary(grouping: details, by: \.match.date)
-        for day in days.keys.sorted() {
-          let rows = days[day] ?? []
+        // A results recap is one set of pages over the whole selection, dated the first match's day.
+        let sets: [(day: DayDate, rows: [MatchDetail])]
+        if manifest.isResultsRecap {
+          sets = details.first.map { [($0.match.date, details)] } ?? []
+        } else {
+          let days = Dictionary(grouping: details, by: \.match.date)
+          sets = days.keys.sorted().map { ($0, days[$0] ?? []) }
+        }
+        for (day, rows) in sets {
           let pages = stride(from: 0, to: rows.count, by: pageSize).map {
             Array(rows[$0..<min($0 + pageSize, rows.count)])
           }
@@ -105,7 +112,9 @@ public final class FakeRenderService: RenderService {
   private func warnings(for details: [MatchDetail], manifest: TemplateManifest) -> [RenderWarning] {
     details.flatMap { detail in
       var list = matchWarnings(for: detail, teamNameLimit: manifest.limits.teamName)
-      if detail.match.status == .postponed || detail.match.status == .cancelled {
+      let isNotScheduled = detail.match.status == .postponed || detail.match.status == .cancelled
+      // A results recap shows postponed and cancelled rows as such, without a warning.
+      if isNotScheduled && !manifest.isResultsRecap {
         list.append(
           RenderWarning(kind: .matchNotScheduled, message: FakeStrings.warningNotScheduled, matchID: detail.id))
       }
