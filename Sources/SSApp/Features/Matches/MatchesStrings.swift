@@ -107,7 +107,7 @@ enum MatchesStrings {
   static let formStatus = "Stato"
   static let formScore = "Risultato"
   static let formHalfTime = "Primo tempo"
-  static let formNotes = "Note"
+  static let formNotes = "Marcatori e note"
   static let formLocked = "Blocca la partita"
   static let formLockedHelp = "Una partita bloccata non viene modificata dalle importazioni."
   static let formScoreUs = "Noi"
@@ -130,4 +130,45 @@ enum MatchesStrings {
 
   // MARK: Warnings
   static let warningsTitle = "Avvisi"
+
+  // MARK: Risultato (sheet, recap)
+  enum ResultEntry {
+    static let enter = "Risultato…"
+    static let enterHelp = "Inserisci il risultato e genera le storie"
+    static let enterDisabledHelp = "Una partita rinviata o annullata non ha risultato."
+    static let title = "Risultato"
+    static let halfTime = "Primo tempo"
+    static let final = "Finale"
+    static let scorers = "Marcatori"
+    static let scorersPlaceholder = "Rossi 23', Bianchi 78'"
+    static let separator = "–"
+    static let save = "Salva"
+    static let cancel = "Annulla"
+    static let generateHalfTime = "Genera intervallo"
+    static let generateFullTime = "Genera finale"
+    static let generateHelp = "Salva il risultato e crea la storia: dove manca un risultato la storia resta vuota."
+    static let noTemplateHalfTime = "Nessun template per la storia dell'intervallo."
+    static let noTemplateFullTime = "Nessun template per la storia del finale."
+    static let noTemplateHelp = "Installa un template da Template."
+    static let finalBelowHalfTime = "Il finale non può avere meno gol del primo tempo"
+    static let rendering = "Creazione dell'immagine…"
+    static let warningsTitle = "Avvisi per l'immagine"
+    static let failedTitle = "Immagine non creata"
+    static let renderFailed = "Non è stato possibile creare l'immagine."
+    static let saveFailed = "Non è stato possibile salvare il risultato."
+    static let ok = "OK"
+    static let halfTimeCreated = "Storia dell'intervallo creata"
+    static let fullTimeCreated = "Storia del finale creata"
+    static func goalsLabel(_ side: String, _ phase: String) -> String { "Gol \(side), \(phase)" }
+
+    // Recap
+    static let recap = "Riepilogo risultati"
+    static let recapHelp = "Crea l'immagine con i risultati del weekend e aprila per condividerla"
+    static let recapNoTemplateHelp = "Nessun template per il riepilogo dei risultati."
+    static let recapCancel = "Annulla"
+    static let recapCancelHelp = "Interrompi il riepilogo"
+    static func recapProgress(_ done: Int, _ total: Int) -> String {
+      total == 0 ? "Creazione del riepilogo…" : "Riepilogo: immagine \(min(done + 1, total)) di \(total)"
+    }
+  }
 }

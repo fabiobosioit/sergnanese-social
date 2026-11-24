@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SSCore
+import SwiftUI
 
 /// The matches of one day, for the table's sections.
 struct MatchDaySection: Identifiable, Equatable {
@@ -56,8 +57,21 @@ final class MatchesViewModel {
   /// The matches the open delete confirmation applies to.
   private(set) var deleteTargets: Set<EntityID> = []
 
-  init(app: AppModel) {
+  /// The "Risultato" sheet's model; `nil` until a sheet was opened. The sheet shows while `isResultPresented`.
+  private(set) var resultModel: ResultModel?
+  var isResultPresented = false
+  /// "Riepilogo risultati": the weekend's results image, from the summary bar and the Immagini menu.
+  let recap: RecapModel
+  @ObservationIgnored private let share: @MainActor ([URL]) -> Void
+  /// Tells VoiceOver that a story was created (replaced in tests: there is no app to post to).
+  @ObservationIgnored var announce: @MainActor (String) -> Void = { text in
+    AccessibilityNotification.Announcement(text).post()
+  }
+
+  init(app: AppModel, share: @escaping @MainActor ([URL]) -> Void = { ImageActions.share($0) }) {
     self.app = app
+    self.share = share
+    self.recap = RecapModel(app: app, share: share)
   }
 
   private var services: AppServices { app.services }
@@ -85,6 +99,7 @@ final class MatchesViewModel {
       loadError = (error as? AppError)?.localizedDescription ?? MatchesStrings.loadErrorTitle
       details = []
     }
+    recap.refresh()
     app.refreshWarningBadge()
   }
 
@@ -290,6 +305,29 @@ final class MatchesViewModel {
   func loadDemoData() async {
     await app.loadDemoData()
     reload()
+  }
+
+  // MARK: Risultato
+
+  /// "Risultato…" applies to exactly one match that is scheduled or played.
+  func canEnterResult(_ ids: Set<EntityID>) -> Bool {
+    guard ids.count == 1, let detail = ids.first.flatMap(detail(id:)) else { return false }
+    return detail.match.status == .scheduled || detail.match.status == .played
+  }
+
+  /// Opens the "Risultato" sheet for the one selected match.
+  func beginResult(_ ids: Set<EntityID>) {
+    guard canEnterResult(ids), let id = ids.first, let detail = detail(id: id) else { return }
+    resultModel = ResultModel(detail: detail, app: app, share: share)
+    isResultPresented = true
+  }
+
+  /// The sheet's `onDismiss`: shares what the sheet generated and tells VoiceOver.
+  func resultDidDismiss() {
+    guard let model = resultModel else { return }
+    if let text = model.announcement { announce(text) }
+    model.sheetDidDismiss()
+    resultModel = nil
   }
 
   /// "Genera": the Genera section on the weekend shown here.

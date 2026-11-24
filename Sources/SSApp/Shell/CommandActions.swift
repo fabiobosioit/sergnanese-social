@@ -6,7 +6,7 @@ import SwiftUI
 public enum ShellCommand: String, CaseIterable, Sendable {
   case newMatch, newOpponent, importTemplate, importTuttocampo, importCSI, downloadOpponents, importPDF
   case duplicate, delete, find
-  case generate
+  case generate, enterResult, resultsRecap
   case quickLook, share, copyImage, revealInFinder
 }
 
@@ -69,6 +69,8 @@ private struct DuplicateKey: FocusedValueKey { typealias Value = CommandAction }
 private struct DeleteKey: FocusedValueKey { typealias Value = CommandAction }
 private struct FindKey: FocusedValueKey { typealias Value = CommandAction }
 private struct GenerateKey: FocusedValueKey { typealias Value = CommandAction }
+private struct EnterResultKey: FocusedValueKey { typealias Value = CommandAction }
+private struct ResultsRecapKey: FocusedValueKey { typealias Value = CommandAction }
 private struct QuickLookKey: FocusedValueKey { typealias Value = CommandAction }
 private struct ShareKey: FocusedValueKey { typealias Value = CommandAction }
 private struct CopyImageKey: FocusedValueKey { typealias Value = CommandAction }
@@ -119,6 +121,14 @@ extension FocusedValues {
     get { self[GenerateKey.self] }
     set { self[GenerateKey.self] = newValue }
   }
+  var enterResultAction: CommandAction? {
+    get { self[EnterResultKey.self] }
+    set { self[EnterResultKey.self] = newValue }
+  }
+  var resultsRecapAction: CommandAction? {
+    get { self[ResultsRecapKey.self] }
+    set { self[ResultsRecapKey.self] = newValue }
+  }
   var quickLookAction: CommandAction? {
     get { self[QuickLookKey.self] }
     set { self[QuickLookKey.self] = newValue }
@@ -165,6 +175,8 @@ private struct PublishCommandModifier: ViewModifier {
     case .delete: content.focusedSceneValue(\.deleteAction, action)
     case .find: content.focusedSceneValue(\.findAction, action)
     case .generate: content.focusedSceneValue(\.generateAction, action)
+    case .enterResult: content.focusedSceneValue(\.enterResultAction, action)
+    case .resultsRecap: content.focusedSceneValue(\.resultsRecapAction, action)
     case .quickLook: content.focusedSceneValue(\.quickLookAction, action)
     case .share: content.focusedSceneValue(\.shareAction, action)
     case .copyImage: content.focusedSceneValue(\.copyImageAction, action)

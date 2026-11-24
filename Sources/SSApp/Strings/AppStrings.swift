@@ -34,6 +34,8 @@ enum AppStrings {
     static let thisWeekend = "Questo weekend"
     static let images = "Immagini"
     static let generate = "Genera immagini del weekend"
+    static let enterResult = "Risultato…"
+    static let resultsRecap = "Riepilogo risultati del weekend"
     static let quickLook = "Anteprima rapida"
     static let share = "Condividi…"
     static let copyImage = "Copia immagine"
