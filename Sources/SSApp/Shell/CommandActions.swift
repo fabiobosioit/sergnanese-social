@@ -4,7 +4,7 @@ import SwiftUI
 /// `.publishCommand(_:enabled:perform:)`; the shell's `Commands` call them. A screen never edits the
 /// menu definition.
 public enum ShellCommand: String, CaseIterable, Sendable {
-  case newMatch, newOpponent, importTemplate, importTuttocampo, importCSI
+  case newMatch, newOpponent, importTemplate, importTuttocampo, importCSI, importPDF
   case duplicate, delete, find
   case generate
   case quickLook, share, copyImage, revealInFinder
@@ -63,6 +63,7 @@ private struct NewOpponentKey: FocusedValueKey { typealias Value = CommandAction
 private struct ImportTemplateKey: FocusedValueKey { typealias Value = CommandAction }
 private struct ImportTuttocampoKey: FocusedValueKey { typealias Value = CommandAction }
 private struct ImportCSIKey: FocusedValueKey { typealias Value = CommandAction }
+private struct ImportPDFKey: FocusedValueKey { typealias Value = CommandAction }
 private struct DuplicateKey: FocusedValueKey { typealias Value = CommandAction }
 private struct DeleteKey: FocusedValueKey { typealias Value = CommandAction }
 private struct FindKey: FocusedValueKey { typealias Value = CommandAction }
@@ -92,6 +93,10 @@ extension FocusedValues {
   var importCSIAction: CommandAction? {
     get { self[ImportCSIKey.self] }
     set { self[ImportCSIKey.self] = newValue }
+  }
+  var importPDFAction: CommandAction? {
+    get { self[ImportPDFKey.self] }
+    set { self[ImportPDFKey.self] = newValue }
   }
   var duplicateAction: CommandAction? {
     get { self[DuplicateKey.self] }
@@ -149,6 +154,7 @@ private struct PublishCommandModifier: ViewModifier {
     case .importTemplate: content.focusedSceneValue(\.importTemplateAction, action)
     case .importTuttocampo: content.focusedSceneValue(\.importTuttocampoAction, action)
     case .importCSI: content.focusedSceneValue(\.importCSIAction, action)
+    case .importPDF: content.focusedSceneValue(\.importPDFAction, action)
     case .duplicate: content.focusedSceneValue(\.duplicateAction, action)
     case .delete: content.focusedSceneValue(\.deleteAction, action)
     case .find: content.focusedSceneValue(\.findAction, action)

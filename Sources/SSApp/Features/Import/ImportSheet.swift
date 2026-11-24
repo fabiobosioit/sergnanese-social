@@ -81,7 +81,7 @@ struct ImportSheet: View {
           .foregroundStyle(.secondary)
       }
       reportSection
-      if model.candidates.isEmpty {
+      if model.candidates.isEmpty && model.showsEmptyState {
         ContentUnavailableView {
           Label(ImportStrings.emptyTitle, systemImage: "calendar.badge.exclamationmark")
         } description: {

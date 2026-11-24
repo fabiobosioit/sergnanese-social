@@ -35,6 +35,10 @@ final class ImportModel {
   enum Source {
     case tuttocampo
     case csi(team: Team, page: any CSIPageProvider)
+    /// A federation calendar already read from `fileName`, staged for `team`.
+    case pdf(team: Team, calendar: PDFCalendar, fileName: String)
+    /// A PDF that gave no calendar: the sheet shows only the report line.
+    case pdfFailed(fileName: String, reason: PDFCalendarError)
   }
 
   let services: AppServices
@@ -80,9 +84,36 @@ final class ImportModel {
     return false
   }
 
-  var title: String { isCSI ? ImportStrings.titleCSI : ImportStrings.title }
-  var emptyDescription: String { isCSI ? ImportStrings.emptyDescriptionCSI : ImportStrings.emptyDescription }
-  var linkMessage: String { isCSI ? ImportStrings.linkMessageCSI : ImportStrings.linkMessage }
+  var isPDF: Bool {
+    switch source {
+    case .pdf, .pdfFailed: return true
+    default: return false
+    }
+  }
+
+  var title: String {
+    if isPDF { return ImportStrings.titlePDF }
+    return isCSI ? ImportStrings.titleCSI : ImportStrings.title
+  }
+
+  var emptyDescription: String {
+    if isPDF { return ImportStrings.emptyDescriptionPDF(clubShortName: settings?.clubShortName ?? "") }
+    return isCSI ? ImportStrings.emptyDescriptionCSI : ImportStrings.emptyDescription
+  }
+
+  /// The "no matches" placeholder is hidden when the PDF could not be read at all (the report says why).
+  var showsEmptyState: Bool {
+    if case .pdfFailed = source { return false }
+    return true
+  }
+
+  var linkMessage: String {
+    if isPDF { return ImportStrings.linkMessagePDF }
+    return isCSI ? ImportStrings.linkMessageCSI : ImportStrings.linkMessage
+  }
+
+  /// What the written matches are marked with.
+  private var matchSource: MatchSource { isPDF ? .pdf : .scrape }
 
   // MARK: Availability
 
@@ -107,7 +138,46 @@ final class ImportModel {
 
   func start() {
     task?.cancel()
+    if isPDF {
+      stagePDF()  // already parsed: nothing to wait for
+      return
+    }
     task = Task { await isCSI ? readCSIPage() : fetch() }
+  }
+
+  // MARK: PDF
+
+  /// Opens the sheet on a PDF source (already parsed by `PDFImportLauncher`) and stages it.
+  func presentPDF() {
+    guard isPDF, !isPresented else { return }
+    isPresented = true
+    start()
+  }
+
+  /// Stages the calendar's fixtures, or just the report when the PDF could not be read. Synchronous: the
+  /// parsing happened before.
+  func stagePDF() {
+    resetStaging()
+    switch source {
+    case .pdfFailed(let fileName, let reason):
+      issues = [.pdfReadFailed(file: fileName, reason: reason)]
+      phase = .review
+    case .pdf(let team, let calendar, _):
+      do {
+        let settings = try services.settings.load()
+        self.settings = settings
+        opponents = try services.opponents.list()
+        issues = ImportIssue.pdfNotices(for: calendar)
+        candidates = try candidates(for: calendar.fixtures, team: team, homeVenue: settings.homeVenue)
+          .sorted(by: Self.stagingOrder)
+        ticked = Set(candidates.filter(isTickedByDefault).map(\.id))
+        phase = .review
+      } catch {
+        phase = .failed((error as? AppError)?.localizedDescription ?? ImportStrings.loadErrorTitle)
+      }
+    default:
+      break
+    }
   }
 
   // MARK: CSI
@@ -256,7 +326,8 @@ final class ImportModel {
     let existing = try services.matches.list(from: first, to: last, teamID: team.id)
     return fixtures.map {
       ImportCandidate.make(
-        fixture: $0, team: team, opponents: opponents, existingMatches: existing, homeVenue: homeVenue)
+        fixture: $0, team: team, opponents: opponents, existingMatches: existing, homeVenue: homeVenue,
+        source: matchSource)
     }
   }
 
@@ -279,9 +350,11 @@ final class ImportModel {
     (candidate.state == .new || candidate.state == .changed) && candidate.draft != nil
   }
 
-  /// New and changed rows of the coming weekend are ticked at the start; everything else is not.
+  /// New and changed rows of the coming weekend are ticked at the start; everything else is not. A PDF
+  /// holds the whole season: every new or changed row from today on is ticked.
   private func isTickedByDefault(_ candidate: ImportCandidate) -> Bool {
-    Self.isTickable(candidate) && weekend(containing: candidate.fixture.date) == nextWeekend(from: today())
+    if isPDF { return Self.isTickable(candidate) && candidate.fixture.date >= today() }
+    return Self.isTickable(candidate) && weekend(containing: candidate.fixture.date) == nextWeekend(from: today())
   }
 
   var sections: [ImportSection] {
@@ -331,7 +404,7 @@ final class ImportModel {
   /// "Crea avversario": a new opponent with the fetched name.
   func createOpponent(for candidate: ImportCandidate) {
     do {
-      let created = try services.opponents.create(OpponentDraft(name: candidate.fixture.opponentName))
+      let created = try services.opponents.create(candidate.fixture.newOpponentDraft)
       rebuild(candidate, linkedTo: created.id)
       onDataChanged()
     } catch {
@@ -342,12 +415,10 @@ final class ImportModel {
   /// "Collega a esistente…": saves the fetched name as an alias of `opponent` and resolves the row.
   func link(_ candidate: ImportCandidate, to opponent: Opponent) {
     do {
-      var draft = OpponentDraft(opponent)
-      if opponentsMatching(name: candidate.fixture.opponentName, in: [opponent]).isEmpty {
-        draft.aliases.append(candidate.fixture.opponentName)
-      }
-      let updated = try services.opponents.update(id: opponent.id, with: draft)
-      rebuild(candidate, linkedTo: updated.id)
+      let draft = opponent.draftAddingImportNames(of: candidate.fixture)
+      var linked = opponent
+      if draft != OpponentDraft(opponent) { linked = try services.opponents.update(id: opponent.id, with: draft) }
+      rebuild(candidate, linkedTo: linked.id)
       onDataChanged()
     } catch {
       present(error, fallback: ImportStrings.saveFailed)
@@ -367,7 +438,7 @@ final class ImportModel {
     let rebuilt = ImportCandidate.make(
       fixture: candidate.fixture, team: candidate.team, opponents: opponents,
       existingMatches: candidate.existing.map { [$0] } ?? [], homeVenue: settings.homeVenue,
-      linkedOpponentID: opponentID)
+      linkedOpponentID: opponentID, source: matchSource)
     candidates[index] = rebuilt
     if Self.isTickable(rebuilt) { ticked.insert(rebuilt.id) } else { ticked.remove(rebuilt.id) }
   }
@@ -392,6 +463,9 @@ final class ImportModel {
     add(
       ImportStrings.changeVenue, match.venue.isEmpty ? ImportStrings.none : match.venue,
       draft.venue.isEmpty ? ImportStrings.none : draft.venue)
+    add(
+      ImportStrings.changeCompetition, match.competition ?? ImportStrings.none,
+      draft.competition ?? ImportStrings.none)
     add(
       ImportStrings.changeRound, match.round.map(String.init) ?? ImportStrings.none,
       draft.round.map(String.init) ?? ImportStrings.none)
@@ -469,6 +543,7 @@ final class ImportModel {
   }
 
   private func downloadLogos(for chosen: [ImportCandidate]) async {
+    if isPDF { return }  // a PDF carries no logos
     if case .csi(_, let page) = source {
       await downloadCSILogos(for: chosen, page: page)
       return

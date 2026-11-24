@@ -12,6 +12,7 @@ struct AppCommands: Commands {
   @FocusedValue(\.importTemplateAction) private var importTemplate
   @FocusedValue(\.importTuttocampoAction) private var importTuttocampo
   @FocusedValue(\.importCSIAction) private var importCSI
+  @FocusedValue(\.importPDFAction) private var importPDF
   @FocusedValue(\.duplicateAction) private var duplicate
   @FocusedValue(\.deleteAction) private var delete
   @FocusedValue(\.findAction) private var find
@@ -25,7 +26,7 @@ struct AppCommands: Commands {
     var actions: [ShellCommand: CommandAction] = [:]
     let pairs: [(ShellCommand, CommandAction?)] = [
       (.newMatch, newMatch), (.newOpponent, newOpponent), (.importTemplate, importTemplate),
-      (.importTuttocampo, importTuttocampo), (.importCSI, importCSI),
+      (.importTuttocampo, importTuttocampo), (.importCSI, importCSI), (.importPDF, importPDF),
       (.duplicate, duplicate), (.delete, delete), (.find, find), (.generate, generate),
       (.quickLook, quickLook), (.share, share), (.copyImage, copyImage), (.revealInFinder, revealInFinder),
     ]
@@ -59,6 +60,8 @@ struct AppCommands: Commands {
         .disabled(!published.isEnabled(.importTuttocampo))
       Button(AppStrings.Menu.importCSI) { published.perform(.importCSI) }
         .disabled(!published.isEnabled(.importCSI))
+      Button(AppStrings.Menu.importPDF) { published.perform(.importPDF) }
+        .disabled(!published.isEnabled(.importPDF))
       Button(AppStrings.Menu.loadDemo) { Task { await model.loadDemoData() } }
       Divider()
       Button(AppStrings.Menu.openOutputFolder) { FolderOpener.openOutputFolder(model) }
