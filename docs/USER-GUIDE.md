@@ -100,6 +100,25 @@ Puoi anche condividere tutte le immagini di una generazione con **Condividi tutt
 Le immagini restano sul disco anche dopo la condivisione. Nel menu **Immagini** c'è **Mostra nel Finder** (⇧⌘R)
 per aprirle nella cartella in cui sono state salvate. Con **Immagini › Copia immagine** puoi copiarle negli appunti.
 
+## Importare
+
+### Importare la stagione intera
+
+Dal menu **File › Importa da Tuttocampo…** si apre un pannello con tre ambiti:
+
+- **Questo weekend** (predefinito): legge solo il weekend in corso.
+- **Da oggi a fine stagione**: legge dalla giornata in corso fino all'ultima. Usalo regolarmente: richiede meno richieste.
+- **Tutta la stagione**: legge tutte le giornate, risultati passati compresi. Usalo all'inizio di una fase, oppure per riempire l'archivio.
+
+Scegli le squadre da leggere. Il pannello mostra una stima di richieste e di minuti, per esempio *circa 30 richieste, circa 1 minuto*.
+
+Le pagine vengono lette una alla volta, circa una al secondo, e solo dopo che hai premuto **Avvia**. **Annulla** interrompe la lettura e mantiene quanto è già stato letto.
+
+- Una giornata in cui la Sergnanese non gioca è un **riposo** («riposo»), non un errore.
+- Una giornata che non si riesce a leggere viene elencata nel rapporto, e la lettura prosegue con le altre.
+
+Nella revisione controlla le partite prima di salvarle: nulla viene salvato finché non premi **Importa**. Le partite bloccate non vengono mai sovrascritte. Puoi filtrare la lista per squadra; le giornate passate sono chiuse per default e si aprono con un clic.
+
 ## Avversari e loghi
 
 Apri **Avversari**. A sinistra c'è l'elenco, a destra la scheda dell'avversario selezionato.
