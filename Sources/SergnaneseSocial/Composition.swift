@@ -41,7 +41,8 @@ enum Composition {
       renderer: renderer, demoData: demo, paths: paths,
       fixtureSource: LoggingFixtureSource(base: TuttocampoWidgetSource(logos: logos)),
       csiPageParser: LoggingPageFixtureParser(base: CSIPageParser()),
-      sourceTeamLists: database.sourceTeamLists)
+      sourceTeamLists: database.sourceTeamLists,
+      pdfCalendarParser: LoggingPDFCalendarParser(base: FederationPDFParser()))
   }
 }
 
@@ -124,6 +125,25 @@ struct LoggingPageFixtureParser: PageFixtureParser {
     let teams = base.teams(html: html, pageURL: pageURL, for: team, settings: settings)
     Log.imports.info("CSI team list \(team.name, privacy: .public): \(teams.count) team(s)")
     return teams
+  }
+}
+
+/// Logs the outcome of each federation PDF read: counts or the error case only. Never a name, venue or address
+/// from the file.
+struct LoggingPDFCalendarParser: PDFCalendarParser {
+  let base: any PDFCalendarParser
+
+  func parse(pdf: Data, settings: ClubSettings) throws -> PDFCalendar {
+    do {
+      let calendar = try base.parse(pdf: pdf, settings: settings)
+      Log.imports.info(
+        "PDF import: \(calendar.fixtures.count) fixture(s), \(calendar.byes.count) bye(s), \(calendar.problems.count) problem(s)"
+      )
+      return calendar
+    } catch let error as PDFCalendarError {
+      Log.imports.error("PDF import: failed (\(String(describing: error), privacy: .public))")
+      throw error
+    }
   }
 }
 
