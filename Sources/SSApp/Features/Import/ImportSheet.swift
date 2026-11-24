@@ -8,17 +8,23 @@ struct ImportSheet: View {
 
   var body: some View {
     @Bindable var model = model
-    VStack(spacing: 0) {
-      Text(model.title)
-        .font(.headline)
-        .padding(12)
-      Divider()
-      content
-      Divider()
-      footer
-        .padding(12)
+    Group {
+      if model.phase == .choosing {
+        TuttocampoScopeSheet(model: model)
+      } else {
+        VStack(spacing: 0) {
+          Text(model.title)
+            .font(.headline)
+            .padding(12)
+          Divider()
+          content
+          Divider()
+          footer
+            .padding(12)
+        }
+        .frame(minWidth: 720, idealWidth: 840, minHeight: 520, idealHeight: 640)
+      }
     }
-    .frame(minWidth: 720, idealWidth: 840, minHeight: 520, idealHeight: 640)
     .interactiveDismissDisabled(model.phase == .fetching || model.phase == .committing)
     .alert(
       AppStrings.Errors.title,
@@ -33,7 +39,7 @@ struct ImportSheet: View {
   @ViewBuilder
   private var content: some View {
     switch model.phase {
-    case .idle:
+    case .idle, .choosing:
       ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
     case .fetching:
       fetching
@@ -60,7 +66,9 @@ struct ImportSheet: View {
 
   private var fetching: some View {
     VStack(spacing: 12) {
-      if let progress = model.progress {
+      if let progress = model.progress, model.isSeasonRun {
+        seasonProgress(progress)
+      } else if let progress = model.progress {
         ProgressView(value: Double(progress.current - 1), total: Double(progress.total))
           .frame(maxWidth: 320)
         Text(ImportStrings.reading(progress.team, current: progress.current, total: progress.total))
@@ -74,8 +82,30 @@ struct ImportSheet: View {
     .accessibilityElement(children: .combine)
   }
 
+  /// "Squadra 2 di 8 · Giornata 14 di 30", the team's name, a bar from the pages read.
+  private func seasonProgress(_ progress: ImportModel.Progress) -> some View {
+    VStack(spacing: 8) {
+      Text(progress.team).font(.headline)
+      if let page = model.seasonProgress, let total = page.pagesTotal {
+        ProgressView(value: Double(min(page.pagesRead, total)), total: Double(total))
+          .frame(maxWidth: 320)
+      } else {
+        ProgressView().progressViewStyle(.linear).frame(maxWidth: 320)
+      }
+      Text(
+        ImportStrings.seasonReading(
+          team: progress.current, of: progress.total, matchday: model.seasonProgress?.matchday ?? 1,
+          last: model.seasonProgress?.lastMatchday)
+      )
+      .foregroundStyle(.secondary)
+      Text(ImportStrings.seasonPages(model.runPagesRead)).font(.callout).foregroundStyle(.tertiary)
+    }
+    .accessibilityElement(children: .combine)
+  }
+
   private var review: some View {
     VStack(spacing: 0) {
+      if model.isSeasonRun { seasonBar }
       if let counts = model.matchCountsText {
         Text(counts)
           .font(.callout)
@@ -89,11 +119,39 @@ struct ImportSheet: View {
     }
   }
 
+  /// The header line of a season review, the team filter and "Seleziona tutte / nessuna".
+  private var seasonBar: some View {
+    VStack(spacing: 6) {
+      if let text = model.seasonSummaryText {
+        Text(text)
+          .font(.callout)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      HStack {
+        Picker(ImportStrings.filterLabel, selection: Bindable(model).teamFilter) {
+          Text(ImportStrings.filterAll).tag(String?.none)
+          ForEach(model.filterTeams) { Text($0.name).tag(String?.some($0.id)) }
+        }
+        .fixedSize()
+        Spacer()
+        Button(ImportStrings.selectAll) { model.setAllVisibleTicked(true) }
+        Button(ImportStrings.selectNone) { model.setAllVisibleTicked(false) }
+      }
+      .controlSize(.small)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 8)
+    .overlay(alignment: .bottom) { Divider() }
+  }
+
   private var reviewList: some View {
     List {
       if model.wasCancelled {
-        Label(ImportStrings.cancelledNote, systemImage: ImportStrings.infoSymbol)
-          .foregroundStyle(.secondary)
+        Label(
+          model.isSeasonRun ? ImportStrings.cancelledSeasonNote : ImportStrings.cancelledNote,
+          systemImage: ImportStrings.infoSymbol
+        )
+        .foregroundStyle(.secondary)
       }
       reportSection
       if model.candidates.isEmpty && model.showsEmptyState {
@@ -105,12 +163,43 @@ struct ImportSheet: View {
         .frame(maxWidth: .infinity)
       }
       ForEach(model.sections) { section in
-        Section(section.title) {
-          ForEach(section.candidates) { candidate in
-            ImportRow(candidate: candidate, model: model)
+        Section {
+          if !model.isCollapsed(section) {
+            ForEach(section.candidates) { candidate in
+              ImportRow(candidate: candidate, model: model)
+            }
           }
+        } header: {
+          sectionHeader(section)
         }
       }
+    }
+  }
+
+  @ViewBuilder
+  private func sectionHeader(_ section: ImportSection) -> some View {
+    if model.isCollapsible(section) {
+      let collapsed = model.isCollapsed(section)
+      Button {
+        model.toggleCollapsed(section)
+      } label: {
+        HStack(spacing: 6) {
+          Image(systemName: collapsed ? "chevron.right" : "chevron.down")
+            .imageScale(.small)
+            .frame(width: 10)
+          Text(section.title)
+          if collapsed {
+            Text(ImportStrings.weekendRows(section.candidates.count)).foregroundStyle(.secondary)
+          }
+          Spacer()
+        }
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(section.title)
+      .accessibilityHint(collapsed ? ImportStrings.expandWeekend : ImportStrings.collapseWeekend)
+    } else {
+      Text(section.title)
     }
   }
 
@@ -128,8 +217,15 @@ struct ImportSheet: View {
 
   @ViewBuilder
   private var reportSection: some View {
-    if !model.issues.isEmpty {
+    if !model.issues.isEmpty || !model.notes.isEmpty {
       Section(ImportStrings.reportTitle) {
+        ForEach(model.notes, id: \.self) { note in
+          Label {
+            Text(note).fixedSize(horizontal: false, vertical: true)
+          } icon: {
+            Image(systemName: ImportStrings.errorSymbol).foregroundStyle(.yellow)
+          }
+        }
         ForEach(Array(model.issues.enumerated()), id: \.offset) { _, issue in
           Label {
             Text(issue.message).fixedSize(horizontal: false, vertical: true)
@@ -149,7 +245,7 @@ struct ImportSheet: View {
   @ViewBuilder
   private var footer: some View {
     switch model.phase {
-    case .idle, .committing:
+    case .idle, .committing, .choosing:
       HStack { Spacer() }
     case .fetching:
       HStack {

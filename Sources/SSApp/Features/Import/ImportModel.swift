@@ -11,6 +11,24 @@ struct ImportSection: Identifiable, Equatable {
   var id: String { weekend.saturday.value }
 }
 
+/// What a Tuttocampo run reads (T4.11): the weekend's matchday (today's flow) or a season run.
+enum ImportScope: String, CaseIterable, Identifiable {
+  case weekend
+  case fromCurrentMatchday
+  case wholeSeason
+
+  var id: String { rawValue }
+
+  /// `nil` for "Questo weekend", which stays `fetchFixtures`.
+  var seasonScope: SeasonScope? {
+    switch self {
+    case .weekend: nil
+    case .fromCurrentMatchday: .fromCurrentMatchday
+    case .wholeSeason: .wholeSeason
+    }
+  }
+}
+
 /// State and logic of the "Importa da Tuttocampo" sheet: fetch every active team that has a widget id,
 /// stage the rows for review, write the ticked ones, then download the missing logos.
 /// Nothing runs until the user starts it, and nothing runs in the background.
@@ -18,6 +36,8 @@ struct ImportSection: Identifiable, Equatable {
 final class ImportModel {
   enum Phase: Equatable {
     case idle
+    /// Tuttocampo start panel: scope and teams, before any request.
+    case choosing
     case fetching
     case review
     case committing
@@ -58,6 +78,29 @@ final class ImportModel {
   private(set) var opponents: [Opponent] = []
   private(set) var canStart = false
 
+  // Season run (T4.11)
+  /// What the next run reads. Chosen in the start panel.
+  var scope: ImportScope = .weekend
+  /// Active teams with a widget id, as the start panel lists them.
+  private(set) var startableTeams: [Team] = []
+  /// Teams ticked in the start panel. Empty outside the panel: a run then reads every startable team.
+  var chosenTeamIDs: Set<String> = []
+  /// Progress of the team being read in a season run.
+  private(set) var seasonProgress: SeasonProgress?
+  /// Pages requested so far over the whole run.
+  private(set) var runPagesRead = 0
+  /// Report lines of the UI itself (the per-run cap).
+  private(set) var notes: [String] = []
+  /// Byes and unread matchdays over the run, for the header line.
+  private(set) var seasonByes = 0
+  private(set) var seasonUnread = 0
+  /// Last season length of each team, kept for the estimate (in memory and in UserDefaults, never in the database).
+  private(set) var seasonLengths: [String: SeasonLength] = [:]
+  /// Review: only this team's rows; `nil` = all teams.
+  var teamFilter: String?
+  /// Past weekends the user opened (the others are collapsed when the scope reads the past).
+  private(set) var expandedWeekends: Set<String> = []
+
   var isPresented = false
   /// Candidate ids that will be imported.
   var ticked: Set<String> = []
@@ -71,13 +114,30 @@ final class ImportModel {
   @ObservationIgnored private let today: @MainActor () -> DayDate
   @ObservationIgnored private var task: Task<Void, Never>?
   @ObservationIgnored private var settings: ClubSettings?
+  @ObservationIgnored private var currentTeamTask: Task<SeasonFetch, any Error>?
+  @ObservationIgnored private var capReached = false
+  @ObservationIgnored private var pagesBeforeTeam = 0
+  @ObservationIgnored private let maxPagesPerRun: Int
+  @ObservationIgnored private let defaults: UserDefaults
 
+  static let seasonLengthsKey = "import.tuttocampo.seasonLengths"
+
+  /// `maxPagesPerRun` and `defaults` are seams for tests.
   init(
-    services: AppServices, source: Source = .tuttocampo, today: @escaping @MainActor () -> DayDate = { DayDate.today() }
+    services: AppServices, source: Source = .tuttocampo,
+    today: @escaping @MainActor () -> DayDate = { DayDate.today() },
+    maxPagesPerRun: Int = SeasonLimits.maxPagesPerRun, defaults: UserDefaults = .standard
   ) {
     self.services = services
     self.source = source
     self.today = today
+    self.maxPagesPerRun = maxPagesPerRun
+    self.defaults = defaults
+    if let data = defaults.data(forKey: Self.seasonLengthsKey),
+      let stored = try? JSONDecoder().decode([String: SeasonLength].self, from: data)
+    {
+      seasonLengths = stored
+    }
   }
 
   var isCSI: Bool {
@@ -129,12 +189,38 @@ final class ImportModel {
 
   // MARK: Fetch
 
-  /// Opens the sheet and starts reading.
+  /// Opens the sheet on the start panel (Tuttocampo). Nothing is requested until "Avvia".
   func present() {
     refreshAvailability()
     guard canStart, !isPresented else { return }
+    startableTeams = ((try? services.teams.list()) ?? [])
+      .filter { $0.isActive && $0.tuttocampoWidgetID != nil }
+      .sorted { $0.sortOrder < $1.sortOrder }
+    chosenTeamIDs = Set(startableTeams.map(\.id))
+    scope = .weekend
+    teamFilter = nil
     isPresented = true
+    phase = .choosing
+  }
+
+  /// "Avvia" in the start panel.
+  func startRun() {
+    guard phase == .choosing, !chosenTeamIDs.isEmpty else { return }
+    phase = .fetching
     start()
+  }
+
+  var canStartRun: Bool { phase == .choosing && !chosenTeamIDs.isEmpty }
+
+  func setTeamChosen(_ team: Team, _ isOn: Bool) {
+    if isOn { chosenTeamIDs.insert(team.id) } else { chosenTeamIDs.remove(team.id) }
+  }
+
+  /// The estimate line of the start panel; `nil` for "Questo weekend".
+  var estimate: SeasonEstimate? {
+    guard let seasonScope = scope.seasonScope else { return nil }
+    let lengths = startableTeams.filter { chosenTeamIDs.contains($0.id) }.map { seasonLengths[$0.id] }
+    return SeasonEstimate(scope: seasonScope, teams: lengths)
   }
 
   func start() {
@@ -268,6 +354,13 @@ final class ImportModel {
     replaceLogo = []
     venueEdits = [:]
     summary = nil
+    seasonProgress = nil
+    runPagesRead = 0
+    notes = []
+    seasonByes = 0
+    seasonUnread = 0
+    teamFilter = nil
+    expandedWeekends = []
   }
 
   /// Cancels the fetch; the teams already read stay.
@@ -287,26 +380,42 @@ final class ImportModel {
     venueEdits = [:]
     summary = nil
     wasCancelled = false
+    seasonProgress = nil
+    runPagesRead = 0
+    notes = []
+    seasonByes = 0
+    seasonUnread = 0
+    teamFilter = nil
+    expandedWeekends = []
+    startableTeams = []
+    chosenTeamIDs = []
+    scope = .weekend
   }
 
-  /// Reads the teams one at a time. Awaitable, so tests can run it to the end.
-  func fetch() async {
-    resetStaging()
-    phase = .fetching
-
-    let teams: [Team]
-    let settings: ClubSettings
+  /// The teams of the run (active, with a widget id, ticked in the panel), the settings and the opponents; `nil`
+  /// (and the failed phase) when they cannot be loaded.
+  private func prepareRun() -> (teams: [Team], settings: ClubSettings)? {
     do {
-      teams = try services.teams.list()
+      let teams = try services.teams.list()
         .filter { $0.isActive && $0.tuttocampoWidgetID != nil }
+        .filter { chosenTeamIDs.isEmpty || chosenTeamIDs.contains($0.id) }
         .sorted { $0.sortOrder < $1.sortOrder }
-      settings = try services.settings.load()
+      let settings = try services.settings.load()
       opponents = try services.opponents.list()
+      self.settings = settings
+      return (teams, settings)
     } catch {
       phase = .failed((error as? AppError)?.localizedDescription ?? ImportStrings.loadErrorTitle)
-      return
+      return nil
     }
-    self.settings = settings
+  }
+
+  /// Reads the teams one at a time. Awaitable, so tests can run it to the end. A season scope runs the season loop.
+  func fetch() async {
+    if scope.seasonScope != nil { return await fetchSeason() }
+    resetStaging()
+    phase = .fetching
+    guard let (teams, settings) = prepareRun() else { return }
 
     var staged: [ImportCandidate] = []
     for (index, team) in teams.enumerated() {
@@ -339,6 +448,153 @@ final class ImportModel {
     ticked = Set(candidates.filter(isTickedByDefault).map(\.id))
     progress = nil
     phase = .review
+  }
+
+  // MARK: Season run (T4.11)
+
+  /// One team at a time, `fetchSeason` in a child task per team. Annulla cancels the team being read and starts no
+  /// other; the per-run page cap does the same and says which teams were not read. Every row already read stays.
+  func fetchSeason() async {
+    guard let seasonScope = scope.seasonScope else { return await fetch() }
+    resetStaging()
+    phase = .fetching
+    guard let (teams, settings) = prepareRun() else { return }
+
+    var staged: [ImportCandidate] = []
+    var cutTeams: [String] = []
+    capReached = false
+    pagesBeforeTeam = 0
+    let fixtureSource = services.fixtureSource
+    for (index, team) in teams.enumerated() {
+      if Task.isCancelled {
+        wasCancelled = true
+        break
+      }
+      if capReached {
+        cutTeams += teams[index...].map(\.name)
+        break
+      }
+      progress = Progress(team: team.name, current: index + 1, total: teams.count)
+      seasonProgress = nil
+      let child = Task {
+        try await fixtureSource.fetchSeason(
+          for: team, settings: settings, scope: seasonScope,
+          onProgress: { [weak self] progress in await self?.seasonPageRead(progress) })
+      }
+      currentTeamTask = child
+      let outcome = await withTaskCancellationHandler {
+        await child.result
+      } onCancel: {
+        child.cancel()
+      }
+      currentTeamTask = nil
+
+      switch outcome {
+      case .success(let fetch):
+        pagesBeforeTeam += fetch.pagesRead
+        remember(fetch.length, for: team)
+        var notices = ImportIssue.seasonNotices(team: team.name, fetch: fetch, clubShortName: settings.clubShortName)
+        if Task.isCancelled || capReached {
+          notices.removeAll { if case .seasonStopped = $0 { true } else { false } }
+        }
+        issues += notices
+        seasonByes += fetch.byes.count
+        seasonUnread += fetch.failedMatchdays.count + fetch.problems.filter { $0.matchday != nil }.count
+        if capReached, fetch.stoppedAfter != nil { cutTeams.append(team.name) }
+        do {
+          staged += try candidates(for: fetch.fixtures, team: team, homeVenue: settings.homeVenue)
+        } catch {
+          phase = .failed((error as? AppError)?.localizedDescription ?? ImportStrings.loadErrorTitle)
+          return
+        }
+        if Task.isCancelled { wasCancelled = true }
+      case .failure(let error):
+        if error is CancellationError {
+          wasCancelled = true
+        } else if let error = error as? FixtureFetchError {
+          issues.append(.fetchFailed(team: team.name, reason: error))
+        } else {
+          phase = .failed((error as? AppError)?.localizedDescription ?? ImportStrings.loadErrorTitle)
+          return
+        }
+      }
+      if wasCancelled { break }
+    }
+    if capReached, !cutTeams.isEmpty {
+      notes.append(ImportStrings.capReached(maxPagesPerRun, teams: cutTeams))
+    }
+    candidates = staged.sorted(by: Self.stagingOrder)
+    ticked = Set(candidates.filter(isTickedByDefault).map(\.id))
+    progress = nil
+    seasonProgress = nil
+    phase = .review
+  }
+
+  /// The progress callback of `fetchSeason`, already on the main actor. Counts pages over the run and cancels the
+  /// team being read when the cap is reached.
+  private func seasonPageRead(_ page: SeasonProgress) {
+    seasonProgress = page
+    runPagesRead = pagesBeforeTeam + page.pagesRead
+    if runPagesRead >= maxPagesPerRun, !capReached {
+      capReached = true
+      currentTeamTask?.cancel()
+    }
+  }
+
+  private func remember(_ length: SeasonLength?, for team: Team) {
+    guard let length else { return }
+    seasonLengths[team.id] = length
+    if let data = try? JSONEncoder().encode(seasonLengths) { defaults.set(data, forKey: Self.seasonLengthsKey) }
+  }
+
+  // MARK: Season review
+
+  var isSeasonRun: Bool { !isCSI && !isPDF && scope != .weekend }
+
+  /// Teams that have rows, for the filter pop-up.
+  var filterTeams: [Team] {
+    var seen: Set<String> = []
+    return candidates.map(\.team).filter { seen.insert($0.id).inserted }.sorted { $0.sortOrder < $1.sortOrder }
+  }
+
+  /// "8 partite in 8 giornate, 1 squadra; 1 riposo; 1 giornata non letta" for a season review.
+  var seasonSummaryText: String? {
+    guard isSeasonRun, phase == .review else { return nil }
+    let matchdays = Set(
+      candidates.map { "\($0.team.id)|\($0.fixture.round.map(String.init) ?? $0.fixture.date.value)" })
+    return ImportStrings.seasonSummary(
+      matches: candidates.count, matchdays: matchdays.count, teams: Set(candidates.map(\.team.id)).count,
+      byes: seasonByes, unread: seasonUnread)
+  }
+
+  /// A past weekend, in a scope that reads the past: collapsed until the user opens it.
+  func isCollapsed(_ section: ImportSection) -> Bool {
+    scope == .wholeSeason && section.weekend.saturday < nextWeekend(from: today()).saturday
+      && !expandedWeekends.contains(section.id)
+  }
+
+  func isCollapsible(_ section: ImportSection) -> Bool {
+    scope == .wholeSeason && section.weekend.saturday < nextWeekend(from: today()).saturday
+  }
+
+  func toggleCollapsed(_ section: ImportSection) {
+    if expandedWeekends.contains(section.id) {
+      expandedWeekends.remove(section.id)
+    } else {
+      expandedWeekends.insert(section.id)
+    }
+  }
+
+  /// The rows on screen: the team filter applied, collapsed weekends left out.
+  var visibleCandidates: [ImportCandidate] {
+    sections.filter { !isCollapsed($0) }.flatMap(\.candidates)
+  }
+
+  /// "Seleziona tutte" / "Seleziona nessuna": the tickable visible rows.
+  func setAllVisibleTicked(_ isOn: Bool) {
+    for candidate in visibleCandidates where Self.isTickable(candidate) {
+      if isOn { ticked.insert(candidate.id) } else { ticked.remove(candidate.id) }
+    }
   }
 
   private func candidates(for fixtures: [FetchedFixture], team: Team, homeVenue: String) throws -> [ImportCandidate] {
@@ -374,13 +630,17 @@ final class ImportModel {
   /// holds the whole season: every new or changed row from today on is ticked.
   private func isTickedByDefault(_ candidate: ImportCandidate) -> Bool {
     if isPDF { return Self.isTickable(candidate) && candidate.fixture.date >= today() }
+    if let seasonScope = scope.seasonScope {
+      // Decision 7: from today on; the whole season also takes the past rows.
+      return Self.isTickable(candidate) && (seasonScope == .wholeSeason || candidate.fixture.date >= today())
+    }
     return Self.isTickable(candidate) && weekend(containing: candidate.fixture.date) == nextWeekend(from: today())
   }
 
   var sections: [ImportSection] {
     let year = today().year
     var result: [ImportSection] = []
-    for candidate in candidates {
+    for candidate in candidates where teamFilter == nil || candidate.team.id == teamFilter {
       let weekend = weekend(containing: candidate.fixture.date)
       if let index = result.firstIndex(where: { $0.weekend == weekend }) {
         result[index].candidates.append(candidate)
