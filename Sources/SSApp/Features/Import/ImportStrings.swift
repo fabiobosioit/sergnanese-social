@@ -117,7 +117,6 @@ enum ImportStrings {
   static let change = "Cambia…"
   static let changeOpponentAction = "Cambia avversario…"
   static func changeOpponentAccessibility(_ name: String) -> String { "Cambia avversario di \(name)" }
-  static func matchedTo(_ name: String) -> String { "Abbinato a «\(name)»" }
   static let pickerProposed = "Proposti"
   static let pickerAll = "Tutti gli avversari"
   static func pickerCreate(_ name: String) -> String { "Crea nuovo «\(name)»" }

@@ -489,6 +489,10 @@ final class ImportModel {
     rebuild(candidate, linkedTo: opponent.id, keepingTick: true)
   }
 
+  /// "Crea nuovo «…»" in the picker is for rows without an opponent: creating writes at once, and nothing may be
+  /// written before "Importa" for a row that already has one.
+  func canCreateOpponent(_ candidate: ImportCandidate) -> Bool { candidate.opponent == nil }
+
   /// "Cambia avversario…" is offered on every row that has an opponent, except a locked match (never written).
   func canChangeOpponent(_ candidate: ImportCandidate) -> Bool {
     candidate.opponent != nil && candidate.state != .locked

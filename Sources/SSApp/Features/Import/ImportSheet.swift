@@ -407,11 +407,13 @@ private struct OpponentLinkPicker: View {
       .overlay {
         if content.isEmpty { Text(ImportStrings.linkNoResults).foregroundStyle(.secondary) }
       }
-      Button(ImportStrings.pickerCreate(candidate.fixture.opponentName)) {
-        model.createOpponent(for: candidate)
-        onDone()
+      if model.canCreateOpponent(candidate) {
+        Button(ImportStrings.pickerCreate(candidate.fixture.opponentName)) {
+          model.createOpponent(for: candidate)
+          onDone()
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
       }
-      .frame(maxWidth: .infinity, alignment: .trailing)
     }
     .padding(14)
     .frame(width: 360)

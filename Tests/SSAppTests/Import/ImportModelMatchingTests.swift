@@ -111,6 +111,14 @@ struct ImportModelMatchingTests {
     #expect(!model.canChangeOpponent(try row(model, "NUOVA ESEMPIO")))
   }
 
+  @Test func createNewIsOfferedOnlyForRowsWithoutAnOpponent() throws {
+    let model = makeModel(try makeEnv())
+    #expect(!model.canCreateOpponent(try row(model, "BORGO LUCENTE S.R.L.")))
+    #expect(!model.canCreateOpponent(try row(model, "VIRTUS CAMPOFELICI")))
+    #expect(model.canCreateOpponent(try row(model, "ORATORIO CALCIO")))
+    #expect(model.canCreateOpponent(try row(model, "NUOVA ESEMPIO")))
+  }
+
   @Test func pickerListsProposalsThenEveryOtherOpponentAlphabetically() throws {
     let env = try makeEnv()
     let model = makeModel(env)
