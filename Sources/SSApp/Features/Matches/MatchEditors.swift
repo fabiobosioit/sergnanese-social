@@ -22,6 +22,7 @@ struct MatchInspector: View {
 
   var body: some View {
     VStack(spacing: 0) {
+      resultBar
       warningsBar
       MatchForm(form: $form, problems: problems, model: model, focus: $focus, commit: commit)
     }
@@ -51,6 +52,23 @@ struct MatchInspector: View {
       baseline = saved
       form = MatchFormState(match: saved)
     }
+  }
+
+  /// "Risultato…" at the top of the inspector; disabled for a postponed or cancelled match.
+  private var resultBar: some View {
+    let canEnter = model.canEnterResult([detail.id])
+    return HStack {
+      Button {
+        model.beginResult([detail.id])
+      } label: {
+        Label(MatchesStrings.ResultEntry.enter, systemImage: "sportscourt")
+      }
+      .disabled(!canEnter)
+      .help(canEnter ? MatchesStrings.ResultEntry.enterHelp : MatchesStrings.ResultEntry.enterDisabledHelp)
+      Spacer()
+    }
+    .padding(.horizontal, 20)
+    .padding(.top, 12)
   }
 
   @ViewBuilder

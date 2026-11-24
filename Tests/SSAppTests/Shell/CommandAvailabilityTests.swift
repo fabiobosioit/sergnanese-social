@@ -30,6 +30,16 @@ struct CommandAvailabilityTests {
     #expect(ran == [.newMatch])
   }
 
+  @Test func resultCommandsAreDisabledUnlessPublished() {
+    let published = PublishedCommands([
+      .enterResult: CommandAction {}, .resultsRecap: CommandAction(isEnabled: false) {},
+    ])
+    #expect(published.isEnabled(.enterResult))
+    #expect(!published.isEnabled(.resultsRecap))
+    #expect(!PublishedCommands().isEnabled(.enterResult))
+    #expect(ShellCommand.allCases.contains(.enterResult) && ShellCommand.allCases.contains(.resultsRecap))
+  }
+
   @Test func weekendCommandsApplyOnlyToWeekendSections() {
     for section in AppSection.weekendSections {
       let thisWeekend = WeekendCommandAvailability(section: section, isThisWeekend: true)

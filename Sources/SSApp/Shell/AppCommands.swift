@@ -18,6 +18,8 @@ struct AppCommands: Commands {
   @FocusedValue(\.deleteAction) private var delete
   @FocusedValue(\.findAction) private var find
   @FocusedValue(\.generateAction) private var generate
+  @FocusedValue(\.enterResultAction) private var enterResult
+  @FocusedValue(\.resultsRecapAction) private var resultsRecap
   @FocusedValue(\.quickLookAction) private var quickLook
   @FocusedValue(\.shareAction) private var share
   @FocusedValue(\.copyImageAction) private var copyImage
@@ -30,6 +32,7 @@ struct AppCommands: Commands {
       (.importTuttocampo, importTuttocampo), (.importCSI, importCSI), (.downloadOpponents, downloadOpponents),
       (.importPDF, importPDF),
       (.duplicate, duplicate), (.delete, delete), (.find, find), (.generate, generate),
+      (.enterResult, enterResult), (.resultsRecap, resultsRecap),
       (.quickLook, quickLook), (.share, share), (.copyImage, copyImage), (.revealInFinder, revealInFinder),
     ]
     for (command, action) in pairs { if let action { actions[command] = action } }
@@ -114,6 +117,11 @@ struct AppCommands: Commands {
       Button(AppStrings.Menu.generate) { published.perform(.generate) }
         .keyboardShortcut("r", modifiers: .command)
         .disabled(!published.isEnabled(.generate))
+      Button(AppStrings.Menu.enterResult) { published.perform(.enterResult) }
+        .keyboardShortcut("r", modifiers: [.command, .option])
+        .disabled(!published.isEnabled(.enterResult))
+      Button(AppStrings.Menu.resultsRecap) { published.perform(.resultsRecap) }
+        .disabled(!published.isEnabled(.resultsRecap))
       Divider()
       Button(AppStrings.Menu.quickLook) { published.perform(.quickLook) }
         .keyboardShortcut("y", modifiers: .command)

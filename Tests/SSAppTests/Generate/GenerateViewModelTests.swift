@@ -193,6 +193,24 @@ struct GenerateViewModelTests {
     #expect(model.results.count == count)
   }
 
+  @Test func aResultsRecapTakesEveryMatchAndPrematchStaysFirstTeamOnly() throws {
+    let (model, _) = try makeModel()
+    let recap = try #require(model.templates.first { $0.id == "story-results" }).manifest
+    #expect(recap.isResultsRecap)
+    #expect(model.details.allSatisfy { GenerateViewModel.isEligible($0, for: recap) })
+    let prematch = try #require(model.templates.first { $0.id == "post-prematch" }).manifest
+    #expect(model.details.contains { !GenerateViewModel.isEligible($0, for: prematch) })
+  }
+
+  @Test func recapSelectionHoldsEveryCheckedMatch() throws {
+    let (model, _) = try makeModel()
+    model.setAllMatches(true)
+    if !model.checkedTemplateIDs.contains("story-results") { model.toggleTemplate("story-results") }
+    let selection = try #require(model.selections.first { $0.templateID == "story-results" })
+    #expect(Set(selection.matchIDs) == model.checkedMatchIDs)
+    #expect(selection.matchIDs.count == model.details.count)
+  }
+
   @Test func editJumpsToMatchesOnTheSameWeekend() throws {
     let (model, app) = try makeModel()
     app.open(.generate)

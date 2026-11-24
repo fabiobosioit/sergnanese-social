@@ -49,6 +49,11 @@ public struct MatchesView: View {
           NewMatchSheet(initial: initial, model: vm)
         }
       }
+      .sheet(isPresented: $vm.isResultPresented, onDismiss: vm.resultDidDismiss) {
+        if let result = vm.resultModel {
+          ResultSheet(model: result) { vm.isResultPresented = false }
+        }
+      }
       .sheet(
         isPresented: Binding(get: { importer.isPresented }, set: { if !$0 { importer.dismiss() } })
       ) {
@@ -91,6 +96,8 @@ public struct MatchesView: View {
       .publishCommand(.duplicate, enabled: !vm.selection.isEmpty) { vm.duplicate(vm.selection) }
       .publishCommand(.delete, enabled: !vm.selection.isEmpty) { vm.requestDelete(vm.selection) }
       .publishCommand(.generate) { vm.openGenerate() }
+      .publishCommand(.enterResult, enabled: vm.canEnterResult(vm.selection)) { vm.beginResult(vm.selection) }
+      .publishCommand(.resultsRecap, enabled: vm.recap.canGenerate) { vm.recap.start() }
       .publishCommand(.find) { searchFocused = true }
       .publishCommand(.importTuttocampo, enabled: importer.canStart) { importer.present() }
       .publishCommand(.importCSI, enabled: csi.canStart) { startCSIImport() }
@@ -237,6 +244,10 @@ public struct MatchesView: View {
           isInspectorShown = true
         }
       }
+      if ids.count == 1 {
+        Button(MatchesStrings.ResultEntry.enter, systemImage: "sportscourt") { vm.beginResult(ids) }
+          .disabled(!vm.canEnterResult(ids))
+      }
       Button(MatchesStrings.duplicate, systemImage: "plus.square.on.square") { vm.duplicate(ids) }
         .keyboardShortcut("d", modifiers: .command)
       Button(
@@ -357,10 +368,61 @@ public struct MatchesView: View {
           .font(.callout)
           .foregroundStyle(.secondary)
         Spacer()
+        RecapControl(recap: model.recap)
       }
       .padding(.horizontal, 12)
       .padding(.vertical, 6)
       .background(.bar)
+    }
+  }
+}
+
+// MARK: - Recap
+
+/// "Riepilogo risultati" at the trailing edge of the summary bar: a button (a pull-down when several
+/// templates fit), or progress with "Annulla" while it renders. Shown when the weekend has a final score.
+private struct RecapControl: View {
+  let recap: RecapModel
+
+  var body: some View {
+    if recap.isWorking {
+      HStack(spacing: 8) {
+        ProgressView().controlSize(.small)
+        Text(MatchesStrings.ResultEntry.recapProgress(recap.progress.done, recap.progress.total))
+          .font(.callout)
+          .foregroundStyle(.secondary)
+        Button(MatchesStrings.ResultEntry.recapCancel) { recap.cancel() }
+          .controlSize(.small)
+          .help(MatchesStrings.ResultEntry.recapCancelHelp)
+      }
+    } else if recap.isVisible {
+      if recap.templates.count > 1 {
+        Menu(MatchesStrings.ResultEntry.recap) {
+          ForEach(recap.templates) { template in
+            Button {
+              recap.start(templateID: template.id)
+            } label: {
+              if template.id == recap.choice {
+                Label(template.manifest.name, systemImage: "checkmark")
+              } else {
+                Text(template.manifest.name)
+              }
+            }
+          }
+        } primaryAction: {
+          recap.start()
+        }
+        .controlSize(.small)
+        .fixedSize()
+        .help(MatchesStrings.ResultEntry.recapHelp)
+      } else {
+        Button(MatchesStrings.ResultEntry.recap) { recap.start() }
+          .controlSize(.small)
+          .disabled(!recap.canGenerate)
+          .help(
+            recap.templates.isEmpty
+              ? MatchesStrings.ResultEntry.recapNoTemplateHelp : MatchesStrings.ResultEntry.recapHelp)
+      }
     }
   }
 }
