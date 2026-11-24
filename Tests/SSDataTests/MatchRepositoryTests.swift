@@ -125,9 +125,23 @@ import Testing
     #expect(!copy.isLocked && copy.source == .manual)
     #expect(copy.teamID == original.teamID && copy.opponentID == original.opponentID)
     #expect(copy.time == original.time && copy.venue == original.venue && copy.round == 4)
-    #expect(copy.competition == "Coppa" && copy.notes == "note")
+    #expect(copy.competition == "Coppa" && copy.notes == nil)
     #expect(try f.db.matches.count(source: nil) == 2)
     #expect(throws: AppError.notFound) { try f.db.matches.duplicate(id: "nope", to: day("2026-11-28")) }
+  }
+
+  @Test func duplicateKeepsNotesWhenOriginalHasNoResult() throws {
+    let f = try Fixture()
+    var draft = f.draft()
+    draft.notes = "note"
+    let original = try f.db.matches.create(draft)
+    let copy = try f.db.matches.duplicate(id: original.id, to: day("2026-11-28"))
+    #expect(copy.notes == "note")
+    var halfOnly = f.draft(date: "2026-11-22")
+    halfOnly.notes = "scorers"
+    halfOnly.halfTime = Score(us: 1, them: 0)
+    let o2 = try f.db.matches.create(halfOnly)
+    #expect(try f.db.matches.duplicate(id: o2.id, to: day("2026-11-29")).notes == nil)
   }
 
   @Test func upsertInsertsUpdatesAndSkipsLocked() throws {
