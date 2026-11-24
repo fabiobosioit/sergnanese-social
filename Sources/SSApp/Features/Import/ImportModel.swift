@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OSLog
 import SSCore
 
 /// One weekend of the staging list.
@@ -156,6 +157,7 @@ final class ImportModel {
       if let issue = ImportIssue.csiPage(team: team.name, outcome: outcome, clubShortName: settings.clubShortName) {
         issues = [issue]
       } else if case .fixtures(let fixtures) = outcome {
+        await storeTeamList(snapshot: snapshot, team: team, settings: settings)
         do {
           candidates = try candidates(for: fixtures, team: team, homeVenue: settings.homeVenue)
             .sorted(by: Self.stagingOrder)
@@ -167,6 +169,24 @@ final class ImportModel {
       }
     }
     phase = .review
+  }
+
+  /// T4.9: keeps the list of every team on the page just read, for "Scarica tutti gli avversari…". Parsed off
+  /// the main actor from the same HTML; an empty list stores nothing. A failure is logged (team name only) and
+  /// never changes the match import.
+  private func storeTeamList(snapshot: CSIPageSnapshot, team: Team, settings: ClubSettings) async {
+    let parser = services.csiPageParser
+    let found = await Task.detached {
+      parser.teams(html: snapshot.html, pageURL: snapshot.pageURL, for: team, settings: settings)
+    }
+    .value
+    guard !found.isEmpty else { return }
+    do {
+      try services.sourceTeamLists.save(teamID: team.id, source: .csi, teams: found, readAt: Date())
+    } catch {
+      Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.sergnanese.social", category: "import")
+        .error("CSI team list not stored for \(team.name, privacy: .public)")
+    }
   }
 
   private func resetStaging() {
