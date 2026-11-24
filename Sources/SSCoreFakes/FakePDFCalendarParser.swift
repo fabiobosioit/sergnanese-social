@@ -92,4 +92,37 @@ public struct FakePDFCalendarParser: PDFCalendarParser {
     ]
     return calendar
   }
+
+  // MARK: Opponent matching (T4.10)
+
+  /// `matchingScenarioCalendar(referenceSaturday:)` for every PDF.
+  public static func matchingScenario(referenceSaturday: DayDate) -> FakePDFCalendarParser {
+    FakePDFCalendarParser(calendar: matchingScenarioCalendar(referenceSaturday: referenceSaturday))
+  }
+
+  /// A fake calendar with one fixture for each opponent-matching result (T4.10) against the opponents of
+  /// `Resources/Fixtures/matches.json`: four home matches on the Saturdays from `referenceSaturday`, 17:30, matchdays
+  /// 1 to 4, no problems.
+  ///
+  /// | Giornata | Fixture | `ImportCandidate.opponentMatch` |
+  /// |---|---|---|
+  /// | 1 | "BORGO LUCENTE S.R.L." | `.exact`: Pol. Borgo Lucente (legal prefix and suffix ignored) |
+  /// | 2 | "VIRTUS CAMPOFELICI" | `.proposed` and pre-filled: Virtus Campofelice (one letter differs) |
+  /// | 3 | "ORATORIO CALCIO" | `.ambiguous`: the three "Oratorio …" opponents proposed ("oratorio" has 7+ letters) |
+  /// | 4 | "NUOVA ESEMPIO" | `.notFound` |
+  public static func matchingScenarioCalendar(referenceSaturday: DayDate) -> PDFCalendar {
+    let names = ["BORGO LUCENTE S.R.L.", "VIRTUS CAMPOFELICI", "ORATORIO CALCIO", "NUOVA ESEMPIO"]
+    let dates = names.indices.map { referenceSaturday.adding(days: 7 * $0) }
+    var calendar = PDFCalendar(
+      category: "ESORDIENTI FEMMINILI", phase: "FASE PRIMAVERILE", girone: "GIRONE C",
+      matchdays: dates.enumerated().map { PDFCalendar.Matchday(number: $0.offset + 1, leg: .andata, date: $0.element) },
+      clubs: [], fixtures: [], byes: [], problems: [])
+    let competition = calendar.competition
+    calendar.fixtures = zip(names, dates).enumerated().map { index, pair in
+      FetchedFixture(
+        date: pair.1, time: ClockTime(hour: 17, minute: 30), isHome: true, opponentName: pair.0, round: index + 1,
+        status: .scheduled, statusText: "", competition: competition)
+    }
+    return calendar
+  }
 }

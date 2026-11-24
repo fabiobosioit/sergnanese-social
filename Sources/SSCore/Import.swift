@@ -125,12 +125,12 @@ extension Opponent {
 }
 
 /// `names` whitespace collapsed, without empty ones, those over `FieldLimits.alias`, and those whose
-/// `importNameKey` equals one of `known` or of an earlier name.
+/// `opponentMatchKey` equals one of `known` or of an earlier name.
 func importAliases(_ names: [String], notMatching known: [String]) -> [String] {
-  var seen = Set(known.map(importNameKey))
+  var seen = Set(known.map(opponentMatchKey))
   var result: [String] = []
   for name in names.map(\.collapsedWhitespace) where !name.isEmpty && name.count <= FieldLimits.alias {
-    let key = importNameKey(name)
+    let key = opponentMatchKey(name)
     guard !key.isEmpty, seen.insert(key).inserted else { continue }
     result.append(name)
   }
@@ -451,15 +451,17 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
 
 // MARK: - Staging
 
-/// The opponents a fetched name refers to: those whose name, short name or an alias equals `name`
-/// once legal prefixes are removed and case, accents, whitespace and apostrophe style are ignored
-/// (`"Oratorio San Gerolamo"` finds `"A.S.D. Oratorio San Gerolamo"`). In the order of `opponents`.
-/// An empty name finds nothing.
+/// The opponents a fetched name refers to exactly (T4.10 level 1): those whose name, short name or an alias equals
+/// `name` under `opponentMatchKey` (legal prefixes and suffixes removed; case, accents, whitespace and punctuation
+/// ignored): `"Oratorio San Gerolamo"` finds `"A.S.D. Oratorio San Gerolamo"`, `"CREMONESE S.P.A."` finds
+/// `"U.S. Cremonese"`. In the order of `opponents`. An empty name finds nothing.
 public func opponentsMatching(name: String, in opponents: [Opponent]) -> [Opponent] {
-  let key = importNameKey(name)
+  let key = opponentMatchKey(name)
   guard !key.isEmpty else { return [] }
   return opponents.filter { opponent in
-    ([opponent.name] + [opponent.shortName].compactMap { $0 } + opponent.aliases).contains { importNameKey($0) == key }
+    ([opponent.name] + [opponent.shortName].compactMap { $0 } + opponent.aliases).contains {
+      opponentMatchKey($0) == key
+    }
   }
 }
 
@@ -472,6 +474,8 @@ func opponentsMatching(fixture: FetchedFixture, in opponents: [Opponent]) -> [Op
   return opponents.filter { ids.contains($0.id) }
 }
 
+/// `searchKey` after `stripLegalPrefixes`, apostrophes unified. Before T4.10 it was the opponent key; it is now only
+/// the row id of the T4.9 review (`OpponentCandidate.id`). Opponents are matched with `opponentMatchKey`.
 func importNameKey(_ name: String) -> String {
   searchKey(stripLegalPrefixes(name).replacingOccurrences(of: "’", with: "'"))
 }
@@ -506,8 +510,15 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
 
   public var team: Team
   public var fixture: FetchedFixture
-  /// The opponent the fixture was matched to; `nil` when none or several matched.
+  /// The opponent the fixture was matched to: exact, the single proposal, or linked by the user; `nil` when none or
+  /// several matched (`opponentMatch` `.notFound` or `.ambiguous`).
   public var opponent: Opponent?
+  /// T4.10: how `opponent` was found. `.proposed` rows show the "Proposto" tag until the user confirms (rebuild with
+  /// `linkedOpponentID`, which gives `.linked`).
+  public var opponentMatch: OpponentMatch
+  /// T4.10: `rankOpponents` for the fixture's name and aliases, at most `maxProposals`, best first; it may include
+  /// the matched opponent itself. The top of the "Collega a esistente…" / "Cambia avversario…" picker.
+  public var proposals: [OpponentProposal]
   /// The team's match on the fixture's date (the `MatchDraft.importKey` row), if any.
   public var existing: MatchDetail?
   /// What the import writes, with the source given to `make`. `nil` when the opponent is not resolved, the
@@ -539,9 +550,13 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
     }
   }
 
+  /// The most proposals a candidate keeps for the picker.
+  public static let maxProposals = 5
+
+  /// `opponentMatch` defaults to `.exact` when `opponent` is set and `.notFound` otherwise.
   public init(
     team: Team, fixture: FetchedFixture, opponent: Opponent?, existing: MatchDetail?, draft: MatchDraft?,
-    state: State, reviewReasons: [ReviewReason]
+    state: State, reviewReasons: [ReviewReason], opponentMatch: OpponentMatch? = nil, proposals: [OpponentProposal] = []
   ) {
     self.team = team
     self.fixture = fixture
@@ -550,13 +565,41 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
     self.draft = draft
     self.state = state
     self.reviewReasons = reviewReasons
+    self.opponentMatch = opponentMatch ?? (opponent == nil ? .notFound : .exact)
+    self.proposals = proposals
+  }
+
+  enum CodingKeys: String, CodingKey {
+    case team, fixture, opponent, existing, draft, state, reviewReasons, opponentMatch, proposals
+  }
+
+  /// `opponentMatch` and `proposals` (T4.10) may be absent: they default as in `init`.
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.init(
+      team: try container.decode(Team.self, forKey: .team),
+      fixture: try container.decode(FetchedFixture.self, forKey: .fixture),
+      opponent: try container.decodeIfPresent(Opponent.self, forKey: .opponent),
+      existing: try container.decodeIfPresent(MatchDetail.self, forKey: .existing),
+      draft: try container.decodeIfPresent(MatchDraft.self, forKey: .draft),
+      state: try container.decode(State.self, forKey: .state),
+      reviewReasons: try container.decode([ReviewReason].self, forKey: .reviewReasons),
+      opponentMatch: try container.decodeIfPresent(OpponentMatch.self, forKey: .opponentMatch),
+      proposals: try container.decodeIfPresent([OpponentProposal].self, forKey: .proposals) ?? [])
   }
 
   /// Matches `fixture` of `team` to our data.
   ///
-  /// - Opponent: `linkedOpponentID` when given (the user linked it), else `opponentsMatching` on
-  ///   `fixture.opponentName`; when that finds none, the opponents matching any of `fixture.opponentAliases`
-  ///   (each once, in the order of `opponents`); none or several → review.
+  /// - Opponent (T4.10 levels, `opponentMatch`):
+  ///   - `linkedOpponentID` when given (the user linked or confirmed it) → `.linked` (`.notFound` when no opponent
+  ///     has that id);
+  ///   - else level 1, exact: `opponentsMatching` on `fixture.opponentName`; when that finds none, the opponents
+  ///     matching any of `fixture.opponentAliases` (each once, in the order of `opponents`). One → `.exact`;
+  ///     several → `.ambiguous`, review (`opponentAmbiguous`);
+  ///   - else level 2: the proposals of `rankOpponents`. Exactly one → `.proposed`, pre-filled like a link, **no**
+  ///     review reason; several → `.ambiguous`, review (`opponentAmbiguous`); none → `.notFound`, review
+  ///     (`opponentNotFound`).
+  ///   - `proposals`: the first `maxProposals` of `rankOpponents`, whatever the level.
   /// - Existing match: the one in `existingMatches` with the same team and date.
   /// - Draft, when the opponent is known, the status recognised and the schedule known:
   ///   - new match: team, opponent, date, time, home/away, round, status, score from the fixture;
@@ -576,9 +619,22 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
     fixture: FetchedFixture, team: Team, opponents: [Opponent], existingMatches: [MatchDetail], homeVenue: String,
     linkedOpponentID: EntityID? = nil, source: MatchSource = .scrape
   ) -> ImportCandidate {
-    let found =
-      linkedOpponentID.map { id in opponents.filter { $0.id == id } }
-      ?? opponentsMatching(fixture: fixture, in: opponents)
+    let ranked = rankOpponents(name: fixture.opponentName, aliases: fixture.opponentAliases, in: opponents)
+    var found: [Opponent]
+    var match: OpponentMatch
+    if let linkedOpponentID {
+      found = opponents.filter { $0.id == linkedOpponentID }
+      match = .linked
+    } else {
+      found = opponentsMatching(fixture: fixture, in: opponents)
+      match = .exact
+      if found.isEmpty {
+        found = ranked.filter { $0.kind != .exact }.map(\.opponent)
+        match = .proposed
+      }
+    }
+    if found.isEmpty { match = .notFound }
+    if found.count > 1 { match = .ambiguous }
     let opponent = found.count == 1 ? found[0] : nil
     var reasons: [ReviewReason] = []
     if found.isEmpty { reasons.append(.opponentNotFound) }
@@ -632,6 +688,7 @@ public struct ImportCandidate: Sendable, Codable, Equatable, Hashable, Identifia
     }
     return ImportCandidate(
       team: team, fixture: fixture, opponent: opponent, existing: existing, draft: draft, state: state,
-      reviewReasons: state == .needsReview ? reasons : [])
+      reviewReasons: state == .needsReview ? reasons : [], opponentMatch: match,
+      proposals: Array(ranked.prefix(maxProposals)))
   }
 }

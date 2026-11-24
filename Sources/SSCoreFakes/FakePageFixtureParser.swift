@@ -57,7 +57,7 @@ public struct FakePageFixtureParser: PageFixtureParser {
   /// |---|---|---|---|---|
   /// | Saturday before, 16:00 | home | "Borgo Lucente", played 4–2 | placeholder (none) | `.new`; `.csiLogoUnavailable` |
   /// | reference Saturday, 10:00 | away | "Prato Fiorito" | id 90000101 | `.changed` (time); the stored venue is kept; opponent already has a logo |
-  /// | next Sunday, 15:00 | home | "Valdorso 2016" | id 90000102 | `.needsReview` (opponent not found: link it to F.C. Valdorso), then `.changed` (time) |
+  /// | next Sunday, 15:00 | home | "Valdorso 2016" | id 90000102 | `.changed` (time): F.C. Valdorso is proposed and pre-filled (T4.10, the year is on one side only); linking it gives `.linked`, also `.changed` |
   /// | next Saturday, 16:00 | away | "Polisportiva Fontanella" | id 90000103 | `.needsReview` (opponent not found); once created, `.new` with the CSI venue |
   /// | Saturday after, 16:00 | away | "Atletico Montesello" | id 90000104 | `.new` with the CSI venue; logo stored as `csi-90000104.png` |
   ///

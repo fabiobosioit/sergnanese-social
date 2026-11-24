@@ -36,7 +36,8 @@ import Testing
       ("Aurora u9", "aurora"), ("Aurora Under 14", "aurora"), ("Aurora 2000", "aurora"), ("Aurora 2030", "aurora"),
       ("Aurora 1999", "aurora 1999"), ("Aurora 2031", "aurora 2031"), ("Aurora U123", "aurora u123"),
       ("Real 2016 B", "real 2016"), ("US 2016", "2016"), ("Under 14", "under 14"), ("Città B", "citta"),
-      ("Oratorio Sant’Elia 2015", "oratorio sant'elia"), ("B", "b"), ("Aurora", "aurora"),
+      ("Oratorio Sant’Elia 2015", "oratorio sant elia"),
+      ("Riozzese 2015 S.r.l.", "riozzese"), ("Real Meda Sq.B", "real meda sq"), ("B", "b"), ("Aurora", "aurora"),
     ]
     for (name, key) in cases { #expect(opponentDuplicateKey(name) == key, "\(name)") }
   }

@@ -391,12 +391,12 @@ public enum OpponentPlanError: Error, Sendable, Equatable, Hashable {
 
 // MARK: - Pure helpers
 
-/// `importNameKey(name)` without one trailing age-group token: a year from 2000 to 2030, `u<n>` or `under <n>`
+/// `opponentMatchKey(name)` (T4.10; `importNameKey` before) without one trailing age-group token: a year from 2000 to 2030, `u<n>` or `under <n>`
 /// with one or two digits, or a single letter. `"US Standard 2016"` → `"standard"`, `"Real Fontanile B"` →
-/// `"real fontanile"`, `"Aurora Under 14"` → `"aurora"`. Only the last token goes, so `"Real 2016 B"` →
+/// `"real fontanile"`, `"Aurora Under 14"` → `"aurora"`, `"Riozzese 2015 S.r.l."` → `"riozzese"`. Only the last token goes, so `"Real 2016 B"` →
 /// `"real 2016"`. A name of one word (two for `under <n>`) is kept whole: `"US 2016"` → `"2016"`.
 func opponentDuplicateKey(_ name: String) -> String {
-  var words = importNameKey(name).split(separator: " ").map(String.init)
+  var words = opponentMatchKey(name).split(separator: " ").map(String.init)
   if words.count > 2, words[words.count - 2] == "under", isAgeNumber(words[words.count - 1]) {
     words.removeLast(2)
   } else if words.count > 1, isAgeGroupToken(words[words.count - 1]) {
