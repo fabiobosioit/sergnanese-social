@@ -35,7 +35,8 @@ public protocol TeamRepository: Sendable {
   /// Keeps `id` and `sortOrder`. Follows the first-team rule.
   func update(id: EntityID, with draft: TeamDraft) throws -> Team
   /// Throws `AppError.conflict` (Italian message) when the team has matches, and
-  /// `AppError.firstTeamCannotBeDeleted` per the first-team rule.
+  /// `AppError.firstTeamCannotBeDeleted` per the first-team rule. Deleting a team also deletes its stored team
+  /// lists (`SourceTeamListRepository`, T4.9).
   func delete(id: EntityID) throws
   /// `ids` in the new order; each team's `sortOrder` becomes its index. Must list every team.
   func reorder(ids: [EntityID]) throws
@@ -55,6 +56,51 @@ public protocol OpponentRepository: Sendable {
   func search(_ query: String) throws -> [Opponent]
   /// Number of matches per opponent id. Opponents with no matches may be absent (read as 0).
   func matchCounts() throws -> [EntityID: Int]
+  /// T4.9: writes every item of `plan` in one transaction, in order, and returns the opponent each item leaves
+  /// (one per item, logo-only items included). `.create` follows `create`'s rules; `.update` applies
+  /// `OpponentImportPlan.Action.draft(current:)` to the opponent as stored now, then `validated()` (duplicate
+  /// aliases and an alias equal to the name are dropped). All or nothing: `AppError.notFound` for an unknown
+  /// opponent or `AppError.validation` for an invalid result, and nothing is written. Never deletes an opponent,
+  /// never changes a short name or a logo.
+  ///
+  /// The default implementation (repositories written before T4.9) throws `AppError.io` and writes nothing.
+  func applyImport(_ plan: OpponentImportPlan) throws -> [Opponent]
+}
+
+extension OpponentRepository {
+  /// Throws `AppError.io`: this repository cannot apply an import plan. Nothing is written.
+  public func applyImport(_ plan: OpponentImportPlan) throws -> [Opponent] {
+    throw AppError.io(message: CoreStrings.opponentImportUnavailable)
+  }
+}
+
+/// The team lists kept from source pages (T4.9): the CSI hook saves the teams of each CSI page the user reads
+/// ("Importa questa pagina"), and "Scarica tutti gli avversari…" reads them back, so no CSI request is ever made
+/// for it. Stored in the database (table `source_team_lists`: team id, source, read at, teams as JSON), so a
+/// list survives restarts; deleting a team deletes its lists.
+public protocol SourceTeamListRepository: Sendable {
+  /// Stores `teams` as what `source` listed for our team `teamID` at `readAt`, as
+  /// `SourceTeamList(teamID:source:readAt:teams:)` (each team's `teamID` and `source` become the arguments),
+  /// replacing the list stored before for the same team and source. Throws `AppError.notFound` for an unknown
+  /// team.
+  func save(teamID: EntityID, source: TeamListSource, teams: [SourceTeam], readAt: Date) throws
+  /// The list stored for the team and source, `nil` when none was saved. Throws `AppError.notFound` for an
+  /// unknown team.
+  func latest(teamID: EntityID, source: TeamListSource) throws -> SourceTeamList?
+}
+
+/// The store `AppServices` uses when none is given: `save` keeps nothing, `latest` finds nothing. Keeps the
+/// containers built before T4.9 valid.
+@usableFromInline
+struct UnavailableSourceTeamListRepository: SourceTeamListRepository {
+  @usableFromInline
+  init() {}
+
+  @usableFromInline
+  func save(teamID: EntityID, source: TeamListSource, teams: [SourceTeam], readAt: Date) throws {}
+
+  @usableFromInline
+  func latest(teamID: EntityID, source: TeamListSource) throws -> SourceTeamList? { nil }
 }
 
 /// Result of `MatchRepository.upsertFromImport`.

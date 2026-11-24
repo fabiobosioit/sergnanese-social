@@ -88,6 +88,22 @@ enum CoreStrings {
     "CSI: logo di \(opponent) non disponibile. Puoi aggiungerlo a mano."
   }
 
+  // Download all opponents (T4.9)
+  static func standingsReadFailed(_ team: String) -> String {
+    "Tuttocampo: impossibile leggere la classifica di \(team)."
+  }
+  static func csiTeamListMissing(_ team: String) -> String {
+    "CSI: nessuna lettura per \(team), usa prima Importa da CSI…"
+  }
+  static let opponentChoicesMissing = "Scegli cosa fare per ogni possibile duplicato."
+  static func opponentChoicesConflict(_ names: [String]) -> String {
+    "Le scelte per " + names.map { "«\($0)»" }.joined(separator: ", ")
+      + " sono in conflitto: un nome può confluire in un solo avversario e due avversari già presenti "
+      + "non possono essere uniti."
+  }
+  static let opponentImportUnavailable =
+    "Il salvataggio degli avversari scaricati non è disponibile in questa versione."
+
   // Manifest
   static let manifestNotJSON = "manifest.json non è un oggetto JSON valido."
   static func manifestMissing(_ key: String) -> String { "manifest.\(key) manca." }

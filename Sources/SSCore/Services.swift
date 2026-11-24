@@ -298,13 +298,17 @@ public struct AppServices: Sendable {
   /// CSI Live import (T4.8): parses the page the user opened in the CSI browser window. Containers built
   /// without one get a parser that answers "not a CSI girone" for every page.
   public var csiPageParser: any PageFixtureParser
+  /// Team lists kept from the CSI pages the user read (T4.9). Containers built without one get a store that
+  /// keeps nothing.
+  public var sourceTeamLists: any SourceTeamListRepository
 
   public init(
     teams: any TeamRepository, opponents: any OpponentRepository, matches: any MatchRepository,
     settings: any SettingsRepository, renders: any RenderRepository, logos: any LogoStore,
     templates: any TemplateStore, renderer: any RenderService, demoData: any DemoDataLoader, paths: AppPaths,
     fixtureSource: any FixtureSource = UnavailableFixtureSource(),
-    csiPageParser: any PageFixtureParser = UnavailablePageFixtureParser()
+    csiPageParser: any PageFixtureParser = UnavailablePageFixtureParser(),
+    sourceTeamLists: any SourceTeamListRepository = UnavailableSourceTeamListRepository()
   ) {
     self.teams = teams
     self.opponents = opponents
@@ -318,5 +322,6 @@ public struct AppServices: Sendable {
     self.paths = paths
     self.fixtureSource = fixtureSource
     self.csiPageParser = csiPageParser
+    self.sourceTeamLists = sourceTeamLists
   }
 }

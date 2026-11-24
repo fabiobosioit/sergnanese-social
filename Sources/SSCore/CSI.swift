@@ -143,6 +143,27 @@ public protocol PageFixtureParser: Sendable {
   /// recognisable match list ("not a CSI girone"), or `.sourceProblem(.noFixturesOfOurs)`. Never
   /// `.notYetAvailable`.
   func parse(html: String, pageURL: URL, settings: ClubSettings) -> FixtureFetch
+
+  /// T4.9: every team of the girone in `html` except ours, for `SourceTeamListRepository` (the CSI hook stores
+  /// the result after "Importa questa pagina", when it is not empty). Each has `source == .csi` and
+  /// `teamID == team.id`. A pure function, like `parse`, on the same HTML.
+  ///
+  /// - Teams: every side of the match list (`span.nome-squadra`) and of the standings when the page shows them,
+  ///   one per CSI team id (the 8-digit id of the team's `img alt`, else of its logo address), a team without
+  ///   an id once per name (`searchKey` after `stripLegalPrefixes`); in page order, the first occurrence kept.
+  /// - Name: trimmed, whitespace collapsed. `logoURL`: the team's `img src` made absolute, `https`/`http` only,
+  ///   `nil` for the placeholder shield (`isCSIPlaceholderLogo`). `logoID`: `csiTeamID(fromLogoURL:)` of it.
+  /// - Ours: the name equals `settings.clubShortName` (compared as in `parse`); left out.
+  /// - Empty when `parse` would say `.sourceProblem(.structureChanged)`.
+  ///
+  /// The default implementation (used by `UnavailablePageFixtureParser` and by parsers written before T4.9)
+  /// returns no team.
+  func teams(html: String, pageURL: URL, for team: Team, settings: ClubSettings) -> [SourceTeam]
+}
+
+extension PageFixtureParser {
+  /// No team: this parser cannot list the teams of a page.
+  public func teams(html: String, pageURL: URL, for team: Team, settings: ClubSettings) -> [SourceTeam] { [] }
 }
 
 /// The parser `AppServices` uses when none is given: every page is "not a CSI girone". Keeps the

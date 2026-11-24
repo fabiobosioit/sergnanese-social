@@ -20,7 +20,8 @@ extension AppServices {
   /// Services on in-memory fakes holding exactly `dataSet` (use `FakeDataSet.empty()` for an empty
   /// app). The fixture source is `FakeFixtureSource.scenario` around `dataSet.referenceSaturday`, with
   /// `renderDelay` as its fetch delay; the CSI page parser is `FakePageFixtureParser.scenario` around the
-  /// same Saturday. Render `file` paths that are relative are resolved against the output folder, and a
+  /// same Saturday. The team lists hold `FakePageFixtureParser.scenarioTeams` for the team with the scenario's
+  /// CSI page (Pulcini), read two days before that Saturday. Render `file` paths that are relative are resolved against the output folder, and a
   /// flat PNG is written for each record except those in `missingRenderFileIDs`.
   @MainActor
   public static func fake(dataSet: FakeDataSet, renderDelay: Duration = .milliseconds(150)) throws -> AppServices {
@@ -61,6 +62,13 @@ extension AppServices {
       delay: renderDelay)
     let demoSource = (try? Fixtures.dataSet()) ?? dataSet
     let logos = FakeLogoStore(folder: paths.logos)
+    let sourceTeamLists = FakeSourceTeamListRepository(database: database)
+    let scenarioKey = csiPageKey(FakePageFixtureParser.scenarioPageURL)
+    for team in data.teams where team.csiPageURL.flatMap(csiPageKey) == scenarioKey {
+      try sourceTeamLists.save(
+        teamID: team.id, source: .csi, teams: FakePageFixtureParser.scenarioTeams(teamID: team.id),
+        readAt: data.referenceSaturday.adding(days: -2).startOfDay().addingTimeInterval(18 * 3600))
+    }
     return AppServices(
       teams: teams, opponents: opponents, matches: matches, settings: settings, renders: renders,
       logos: logos, templates: templates, renderer: renderer,
@@ -68,6 +76,7 @@ extension AppServices {
       paths: paths,
       fixtureSource: FakeFixtureSource.scenario(
         referenceSaturday: data.referenceSaturday, logos: logos, delay: renderDelay),
-      csiPageParser: FakePageFixtureParser.scenario(referenceSaturday: data.referenceSaturday))
+      csiPageParser: FakePageFixtureParser.scenario(referenceSaturday: data.referenceSaturday),
+      sourceTeamLists: sourceTeamLists)
   }
 }
