@@ -268,9 +268,36 @@ public protocol FixtureSource: Sendable {
   /// and `CancellationError` when the task is cancelled; nothing else. The default implementation (used by
   /// `UnavailableFixtureSource` and by sources written before T4.9) throws `FixtureFetchError.unavailable`.
   func fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> LeagueTeamsFetch
+
+  /// T4.11: reads every matchday of `scope` from `team`'s Risultati widget, one page at a time through the same
+  /// client, rules and spacing as `fetchFixtures`, and returns our matches with the byes, failures and stops. The
+  /// order, stop rules and cancellation are those of `readSeason(scope:readPage:onProgress:)`, which implementations
+  /// call: the default matchday first (`fetchFixtures`' page: it gives the current matchday and `matchesNumber`, the
+  /// number of matchdays), then the others in ascending order, `/WidgetV2/Risultati/<id>/<n>?y=<season>` with the
+  /// season from `settings.season` (`2026/27` → `2026-27`). Rows of ours, years and `isHome` as in `fetchFixtures`;
+  /// a page with a results table but no row of ours is a bye (the `tr.repose` "Riposa:" row may confirm it, it is
+  /// not required). A row without a time is kept with `time == nil`; far-future times may be provisional.
+  ///
+  /// Throws `FixtureFetchError` only when the default page cannot be read (`.missingWidgetID` when the team has no
+  /// widget id). Cancellation stops before the next request and **returns** what was read (`stoppedAfter`); it never
+  /// throws `CancellationError`, so callers check `Task.isCancelled`. `.notYetAvailable` on the default page gives
+  /// `SeasonFetch.notYetAvailable` and `lastMatchday == nil`. `onProgress` is awaited after every page.
+  ///
+  /// The default implementation (used by `UnavailableFixtureSource` and by sources written before T4.11) throws
+  /// `FixtureFetchError.unavailable`.
+  func fetchSeason(
+    for team: Team, settings: ClubSettings, scope: SeasonScope, onProgress: @Sendable (SeasonProgress) async -> Void
+  ) async throws -> SeasonFetch
 }
 
 extension FixtureSource {
+  /// Throws `FixtureFetchError.unavailable`: this source cannot read a season.
+  public func fetchSeason(
+    for team: Team, settings: ClubSettings, scope: SeasonScope, onProgress: @Sendable (SeasonProgress) async -> Void
+  ) async throws -> SeasonFetch {
+    throw FixtureFetchError.unavailable
+  }
+
   /// Throws `FixtureFetchError.unavailable`: this source cannot read standings.
   public func fetchLeagueTeams(for team: Team, settings: ClubSettings) async throws -> LeagueTeamsFetch {
     throw FixtureFetchError.unavailable
@@ -342,6 +369,16 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
   case pdfUnreadableRow(matchday: Int, text: String)
   /// T4.3: our club rests on matchday `matchday` (`PDFCalendar.byes`): "Giornata 8: riposo". Information.
   case pdfBye(matchday: Int)
+  /// T4.11: `team` rests on matchday `matchday` (`SeasonFetch.byes`): "Prima Squadra, giornata 8: riposo.".
+  /// Information.
+  case seasonBye(team: String, matchday: Int)
+  /// T4.11: matchday `matchday` of `team` could not be read (`SeasonFetch.failedMatchdays`); the run went on.
+  case seasonMatchdayFailed(team: String, matchday: Int, reason: FixtureFetchError)
+  /// T4.11: matchday `matchday` of `team` was read but cannot be trusted (`SeasonFetch.problems` with a matchday):
+  /// "… La sorgente potrebbe essere cambiata.".
+  case seasonMatchdayChanged(team: String, matchday: Int)
+  /// T4.11: `team`'s run left matchdays unread (`SeasonFetch.stoppedAfter`): "lettura interrotta dopo la giornata N".
+  case seasonStopped(team: String, afterMatchday: Int)
 
   public var message: String {
     switch self {
@@ -384,19 +421,51 @@ public enum ImportIssue: Sendable, Equatable, Hashable {
       return CoreStrings.pdfUnreadableRow(matchday, text)
     case .pdfBye(let matchday):
       return CoreStrings.pdfBye(matchday)
+    case .seasonBye(let team, let matchday):
+      return CoreStrings.seasonBye(team, matchday)
+    case .seasonMatchdayFailed(let team, let matchday, let reason):
+      return CoreStrings.seasonMatchdayFailed(team, matchday) + " " + Self.text(for: reason)
+    case .seasonMatchdayChanged(let team, let matchday):
+      return CoreStrings.seasonMatchdayFailed(team, matchday) + " " + CoreStrings.importSourceChanged
+    case .seasonStopped(let team, let matchday):
+      return CoreStrings.seasonStopped(team, matchday)
     }
   }
 
-  /// `false` for `.notYetAvailable`, `.logoFallback`, `.csiLogoUnavailable`, `.csiTeamListMissing` and `.pdfBye`,
-  /// which are information.
+  /// `false` for `.notYetAvailable`, `.logoFallback`, `.csiLogoUnavailable`, `.csiTeamListMissing`, `.pdfBye` and
+  /// `.seasonBye`, which are information.
   public var isError: Bool {
     switch self {
-    case .notYetAvailable, .logoFallback, .csiLogoUnavailable, .csiTeamListMissing, .pdfBye: return false
+    case .notYetAvailable, .logoFallback, .csiLogoUnavailable, .csiTeamListMissing, .pdfBye, .seasonBye: return false
     case .fetchFailed, .sourceProblem, .logoNotRecognised, .logoFailed, .csiPageReadFailed, .csiNotAGirone,
       .csiNoFixturesOfOurs, .standingsReadFailed, .standingsChanged, .pdfReadFailed, .pdfIncomplete,
-      .pdfClubNotLinked, .pdfUnreadableRow:
+      .pdfClubNotLinked, .pdfUnreadableRow, .seasonMatchdayFailed, .seasonMatchdayChanged, .seasonStopped:
       return true
     }
+  }
+
+  /// T4.11: the report lines for one team's season run, in this order: `.notYetAvailable` when
+  /// `fetch.notYetAvailable`; for each of `problems` and `failedMatchdays`, merged by matchday,
+  /// `.sourceProblem(…, .structureChanged, …)` (a problem without a matchday: the default page),
+  /// `.seasonMatchdayChanged` or `.seasonMatchdayFailed`; `.seasonStopped` when `stoppedAfter` is set; then one
+  /// `.seasonBye` per bye. Empty for a run cancelled before its first page. The caller drops `.seasonStopped` when the
+  /// user cancelled, if it wants.
+  public static func seasonNotices(team: String, fetch: SeasonFetch, clubShortName: String) -> [ImportIssue] {
+    var notices: [ImportIssue] = []
+    if fetch.notYetAvailable { notices.append(.notYetAvailable(team: team)) }
+    let problems: [(Int, ImportIssue)] = fetch.problems.map { problem in
+      guard let matchday = problem.matchday else {
+        return (0, .sourceProblem(team: team, problem: problem.problem, clubShortName: clubShortName))
+      }
+      return (matchday, .seasonMatchdayChanged(team: team, matchday: matchday))
+    }
+    let failures: [(Int, ImportIssue)] = fetch.failedMatchdays.map {
+      ($0.matchday, .seasonMatchdayFailed(team: team, matchday: $0.matchday, reason: $0.error))
+    }
+    notices += (problems + failures).sorted { $0.0 < $1.0 }.map(\.1)
+    if let stoppedAfter = fetch.stoppedAfter { notices.append(.seasonStopped(team: team, afterMatchday: stoppedAfter)) }
+    notices += fetch.byes.map { .seasonBye(team: team, matchday: $0) }
+    return notices
   }
 
   /// T4.3: the notices shown above the review of `calendar`: one per problem, in `problems` order

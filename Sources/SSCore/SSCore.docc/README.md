@@ -44,6 +44,7 @@ what the contract means.
 | `Tuttocampo.swift` | T4.2: widget ids, ClubIds, `Teams/200` logo URLs, imported logo file names (pure functions) |
 | `CSI.swift` | T4.8: CSI page addresses and keys, CSI team ids and logo file names, `CSIPageReadError`, `PageFixtureParser`, `CSILogoRequest`, `CSILogoData`, `CSILogoResult`, `PageLogoSource`, `storeCSILogos(_:in:)` |
 | `OpponentDownload.swift` | T4.9: `TeamListSource`, `SourceTeam`, `SourceTeamList`, `LeagueTeamsFetch`, `OpponentCandidate`, `OpponentImportPlan` and the merge choices |
+| `Season.swift` | T4.11: `SeasonScope`, `SeasonLimits`, `SeasonLength`, `SeasonProgress`, `SeasonFetch`, `MatchdayFailure`, `MatchdayProblem`, `SeasonPage`, `readSeason(scope:readPage:onProgress:)` (the shared season loop), `SeasonEstimate` |
 | `PDFCalendar.swift` | T4.3: `PDFCalendar` (matchdays, clubs, our fixtures, byes, problems), `PDFCalendarError`, `PDFCalendarParser` |
 | `Warnings.swift` | `RenderWarning`, `matchWarnings(for:teamNameLimit:)` |
 | `RenderContext.swift` | `SingleContext`, `ListContext` and their parts, `TemplateURLs` |
@@ -97,3 +98,10 @@ These are deliberate. They were made in T0.2 and the plan text still shows the e
   `deleteAll(source:)`; `OpponentRepository.matchCounts`; `DemoDataLoader.remove`;
   `AppPaths.latestBackupDate`; and the pure helpers `matchWarnings`, `formatWeekend`,
   `renderFileName` and `textMatches`.
+- T4.11 contract step (Wave 4, backward compatible): `FixtureSource.fetchSeason(for:settings:scope:onProgress:)` with a
+  default implementation that throws `FixtureFetchError.unavailable`, so sources written before it still compile. The
+  season loop (order, byes, stop rules, cancellation, progress) is the pure `readSeason`, shared by the fake and the
+  real source, instead of being written twice. Beyond the plan's shape: `SeasonProgress.pagesRead`/`pagesTotal`
+  (determinate bar, per-run cap), `SeasonFetch.currentMatchday`, `notYetAvailable` and `pagesRead` (estimate,
+  report, request count), `MatchdayProblem.matchday` optional (a default page without a number), and a fourth issue
+  `ImportIssue.seasonMatchdayChanged` for a matchday page read but not trusted.

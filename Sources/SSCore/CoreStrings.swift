@@ -130,6 +130,18 @@ enum CoreStrings {
     "Giorno e orario della partita con «\(name)» non trovati nel calendario: inseriscila a mano."
   }
 
+  // Tuttocampo season import (T4.11)
+  static func seasonBye(_ team: String, _ matchday: Int) -> String { "\(team), giornata \(matchday): riposo." }
+  static func seasonMatchdayFailed(_ team: String, _ matchday: Int) -> String {
+    "Tuttocampo: impossibile leggere la giornata \(matchday) di \(team)."
+  }
+  static func seasonStopped(_ team: String, _ matchday: Int) -> String {
+    "Tuttocampo: lettura di \(team) interrotta dopo la giornata \(matchday)."
+  }
+  static func seasonEstimate(requests: Int, minutes: Int) -> String {
+    "circa \(requests) \(requests == 1 ? "richiesta" : "richieste"), circa \(minutes) \(minutes == 1 ? "minuto" : "minuti")"
+  }
+
   // Manifest
   static let manifestNotJSON = "manifest.json non è un oggetto JSON valido."
   static func manifestMissing(_ key: String) -> String { "manifest.\(key) manca." }
