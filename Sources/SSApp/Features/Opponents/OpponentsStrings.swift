@@ -45,4 +45,77 @@ enum OpponentsStrings {
   static let logoImportFailed = "Non è stato possibile importare l'immagine."
   static let saveFailed = "Non è stato possibile salvare le modifiche."
   static let deleteFailed = "Non è stato possibile eliminare l'avversario."
+
+  // MARK: Scarica tutti gli avversari
+  static let downloadAll = "Scarica tutti gli avversari…"
+  static let downloadAllHelp = "Legge le squadre dei gironi e propone gli avversari da aggiungere."
+  static let downloadUnavailable =
+    "Nessuna squadra attiva ha un codice Tuttocampo o una pagina CSI. Aggiungili nelle impostazioni delle squadre."
+  static let downloadTitle = "Scarica tutti gli avversari"
+  static func downloadReading(_ team: String, current: Int, total: Int) -> String {
+    "Lettura di \(team)… \(current) di \(total)"
+  }
+  static let downloadLoadFailed = "Non è stato possibile leggere le squadre e gli avversari."
+  static let downloadRetry = "Riprova"
+  static let downloadClose = "Chiudi"
+  static let downloadSave = "Salva"
+  static let downloadDone = "Fine"
+  static let downloadCancel = "Annulla"
+  static let downloadSaving = "Salvataggio e download dei loghi…"
+  static let downloadEmptyTitle = "Nessuna squadra trovata"
+  static let downloadEmptyDescription =
+    "Le sorgenti non hanno elencato squadre diverse dalla nostra. Controlla il rapporto qui sopra."
+  static let downloadReportTitle = "Rapporto"
+  static let downloadReportErrors = "Errore"
+  static let downloadReportInfo = "Informazione"
+  static let downloadDoneTitle = "Avversari aggiornati"
+  static let downloadNothingSaved = "Non c'è nulla da salvare: seleziona almeno una riga."
+
+  static let columnTick = "Aggiungi"
+  static let columnState = "Stato"
+  static let columnSeen = "Visto in"
+  static let columnFoundLogo = "Logo"
+  static let tickAccessibility = "Includi nel salvataggio"
+  static let tick = "Seleziona"
+  static let untick = "Deseleziona"
+  static let presentHelp = "Già presente: non c'è nulla da fare."
+
+  static let stateNew = "Nuovo"
+  static let stateMissingLogo = "Già presente, senza logo"
+  static let statePresent = "Già presente"
+  static let statePossibleDuplicate = "Possibile duplicato"
+
+  static func seenTuttocampo(_ team: String) -> String { "Tuttocampo · \(team)" }
+  static func seenCSI(_ team: String, date: String) -> String { "CSI · \(team), letto il \(date)" }
+  static let logoAvailable = "Logo disponibile"
+  static let logoNone = "Nessun logo"
+  static let logoAvailableHelp = "Il logo verrà scaricato quando premi Salva."
+
+  static let duplicatesTitle = "Possibili duplicati"
+  static let duplicatesHint = "Scegli per ognuna quale nome usare. Salva resta disattivato finché non hai deciso."
+  static func duplicateBetween(_ first: String, _ second: String) -> String {
+    "«\(first)» e «\(second)» potrebbero essere la stessa squadra."
+  }
+  static func duplicateWithExisting(_ first: String, _ second: String) -> String {
+    "«\(first)» potrebbe essere l'avversario già presente «\(second)»."
+  }
+  static let duplicateNotNeeded = "Nessuna scelta necessaria: una delle due righe non è selezionata."
+  static let choiceAccessibility = "Scelta per il possibile duplicato"
+  static func use(_ name: String) -> String { "Usa «\(name)»" }
+  static let keepSeparate = "Tieni separati"
+
+  static func selectedCount(_ count: Int) -> String {
+    switch count {
+    case 0: "Nessuna riga selezionata"
+    case 1: "1 riga selezionata"
+    default: "\(count) righe selezionate"
+    }
+  }
+
+  static func created(_ count: Int) -> String { count == 1 ? "1 avversario creato" : "\(count) avversari creati" }
+  static func renamed(_ count: Int) -> String {
+    count == 1 ? "1 avversario rinominato" : "\(count) avversari rinominati"
+  }
+  static func aliases(_ count: Int) -> String { count == 1 ? "1 alias aggiunto" : "\(count) alias aggiunti" }
+  static func logos(_ count: Int) -> String { count == 1 ? "1 logo salvato" : "\(count) loghi salvati" }
 }

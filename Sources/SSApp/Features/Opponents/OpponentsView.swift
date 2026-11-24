@@ -27,6 +27,11 @@ public struct OpponentsView: View {
             .help(OpponentsStrings.add)
         }
         ToolbarItem(placement: .primaryAction) {
+          Button(OpponentsStrings.downloadAll, systemImage: "arrow.down.circle") { vm.beginDownload() }
+            .disabled(!vm.canDownload)
+            .help(vm.downloadUnavailableReason ?? OpponentsStrings.downloadAllHelp)
+        }
+        ToolbarItem(placement: .primaryAction) {
           Button(OpponentsStrings.inspectorTitle, systemImage: "sidebar.trailing") { showsInspector.toggle() }
             .help(OpponentsStrings.inspectorTitle)
         }
@@ -36,6 +41,7 @@ public struct OpponentsView: View {
           .inspectorColumnWidth(min: 280, ideal: 320, max: 420)
       }
       .sheet(isPresented: $vm.isCreating) { NewOpponentSheet(model: vm) }
+      .sheet(item: $vm.download) { OpponentDownloadSheet(model: $0) }
       .confirmDelete(
         vm.deleteTitle,
         isPresented: Binding(get: { !vm.pendingDelete.isEmpty }, set: { if !$0 { vm.pendingDelete = [] } }),
@@ -49,6 +55,7 @@ public struct OpponentsView: View {
       )
       .publishCommand(.newOpponent) { vm.beginCreate() }
       .publishCommand(.delete, enabled: !vm.selection.isEmpty) { vm.requestDeleteSelection() }
+      .publishCommand(.downloadOpponents, enabled: vm.canDownload) { vm.beginDownload() }
       .publishCommand(.find) { isSearching = true }
       .task {
         vm.onDataChanged = { app.refreshWarningBadge() }
