@@ -1,10 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - imports and results
 
 - Import matches from tuttocampo (one matchday, the rest of the season, or the whole season), from CSI Live through an in-app browser, and from the federation PDF calendar. Every import goes through a review before saving.
 - "Scarica tutti gli avversari…" fills the opponent list with names and logos in one go.
 - Opponents are pre-matched in every import review; confirmed links are remembered as aliases.
+- Results workflow: the "Risultato" sheet (half-time, final, scorers) makes the half-time and full-time stories; "Riepilogo risultati" makes one story for the whole weekend; a typed result is never erased by an import.
+- A "Seleziona…" menu and select all/none in the Tuttocampo and CSI import reviews.
+- The pre-match post is made for every team.
+- File menu shows "Importa da CSV o Excel…", disabled: planned for a later version.
 - Matches: Weekend / Tutte switch to manage every recorded match.
 
 ## 0.1.0 - first release

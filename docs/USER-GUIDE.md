@@ -100,6 +100,15 @@ Puoi anche condividere tutte le immagini di una generazione con **Condividi tutt
 Le immagini restano sul disco anche dopo la condivisione. Nel menu **Immagini** c'è **Mostra nel Finder** (⇧⌘R)
 per aprirle nella cartella in cui sono state salvate. Con **Immagini › Copia immagine** puoi copiarle negli appunti.
 
+## Risultati
+
+Dopo le partite puoi creare le storie dei risultati.
+
+- **Una partita:** selezionala in **Partite** e scegli **Immagini › Risultato…** (⌥⌘R), oppure dal menu contestuale. Inserisci il risultato del primo tempo, quello finale e i marcatori, poi premi **Genera intervallo** o **Genera finale**: l'app crea la storia e apre la condivisione. **Salva** registra i dati senza creare immagini. Una partita rinviata o annullata non ha il risultato.
+- **Tutto il weekend:** in **Partite**, quando almeno una partita ha il risultato, in basso compare **Riepilogo risultati**. Crea una sola storia (o più pagine se le partite sono più di dieci) con tutti i risultati del weekend. La trovi anche nel menu **Immagini**.
+- Se un'importazione trova una partita il cui risultato hai già scritto a mano, il tuo risultato non viene cancellato.
+- **Rigenera** in Archivio su una pagina del riepilogo ricrea tutte le pagine del riepilogo.
+
 ## Importare
 
 ### Importare la stagione intera
@@ -117,7 +126,7 @@ Le pagine vengono lette una alla volta, circa una al secondo, e solo dopo che ha
 - Una giornata in cui la Sergnanese non gioca è un **riposo** («riposo»), non un errore.
 - Una giornata che non si riesce a leggere viene elencata nel rapporto, e la lettura prosegue con le altre.
 
-Nella revisione controlla le partite prima di salvarle: nulla viene salvato finché non premi **Importa**. Le partite bloccate non vengono mai sovrascritte. Puoi filtrare la lista per squadra; le giornate passate sono chiuse per default e si aprono con un clic.
+Sopra l'elenco il menu **Seleziona…** sceglie in un colpo solo le partite da importare (tutte quelle importabili, solo le nuove, solo le modificate, solo il prossimo weekend); **Seleziona tutte** e **Seleziona nessuna** fanno quello che dicono. La stessa barra c'è nell'importazione da CSI. Nella revisione controlla le partite prima di salvarle: nulla viene salvato finché non premi **Importa**. Le partite bloccate non vengono mai sovrascritte. Puoi filtrare la lista per squadra; le giornate passate sono chiuse per default e si aprono con un clic.
 
 ## Avversari e loghi
 
@@ -171,6 +180,7 @@ Incolla ⌘V, Nascondi barra laterale, Schermo intero) funzionano come su ogni a
 | Nuova partita | File | ⌘N |
 | Nuovo avversario | File | ⇧⌘N |
 | Importa template… | File | ⌘O |
+| Importa da CSV o Excel… (non ancora disponibile) | File | — |
 | Apri cartella immagini | File | ⇧⌘O |
 | Duplica | Modifica | ⌘D |
 | Elimina (con conferma) | Modifica | ⌘⌫ |
@@ -180,6 +190,7 @@ Incolla ⌘V, Nascondi barra laterale, Schermo intero) funzionano come su ogni a
 | Weekend successivo | Vista | ⌘] |
 | Questo weekend | Vista | ⌘T |
 | Genera immagini del weekend | Immagini | ⌘R |
+| Risultato… (partita selezionata) | Immagini | ⌥⌘R |
 | Anteprima rapida | Immagini | ⌘Y, oppure Spazio o Invio nella griglia delle immagini |
 | Mostra nel Finder | Immagini | ⇧⌘R |
 | Guida di Sergnanese Social | Aiuto | ⌘? |
