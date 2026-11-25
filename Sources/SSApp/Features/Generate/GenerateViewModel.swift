@@ -268,8 +268,17 @@ final class GenerateViewModel {
     for id in ids {
       guard let index = results.firstIndex(where: { $0.id == id }) else { continue }
       do {
-        let fresh = try await regenerateRecord(results[index].record, services: services)
-        results.replaceSubrange(index...index, with: fresh)
+        let record = results[index].record
+        let fresh = try await regenerateRecord(record, services: services)
+        if isMultiPageRecap(record, services: services) {
+          // Every page of the recap was rendered again: they replace the whole old set.
+          results.removeAll { isSameRecapSet(record, $0.record) && $0.id != record.id }
+          let position = results.firstIndex(where: { $0.id == record.id }) ?? results.endIndex
+          if position < results.endIndex { results.remove(at: position) }
+          results.insert(contentsOf: fresh, at: min(position, results.endIndex))
+        } else {
+          results.replaceSubrange(index...index, with: fresh)
+        }
       } catch {
         errorMessage = Self.message(for: error, fallback: GenerateStrings.renderFailed)
       }

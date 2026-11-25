@@ -13,7 +13,9 @@ public struct ScreenshotScene {
 /// content, no toolbar or menu bar), Settings, and the shared components.
 @MainActor
 public enum ScreenshotSupport {
-  public static func scenes(services: AppServices) -> [ScreenshotScene] {
+  /// `resultServices` is a second, separate set of fake services: the result scenes give its matches
+  /// scores, so the other scenes keep the unscored weekend.
+  public static func scenes(services: AppServices, resultServices: AppServices? = nil) -> [ScreenshotScene] {
     var scenes: [ScreenshotScene] = AppSection.allCases.map { section in
       let model = AppModel(services: services, isDemo: true, defaults: scratchDefaults())
       model.section = section
@@ -22,6 +24,7 @@ public enum ScreenshotSupport {
         view: AnyView(RootView(model: model)))
     }
     let model = AppModel(services: services, isDemo: true, defaults: scratchDefaults())
+    if let resultServices { scenes += resultScenes(services: resultServices) }
     scenes.append(
       ScreenshotScene(
         name: "settings", size: CGSize(width: 520, height: 360), view: AnyView(SettingsView(app: model))))
@@ -33,6 +36,39 @@ public enum ScreenshotSupport {
       ScreenshotScene(
         name: "components", size: CGSize(width: 640, height: 420),
         view: AnyView(ComponentsShowcase(model: model))))
+    return scenes
+  }
+
+  /// Partite on a weekend whose matches have scores (summary bar with "Riepilogo risultati") and the
+  /// "Risultato" sheet, on their own fake services so the other scenes keep the unscored weekend.
+  private static func resultScenes(services: AppServices) -> [ScreenshotScene] {
+    let model = AppModel(services: services, isDemo: true, defaults: scratchDefaults())
+    let weekend = model.weekend
+    let details = (try? services.matches.list(from: weekend.saturday, to: weekend.sunday, teamID: nil)) ?? []
+    for (offset, detail) in details.enumerated() where detail.match.status == .scheduled {
+      var draft = MatchDraft(detail.match)
+      draft.score = Score(us: (offset * 2) % 5, them: (offset * 3) % 4)
+      draft.halfTime = Score(us: offset % 2, them: 0)
+      draft.status = MatchStatus.played
+      _ = try? services.matches.update(id: detail.id, with: draft)
+    }
+    model.section = AppSection.matches
+    var scenes: [ScreenshotScene] = [
+      ScreenshotScene(
+        name: "matches-results", size: CGSize(width: 1200, height: 760), view: AnyView(RootView(model: model)))
+    ]
+    // The scenes are built once per appearance: the second time the matches are already played.
+    let playable = details.filter { detail in
+      let status = detail.match.status
+      return status != MatchStatus.postponed && status != MatchStatus.cancelled
+    }
+    if let first = playable.first {
+      let sheetModel = ResultModel(detail: first, app: model, defaults: scratchDefaults())
+      scenes.append(
+        ScreenshotScene(
+          name: "result-sheet", size: CGSize(width: 520, height: 460),
+          view: AnyView(ResultSheet(model: sheetModel, close: {}))))
+    }
     return scenes
   }
 

@@ -1,6 +1,6 @@
 # Sergnanese Social — implementation plan
 
-**Status (2026-11-24):** v0.1.0 is released (Waves 0–3 done). Wave 4 import work is merged: T4.2 tuttocampo, T4.3 PDF, T4.8 CSI Live, T4.9 all opponents, T4.10 opponent matching, T4.11 season import. T4.1 is suspended. Next: T4.5 results workflow, then T4.6 captions; T4.4 and T4.7 wait. See `tasks/wave-4-later.md`.
+**Status (2026-11-25):** v0.1.0 is released (Waves 0–3 done). Wave 4 is merged except T4.6, T4.4 and T4.7: T4.2 tuttocampo, T4.3 PDF, T4.5 results workflow (gate findings F2–F5 fixed, see `docs/qa/t4.5-gate.md`), T4.8 CSI Live, T4.9 all opponents, T4.10 opponent matching, T4.11 season import. T4.1 is suspended. **Next session: T4.6 captions, to ship in the next release (v0.2.0).** T4.4 and T4.7 wait. Still open for the user, by hand: the T4.5 checks listed at the end of the gate report (sheet Light/Dark, keyboard, VoiceOver, AirDrop, run on Dev data) and F6 (Return in the scorers field). See `tasks/wave-4-later.md`, section "Where we are".
 
 **Written:** 2026-11-16 · **Revised:** 2026-11-16 (native Mac app instead of Electron) · **Target:** v0.1.0, a Mac app downloadable from GitHub Releases.
 

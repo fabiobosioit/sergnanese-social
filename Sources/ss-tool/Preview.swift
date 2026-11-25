@@ -66,7 +66,7 @@ enum PreviewTool {
       throw PreviewFailure(
         description: "la fixture è \(isList ? "una lista" : "singola") ma il template è \(manifest.kind.rawValue)")
     }
-    applyLimits(manifest.limits, to: &context, isList: isList)
+    applyLimits(manifest.limits, to: &context, isList: isList, pageSize: manifest.pageSize)
 
     let html = try Mustache(source).render(context)
 
@@ -98,7 +98,9 @@ enum PreviewTool {
 
   /// Cuts the context to the manifest limits. Opponent names are recomputed from the full `name`, so a
   /// limit larger than the fixture's own can be tried; `venue` and `category` can only be cut further.
-  static func applyLimits(_ limits: TemplateLimits, to context: inout [String: Any], isList: Bool) {
+  static func applyLimits(
+    _ limits: TemplateLimits, to context: inout [String: Any], isList: Bool, pageSize: Int? = nil
+  ) {
     func cut(_ value: Any?, _ max: Int?) -> String? {
       guard let text = value as? String else { return nil }
       guard let max else { return text }
@@ -123,6 +125,15 @@ enum PreviewTool {
     }
     if isList {
       if let rows = context["rows"] as? [Any] { context["rows"] = rows.map { match($0) ?? $0 } }
+      // Like `FixtureContexts.load` (used by the app and `demo-render`): a fixture with more rows than
+      // one page holds shows the first page only, with its page label.
+      if let rows = context["rows"] as? [Any], let pageSize = pageSize, pageSize > 0, rows.count > pageSize {
+        let total = (rows.count + pageSize - 1) / pageSize
+        context["rows"] = Array(rows.prefix(pageSize))
+        context["page"] = ["index": 1, "total": total]
+        context["hasPages"] = total > 1
+        context["pageLabel"] = "1/\(total)"
+      }
     } else if let value = match(context["match"]) {
       context["match"] = value
     }

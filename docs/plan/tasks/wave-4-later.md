@@ -6,14 +6,33 @@ Contract changes needed by a task are done first, by `foundation-architect`, in 
 
 From here on the user has real data on this Mac. Every task keeps working in the Dev data folder; nothing may open the release data folder.
 
+## Where we are (2026-11-25)
+
+| Task | State |
+|---|---|
+| T4.1 CSV/Excel | Suspended, do not implement |
+| T4.2, T4.3, T4.8, T4.9, T4.10, T4.11 | Merged |
+| T4.5 Results workflow | Merged and gated. Gate findings fixed 2026-11-25: F1 committed (pre-match post takes every team, `4526ba5`); F2/F4 regenerating a page of a multi-page recap renders the whole set again (`Regenerate.swift`, `RegenerateRecapTests`); F3 `ss-tool preview` slices a long list fixture to one page; F5 `ss-tool screenshots` has `matches-results` and `result-sheet` scenes. Open, user to try by hand: F6 (Return in the multi-line scorers field), F7 (Annulla at the instant the last image finishes, low risk), and the "Needs the user's eyes" list in `docs/qa/t4.5-gate.md` |
+| T4.6 Captions | **Next.** Not started. Needs a task sheet first (`foundation-architect`, same format as `wave-4-t4.5.md`: contract for the caption pattern and placeholders, then `ui-dev` for gallery, Genera and Settings). Ships in the next version, v0.2.0 |
+| T4.4 Shortcuts | Waits for the App Intents check without Xcode |
+| T4.7 Developer-ID signing | Waits for a paid Apple Developer account |
+| Release v0.2.0 | After T4.6: `chore-runner` USER-GUIDE (import, results workflow, captions), `release-engineer` bump, changelog, tag |
+
+### Starting the next session
+
+1. Read `README.md`, this section, `01-architecture.md` and `03-mac-design.md`.
+2. `Scripts/check.sh` must pass on `main` before starting.
+3. Ask `foundation-architect` for the T4.6 task sheet (`wave-4-t4.6.md`), then run it in the order the sheet gives.
+4. Run the user's by-hand T4.5 checks in parallel; fix F6 if Return in "Marcatori" saves the sheet.
+
 | Task | Agent | Model | Blocked on |
 |---|---|---|---|
 | T4.1 CSV/Excel import | — | — | **Suspended 2026-11-24** (user: no longer necessary; tuttocampo, CSI and PDF import cover it) |
 | T4.2 Tuttocampo import (matches, names, logos) | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | terms-of-use check, widget → team mapping |
 | T4.3 PDF import (federation calendar: matches, names, venues, times) | `foundation-architect` (contract), `render-engineer`, `ui-dev`, `core-dev` | opus (contract) + sonnet | sample received 2026-11-24; spring-phase sample later |
 | T4.4 Shortcuts support | `ui-dev` | sonnet | — |
-| T4.5 Results workflow (full sheet: `wave-4-t4.5.md`) | `foundation-architect` (contract), `render-engineer`, `template-converter`, `ui-dev`, `core-dev` | opus medium (contract) + sonnet | — |
-| T4.6 Captions | `ui-dev` | sonnet | — |
+| T4.5 Results workflow (full sheet: `wave-4-t4.5.md`; **merged 2026-11-25**) | `foundation-architect` (contract), `render-engineer`, `template-converter`, `ui-dev`, `core-dev` | opus medium (contract) + sonnet | — |
+| T4.6 Captions | `foundation-architect` (task sheet + contract), `ui-dev` | opus medium (sheet) + sonnet | **next**, for v0.2.0 |
 | T4.7 Developer-ID signing and in-app updates | `release-engineer` | sonnet | paid Apple Developer account |
 | T4.8 CSI Live import (matches, names, logos) through an in-app browser | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | CSI terms-of-use check, a page saved by the user, team → page mapping |
 | T4.9 Download all opponents (names + logos) from the tuttocampo standings and the CSI pages already read | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract) + sonnet | T4.2 and T4.8 merged |

@@ -27,9 +27,10 @@ private func captureScreenshots(to folder: URL) async -> Int32 {
     return 1
   }
   let services = AppServices.fake()
+  let resultServices = AppServices.fake()
   var failures = 0
   for appearance in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
-    for scene in ScreenshotSupport.scenes(services: services) {
+    for scene in ScreenshotSupport.scenes(services: services, resultServices: resultServices) {
       let file = folder.appendingPathComponent("\(scene.name)-\(appearance.0).png")
       if let png = await render(scene, appearance: appearance.1) {
         do {

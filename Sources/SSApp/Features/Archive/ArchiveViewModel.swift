@@ -194,8 +194,17 @@ final class ArchiveViewModel {
 
   /// Renders the images again. A record whose file is missing is replaced by the new image.
   func regenerate(_ ids: [String]) async {
+    var renderedRecaps: [RenderRecord] = []
     for record in records(for: ids) {
       do {
+        // Regenerating a recap renders all its pages, so selecting two pages of it renders it once.
+        if isMultiPageRecap(record, services: services) {
+          if renderedRecaps.contains(where: { isSameRecapSet($0, record) }) {
+            if missingIDs.contains(record.id) { try services.renders.delete(id: record.id) }
+            continue
+          }
+          renderedRecaps.append(record)
+        }
         _ = try await regenerateRecord(record, services: services)
         if missingIDs.contains(record.id) { try services.renders.delete(id: record.id) }
       } catch {
