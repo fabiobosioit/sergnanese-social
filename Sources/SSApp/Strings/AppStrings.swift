@@ -24,6 +24,9 @@ enum AppStrings {
     static let importCSI = "Importa da CSI…"
     static let downloadOpponents = "Scarica tutti gli avversari…"
     static let importPDF = "Importa da PDF…"
+    /// Shown but never enabled: CSV/Excel import is planned for a later version (T4.1).
+    static let importCSV = "Importa da CSV o Excel…"
+    static let importCSVHelp = "Disponibile in una versione futura."
     static let loadDemo = "Carica dati demo"
     static let openOutputFolder = "Apri cartella immagini"
     static let duplicate = "Duplica"

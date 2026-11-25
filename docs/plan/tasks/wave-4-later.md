@@ -8,32 +8,39 @@ From here on the user has real data on this Mac. Every task keeps working in the
 
 ## Where we are (2026-11-25)
 
+**Scope decision (user, 2026-11-25).** This version, v0.2.0, is the current Wave 4 work plus its release. Everything else is deferred:
+
+| Task | Decision |
+|---|---|
+| T4.1 CSV/Excel import | Not in this version. The menu item "Importa da CSV o Excel…" (File) is **visible but permanently disabled**, help "Disponibile in una versione futura." Planned for **v1.1**. |
+| T4.6 Captions, hashtags and social publishing actions | **Future version, maybe 2.0.** Not started. Needs a new task sheet then; "publishing actions" (posting to Instagram/Facebook) is part of that scope. |
+| T4.4 Shortcuts | **Frozen** (user, 2026-11-25), after the feasibility check below: it cannot be built on this Mac. Not in v0.2.0. Reopen only when a full Xcode toolchain is available (see T4.7). |
+| T4.7 Developer-ID signing and in-app updates | **After the remaining features**: it is the next focus once the planned features are done. Needs a paid Apple Developer account. |
+
 | Task | State |
 |---|---|
-| T4.1 CSV/Excel | Suspended, do not implement |
 | T4.2, T4.3, T4.8, T4.9, T4.10, T4.11 | Merged |
 | T4.5 Results workflow | Merged and gated. Gate findings fixed 2026-11-25: F1 committed (pre-match post takes every team, `4526ba5`); F2/F4 regenerating a page of a multi-page recap renders the whole set again (`Regenerate.swift`, `RegenerateRecapTests`); F3 `ss-tool preview` slices a long list fixture to one page; F5 `ss-tool screenshots` has `matches-results` and `result-sheet` scenes. Open, user to try by hand: F6 (Return in the multi-line scorers field), F7 (Annulla at the instant the last image finishes, low risk), and the "Needs the user's eyes" list in `docs/qa/t4.5-gate.md` |
-| T4.6 Captions | **Next.** Not started. Needs a task sheet first (`foundation-architect`, same format as `wave-4-t4.5.md`: contract for the caption pattern and placeholders, then `ui-dev` for gallery, Genera and Settings). Ships in the next version, v0.2.0 |
-| T4.4 Shortcuts | Waits for the App Intents check without Xcode |
-| T4.7 Developer-ID signing | Waits for a paid Apple Developer account |
-| Release v0.2.0 | After T4.6: `chore-runner` USER-GUIDE (import, results workflow, captions), `release-engineer` bump, changelog, tag |
+| Selection in imports | Tuttocampo review has the "Seleziona…" menu and select all/none, like CSI (not PDF) |
+| Release v0.2.0 | **Next.** No feature work left: user by-hand T4.5 checks (and F6), `chore-runner` USER-GUIDE (import sources, results workflow), `release-engineer` version bump, changelog, tag |
 
 ### Starting the next session
 
-1. Read `README.md`, this section, `01-architecture.md` and `03-mac-design.md`.
-2. `Scripts/check.sh` must pass on `main` before starting.
-3. Ask `foundation-architect` for the T4.6 task sheet (`wave-4-t4.6.md`), then run it in the order the sheet gives.
-4. Run the user's by-hand T4.5 checks in parallel; fix F6 if Return in "Marcatori" saves the sheet.
+1. Read `README.md`, this section and `docs/qa/t4.5-gate.md`.
+2. `Scripts/check.sh` must pass on `main`.
+3. Run the by-hand T4.5 checks; fix F6 if Return in "Marcatori" saves the sheet.
+4. USER-GUIDE, then release v0.2.0.
+5. After the release: T4.1 (v1.1), T4.6 (2.0), T4.4 and T4.7 in the order the user decides; T4.7 is the focus once the other features are done.
 
 | Task | Agent | Model | Blocked on |
 |---|---|---|---|
-| T4.1 CSV/Excel import | — | — | **Suspended 2026-11-24** (user: no longer necessary; tuttocampo, CSI and PDF import cover it) |
+| T4.1 CSV/Excel import | — | — | **Deferred to v1.1** (user, 2026-11-25). Menu item shown but disabled. Suspended 2026-11-24 before that |
 | T4.2 Tuttocampo import (matches, names, logos) | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | terms-of-use check, widget → team mapping |
 | T4.3 PDF import (federation calendar: matches, names, venues, times) | `foundation-architect` (contract), `render-engineer`, `ui-dev`, `core-dev` | opus (contract) + sonnet | sample received 2026-11-24; spring-phase sample later |
 | T4.4 Shortcuts support | `ui-dev` | sonnet | — |
 | T4.5 Results workflow (full sheet: `wave-4-t4.5.md`; **merged 2026-11-25**) | `foundation-architect` (contract), `render-engineer`, `template-converter`, `ui-dev`, `core-dev` | opus medium (contract) + sonnet | — |
-| T4.6 Captions | `foundation-architect` (task sheet + contract), `ui-dev` | opus medium (sheet) + sonnet | **next**, for v0.2.0 |
-| T4.7 Developer-ID signing and in-app updates | `release-engineer` | sonnet | paid Apple Developer account |
+| T4.6 Captions, hashtags, social publishing | `foundation-architect` (task sheet + contract), `ui-dev` | opus medium (sheet) + sonnet | **Deferred to a future version, maybe 2.0** (user, 2026-11-25) |
+| T4.7 Developer-ID signing and in-app updates | `release-engineer` | sonnet | paid Apple Developer account; **focus after the remaining features** (user, 2026-11-25) |
 | T4.8 CSI Live import (matches, names, logos) through an in-app browser | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract, final gate) + sonnet | CSI terms-of-use check, a page saved by the user, team → page mapping |
 | T4.9 Download all opponents (names + logos) from the tuttocampo standings and the CSI pages already read | `foundation-architect` (contract), `render-engineer`, `core-dev`, `ui-dev` | opus (contract) + sonnet | T4.2 and T4.8 merged |
 | T4.10 Opponent matching: pre-filled links and proposals in every import review | `foundation-architect` (contract + matcher), `ui-dev` | opus medium (contract) + sonnet | **merged 2026-11-24** |
@@ -43,7 +50,7 @@ From here on the user has real data on this Mac. Every task keeps working in the
 
 ## T4.1 — CSV/Excel import with review
 
-**Suspended 2026-11-24.** Not needed any more; do not implement. The text below is kept for reference only.
+**Deferred to v1.1 (user, 2026-11-25).** Not in v0.2.0. The File menu shows "Importa da CSV o Excel…" disabled. The text below is the old sketch, kept for reference.
 
 - Open or drop a `.csv` or `.xlsx`; column mapping screen (date, time, team, opponent, home/away, venue) with the mapping remembered per file layout.
 - Rows land in a **staging list**, never straight in the database. Each row is marked new / changed / unchanged / conflict with a locked match.
@@ -279,6 +286,8 @@ Escalation is unchanged: retry once on the same model with the reviewer's findin
 - No real PDFs, names or addresses in the repo; tests use the synthetic fixture.
 
 ## T4.4 — Shortcuts support
+
+**Frozen 2026-11-25.** Feasibility check (this Mac, Command Line Tools only, `xcode-select -p` = `/Library/Developer/CommandLineTools`): the `AppIntents` framework and its SDK modules exist, but `xcrun --find appintentsmetadataprocessor` and `xcrun --find extractappintentsmetadata` both fail ("not a developer tool"). Shortcuts and Spotlight find intents through the `Metadata.appintents` bundle that Xcode's build step generates from the Swift source; `swift build` and our `package_app.sh` do not produce it, and writing that metadata by hand is an undocumented format that is not safe to maintain. So the intents would compile but never appear in Shortcuts. Revisit only with a full Xcode (a CI runner with Xcode could build it, but that is a release-pipeline change for T4.7).
 
 - App Intents for "Genera le immagini del weekend" and "Mostra le partite del weekend", so the weekly job can be started from Shortcuts or Spotlight.
 - Needs a check that App Intents metadata can be produced without Xcode; if not, this task waits for T4.7's toolchain decision.

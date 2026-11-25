@@ -69,6 +69,9 @@ struct AppCommands: Commands {
         .disabled(!published.isEnabled(.downloadOpponents))
       Button(AppStrings.Menu.importPDF) { published.perform(.importPDF) }
         .disabled(!published.isEnabled(.importPDF))
+      Button(AppStrings.Menu.importCSV) {}
+        .disabled(true)
+        .help(AppStrings.Menu.importCSVHelp)
       Button(AppStrings.Menu.loadDemo) { Task { await model.loadDemoData() } }
       Divider()
       Button(AppStrings.Menu.openOutputFolder) { FolderOpener.openOutputFolder(model) }
