@@ -139,16 +139,31 @@ private final class RedirectGuard: NSObject, URLSessionTaskDelegate, Sendable {
 
 /// Keeps page requests at least `minimumInterval` apart. Each caller reserves a start slot before it
 /// sleeps, so concurrent callers queue up in order.
-private actor RequestSpacer {
+actor RequestSpacer {
   private let minimumInterval: Duration
+  private let now: @Sendable () -> ContinuousClock.Instant
+  private let sleepUntil: @Sendable (ContinuousClock.Instant) async throws -> Void
   private var nextSlot: ContinuousClock.Instant?
 
-  init(minimumInterval: Duration) { self.minimumInterval = minimumInterval }
+  /// - Parameters:
+  ///   - now: the current time. Tests pass a fixed one.
+  ///   - sleepUntil: waits until an instant. Tests pass a recorder that returns at once.
+  init(
+    minimumInterval: Duration,
+    now: @escaping @Sendable () -> ContinuousClock.Instant = { ContinuousClock.now },
+    sleepUntil: @escaping @Sendable (ContinuousClock.Instant) async throws -> Void = {
+      try await Task.sleep(until: $0, clock: .continuous)
+    }
+  ) {
+    self.minimumInterval = minimumInterval
+    self.now = now
+    self.sleepUntil = sleepUntil
+  }
 
   func waitForTurn() async throws {
-    let now = ContinuousClock.now
+    let now = now()
     let slot = max(now, nextSlot ?? now)
     nextSlot = slot + minimumInterval
-    if slot > now { try await Task.sleep(until: slot, clock: .continuous) }
+    if slot > now { try await sleepUntil(slot) }
   }
 }

@@ -10,13 +10,28 @@ struct CSIConcurrentMapTests {
   final class Meter {
     var running = 0
     var peak = 0
+    private var waiter: (count: Int, continuation: CheckedContinuation<Void, Never>)?
+
+    /// Returns once `running` has reached `count`. No polling and no deadline.
+    func waitUntilRunning(_ count: Int) async {
+      if running >= count { return }
+      await withCheckedContinuation { waiter = (count, $0) }
+    }
+
+    func started() {
+      running += 1
+      peak = max(peak, running)
+      if let waiter, running >= waiter.count {
+        self.waiter = nil
+        waiter.continuation.resume()
+      }
+    }
   }
 
   @Test func answersComeBackInOrderWithAtMostThreeAtATime() async {
     let meter = Meter()
     let answers = await CSIConcurrentMap.run(Array(0..<10), limit: 3) { value in
-      meter.running += 1
-      meter.peak = max(meter.peak, meter.running)
+      meter.started()
       try? await Task.sleep(for: .milliseconds(10 + (10 - value) * 3))
       meter.running -= 1
       return value * 2
@@ -35,13 +50,12 @@ struct CSIConcurrentMapTests {
     let meter = Meter()
     let task = Task { @MainActor in
       await CSIConcurrentMap.run(Array(0..<9), limit: 3) { value in
-        meter.running += 1
+        meter.started()
         try? await Task.sleep(for: .seconds(30))  // returns at once when cancelled
         return value
       }
     }
-    let deadline = ContinuousClock.now + .seconds(10)
-    while meter.running < 3 && ContinuousClock.now < deadline { await Task.yield() }
+    await meter.waitUntilRunning(3)
     task.cancel()
     let answers = await task.value
     #expect(answers.count == 9)
