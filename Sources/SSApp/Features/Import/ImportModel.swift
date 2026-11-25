@@ -637,6 +637,27 @@ final class ImportModel {
     return Self.isTickable(candidate) && weekend(containing: candidate.fixture.date) == nextWeekend(from: today())
   }
 
+  /// Quick selections offered by the CSI review.
+  enum TickPreset: CaseIterable, Sendable {
+    case allImportable, onlyNew, onlyChanged, nextWeekend
+  }
+
+  /// Replaces the ticks of the visible tickable rows with the ones the preset picks.
+  func applyTickPreset(_ preset: TickPreset) {
+    for candidate in visibleCandidates where Self.isTickable(candidate) {
+      let on: Bool
+      switch preset {
+      case .allImportable: on = true
+      case .onlyNew: on = candidate.state == .new
+      case .onlyChanged: on = candidate.state == .changed
+      case .nextWeekend: on = weekend(containing: candidate.fixture.date) == nextWeekend(from: today())
+      }
+      if on { ticked.insert(candidate.id) } else { ticked.remove(candidate.id) }
+    }
+  }
+
+  var hasTickableRows: Bool { visibleCandidates.contains(where: Self.isTickable) }
+
   var sections: [ImportSection] {
     let year = today().year
     var result: [ImportSection] = []

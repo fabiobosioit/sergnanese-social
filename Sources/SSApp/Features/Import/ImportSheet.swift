@@ -106,6 +106,7 @@ struct ImportSheet: View {
   private var review: some View {
     VStack(spacing: 0) {
       if model.isSeasonRun { seasonBar }
+      if model.isCSI { csiSelectionBar }
       if let counts = model.matchCountsText {
         Text(counts)
           .font(.callout)
@@ -139,6 +140,27 @@ struct ImportSheet: View {
       }
       .controlSize(.small)
     }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 8)
+    .overlay(alignment: .bottom) { Divider() }
+  }
+
+  /// "Seleziona…" presets and "Seleziona tutte / nessuna" for the CSI review.
+  private var csiSelectionBar: some View {
+    HStack {
+      Menu(ImportStrings.selectMenu) {
+        Button(ImportStrings.selectImportable) { model.applyTickPreset(.allImportable) }
+        Button(ImportStrings.selectNew) { model.applyTickPreset(.onlyNew) }
+        Button(ImportStrings.selectChanged) { model.applyTickPreset(.onlyChanged) }
+        Button(ImportStrings.selectNextWeekend) { model.applyTickPreset(.nextWeekend) }
+      }
+      .fixedSize()
+      Spacer()
+      Button(ImportStrings.selectAll) { model.setAllVisibleTicked(true) }
+      Button(ImportStrings.selectNone) { model.setAllVisibleTicked(false) }
+    }
+    .controlSize(.small)
+    .disabled(!model.hasTickableRows)
     .padding(.horizontal, 16)
     .padding(.vertical, 8)
     .overlay(alignment: .bottom) { Divider() }

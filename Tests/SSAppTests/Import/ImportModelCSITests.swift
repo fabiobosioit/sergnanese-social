@@ -77,6 +77,30 @@ struct ImportModelCSITests {
     #expect(model.isTicked(row))
   }
 
+  @Test func tickPresetsSelectTheExpectedRows() async throws {
+    let (model, _, _) = try makeModel()
+    await model.readCSIPage()
+    let tickable = model.candidates.filter(ImportModel.isTickable)
+    #expect(model.hasTickableRows)
+
+    model.applyTickPreset(.allImportable)
+    #expect(model.tickedCandidates.count == tickable.count)
+
+    model.applyTickPreset(.onlyNew)
+    #expect(model.tickedCandidates.allSatisfy { $0.state == .new })
+    #expect(model.tickedCandidates.count == tickable.filter { $0.state == .new }.count)
+
+    model.applyTickPreset(.onlyChanged)
+    #expect(model.tickedCandidates.allSatisfy { $0.state == .changed })
+
+    model.setAllVisibleTicked(false)
+    #expect(model.tickedCandidates.isEmpty)
+
+    model.applyTickPreset(.nextWeekend)
+    #expect(model.tickedCandidates.allSatisfy { $0.fixture.date >= Self.today })
+    for row in model.candidates where !ImportModel.isTickable(row) { #expect(!model.isTicked(row)) }
+  }
+
   @Test func commitWritesTheTickedRowsAndStoresTheLogos() async throws {
     let (model, services, page) = try makeModel()
     await model.readCSIPage()

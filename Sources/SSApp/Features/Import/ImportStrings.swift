@@ -87,6 +87,11 @@ enum ImportStrings {
   static func reading(_ team: String, current: Int, total: Int) -> String {
     "Lettura di \(team)… \(current) di \(total)"
   }
+  static let selectMenu = "Seleziona…"
+  static let selectImportable = "Tutte le importabili"
+  static let selectNew = "Solo le nuove"
+  static let selectChanged = "Solo le modificate"
+  static let selectNextWeekend = "Solo il prossimo weekend"
   static let cancel = "Annulla"
   static let importing = "Importazione in corso…"
   static let downloadingLogos = "Scarico i loghi…"
