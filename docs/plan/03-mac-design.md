@@ -51,6 +51,7 @@ Built with SwiftUI `Commands` in `SSApp/Shell`. All titles in Italian. Items are
 | **File** | Nuova partita | ⌘N |
 | | Nuovo avversario | ⇧⌘N |
 | | Scarica tutti gli avversari… (T4.9) | |
+| | Importa da CSV o Excel… (T4.1, always disabled until v1.1) | |
 | | Importa template… | ⌘O |
 | | Carica dati demo | |
 | | Apri cartella immagini | ⇧⌘O |
@@ -134,4 +135,4 @@ The club crest centred on a white rounded-square plate that fills the standard m
 
 ## 11. What we deliberately skip in v0.1.0
 
-Spotlight indexing, Shortcuts/App Intents, widgets, a menu bar extra, notifications, undo for database edits (deletes ask for confirmation instead), toolbar customisation. None is needed for the weekly job; App Intents is a candidate for Wave 4.
+Spotlight indexing, Shortcuts/App Intents, widgets, a menu bar extra, notifications, undo for database edits (deletes ask for confirmation instead), toolbar customisation. None is needed for the weekly job; App Intents (T4.4) is frozen: the metadata Shortcuts needs cannot be generated without Xcode (checked 2026-11-25).

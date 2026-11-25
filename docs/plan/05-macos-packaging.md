@@ -36,7 +36,7 @@ Scripts/package_app.sh
 | Local toolchain | Swift 6.4.2 from the Command Line Tools builds SwiftUI, GRDB, swift-mustache and ZIPFoundation and renders a template to an exact-size PNG. | Tried on the user's Mac, 2026-11-16 |
 | Signing without a certificate | `codesign --sign -` makes an ad-hoc signature. Apple silicon refuses to run unsigned code, so this step is required, not optional. | Apple `codesign` manual |
 | First launch | An app without a Developer ID signature and notarization is blocked by Gatekeeper on first open. The user allows it once in System Settings → Privacy & Security → "Open Anyway". | [note on unsigned macOS apps](https://chrplr.github.io/note-about-macos-unsigned-apps), [Flavio Copes: Open Anyway](https://flaviocopes.com/macos-open-anyway/) |
-| Removing the warning | Sign with a Developer ID certificate and notarize with Apple (T4.7). | — |
+| Removing the warning | Sign with a Developer ID certificate and notarize with Apple (T4.7: the focus once the remaining features are done, 2026-11-25). | — |
 
 The exact first-launch wording on macOS 27 has not been checked. It is checked by the user at the Wave 1 gate, on the real Mac, with a `.dmg` **downloaded through a browser**: a locally built app is never quarantined and proves nothing about Gatekeeper.
 

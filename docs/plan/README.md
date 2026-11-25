@@ -133,7 +133,8 @@ Fable, the most capable and most expensive model, is not assigned to any task. I
 | T1.5 | The club crest as a vector file (SVG/PDF) or a PNG of at least 1024×1024. The one inside the demo zips is 500×500, too small for a sharp app icon. Without it the icon is upscaled and slightly soft. |
 | T1.4 (nice to have) | Real list of the club's teams/categories. Fake ones are used otherwise. |
 | T4.2 | A check of tuttocampo.it's terms of use for automated reading, and confirmation of which widget ID belongs to which team. The six widget IDs are already known (see the T4.2 sheet). |
-| T4.1 | Suspended 2026-11-24, no input needed. |
+| T4.1 | Deferred to v1.1 (2026-11-25), no input needed now. |
+| T4.6, T4.4, T4.7 | T4.6 deferred (maybe 2.0); T4.4 frozen (needs Xcode); T4.7 needs a paid Apple Developer account, focus after the remaining features. |
 | T4.3 | Sample received (`examples/Calendario_EsordientiMiste_Femm_Aut.pdf`, keep it out of git). Still wanted: a spring-phase PDF (`R.` dates) of the same layout. |
 | T4.10 | Which tuttocampo widget shows the U13 femminile girone of the federation calendar: widget `e6c85afd…` (mapped to "U13 Regionale Femminile") shows a different girone; only Cremonese is in both. |
 | T4.11 | The tuttocampo terms check (T4.2) must also allow reading every matchday of a team (~30 requests per team per run). |

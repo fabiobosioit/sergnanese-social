@@ -71,6 +71,19 @@ Then T3.4 with @agent-release-engineer: draft release only. Ask me before creati
 Then T3.5 with @agent-qa-reviewer.
 ```
 
+## Wave 4 and the v0.2.0 release (2026-11-25)
+
+Wave 4 feature work for v0.2.0 is merged. What is left is the release, in a fresh session:
+
+```text
+Read docs/plan/README.md and the "Where we are" section of tasks/wave-4-later.md. Scripts/check.sh must pass on main.
+1. Ask me to confirm the by-hand T4.5 checks (and F6) from docs/qa/t4.5-gate.md.
+2. @agent-chore-runner: update docs/USER-GUIDE.md (Tuttocampo, CSI and PDF import, selection presets, results workflow).
+3. @agent-release-engineer: bump the version, changelog, tag v0.2.0.
+```
+
+Deferred, not part of v0.2.0: T4.1 CSV/Excel (v1.1, menu item shown disabled), T4.6 captions and social publishing (maybe 2.0), T4.4 Shortcuts (frozen, needs Xcode), T4.7 signing and updates (focus once the other features are done).
+
 ## Merge rules for the orchestrator
 
 1. Merge one task branch at a time; run `Scripts/check.sh` after each.
