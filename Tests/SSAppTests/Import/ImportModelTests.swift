@@ -25,6 +25,23 @@ struct ImportModelTests {
     try #require(model.candidates.first { $0.team.name == team })
   }
 
+  // MARK: Selection
+
+  @Test func tickPresetsWorkOnATuttocampoReview() async {
+    let model = makeModel()
+    await model.fetch()
+    let tickable = model.candidates.filter(ImportModel.isTickable)
+    #expect(model.hasTickableRows)
+    model.applyTickPreset(.allImportable)
+    #expect(model.tickedCandidates.count == tickable.count)
+    model.applyTickPreset(.onlyNew)
+    #expect(model.tickedCandidates.allSatisfy { $0.state == .new })
+    model.applyTickPreset(.onlyChanged)
+    #expect(!model.tickedCandidates.isEmpty && model.tickedCandidates.allSatisfy { $0.state == .changed })
+    model.setAllVisibleTicked(false)
+    #expect(model.tickedCandidates.isEmpty)
+  }
+
   // MARK: Fetch
 
   @Test func statesFollowTheScenarioTable() async throws {

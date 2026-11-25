@@ -106,7 +106,7 @@ struct ImportSheet: View {
   private var review: some View {
     VStack(spacing: 0) {
       if model.isSeasonRun { seasonBar }
-      if model.isCSI { csiSelectionBar }
+      if !model.isPDF { selectionBar }
       if let counts = model.matchCountsText {
         Text(counts)
           .font(.callout)
@@ -145,8 +145,8 @@ struct ImportSheet: View {
     .overlay(alignment: .bottom) { Divider() }
   }
 
-  /// "Seleziona…" presets and "Seleziona tutte / nessuna" for the CSI review.
-  private var csiSelectionBar: some View {
+  /// "Seleziona…" presets and "Seleziona tutte / nessuna" for the Tuttocampo and CSI reviews.
+  private var selectionBar: some View {
     HStack {
       Menu(ImportStrings.selectMenu) {
         Button(ImportStrings.selectImportable) { model.applyTickPreset(.allImportable) }
