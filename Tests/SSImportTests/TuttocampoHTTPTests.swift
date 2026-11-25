@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import SSCore
 import SSCoreFakes
 import Testing
@@ -179,22 +180,18 @@ struct TuttocampoHTTPTests {
     }
   }
 
-  @Test("concurrent fetches queue up behind each other")
-  func spacingConcurrent() async throws {
-    let page = try tuttocampoFixture("risultati-home-played")
-    let server = server(.html(page))
-    let (source, folder) = try source(server, interval: .milliseconds(300))
-    defer { folder.cleanup() }
-    let team = testTeam(widgetID: widgetID)
+  @Test("concurrent callers get consecutive slots, one interval apart")
+  func spacingConcurrent() async {
+    let base = ContinuousClock.now
+    let slots = Mutex<[ContinuousClock.Instant]>([])
+    let spacer = RequestSpacer(
+      minimumInterval: .milliseconds(300), now: { base },
+      sleepUntil: { instant in slots.withLock { $0.append(instant) } })
     await withThrowingTaskGroup(of: Void.self) { group in
-      for _ in 0..<3 { group.addTask { _ = try await source.fetchFixtures(for: team, settings: testSettings) } }
+      for _ in 0..<3 { group.addTask { try await spacer.waitForTurn() } }
     }
-    let times = server.requests.map(\.at).sorted()
-    #expect(times.count == 3)
-    for (earlier, later) in zip(times, times.dropFirst()) {
-      #expect(later - earlier >= .milliseconds(200), "gap \(later - earlier)")
-    }
-    if let first = times.first, let last = times.last { #expect(last - first >= .milliseconds(500)) }
+    // The first caller starts at once; the other two wait for slots 300 ms and 600 ms later.
+    #expect(slots.withLock { $0.sorted() } == [base + .milliseconds(300), base + .milliseconds(600)])
   }
 
   @Test("a team without a usable widget id is .missingWidgetID and nothing is requested")
