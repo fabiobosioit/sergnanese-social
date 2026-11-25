@@ -104,19 +104,10 @@ final class GenerateViewModel {
 
   // MARK: Selection
 
-  /// Whether `manifest`'s template takes `detail` at all: the pre-match post is the first team's; a results
-  /// recap takes every match (postponed and cancelled ones show as such on the image).
-  static func isEligible(_ detail: MatchDetail, for manifest: TemplateManifest) -> Bool {
-    if manifest.isResultsRecap { return true }
-    return manifest.kind == .single && manifest.purpose == .prematch ? detail.team.isFirstTeam : true
-  }
-
   /// The explicit selections for the render request.
   var selections: [TemplateSelection] {
     templates.filter { checkedTemplateIDs.contains($0.id) }.compactMap { template in
-      let ids = details.filter {
-        checkedMatchIDs.contains($0.id) && Self.isEligible($0, for: template.manifest)
-      }.map(\.id)
+      let ids = details.filter { checkedMatchIDs.contains($0.id) }.map(\.id)
       return ids.isEmpty ? nil : TemplateSelection(templateID: template.id, matchIDs: ids)
     }
   }

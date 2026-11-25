@@ -103,13 +103,12 @@ struct GenerateViewModelTests {
     #expect(model.planWarnings.contains { $0.kind == .matchNotScheduled })
   }
 
-  @Test func preMatchPostOnlyTakesFirstTeamMatches() throws {
+  @Test func preMatchPostTakesEveryCheckedMatch() throws {
     let (model, _) = try makeModel()
     model.setAllMatches(true)
     let selection = model.selections.first { $0.templateID == "post-prematch" }
-    let ids = Set(selection?.matchIDs ?? [])
-    #expect(!ids.isEmpty)
-    #expect(model.details.filter { ids.contains($0.id) }.allSatisfy { $0.team.isFirstTeam })
+    #expect(Set(selection?.matchIDs ?? []) == Set(model.checkedMatchIDs))
+    #expect(model.details.contains { !$0.team.isFirstTeam && selection?.matchIDs.contains($0.id) == true })
   }
 
   @Test func changingWeekendReloadsAndResets() throws {
@@ -191,15 +190,6 @@ struct GenerateViewModelTests {
     await model.regenerate([target.id])
     #expect(model.results.first?.id != target.id)
     #expect(model.results.count == count)
-  }
-
-  @Test func aResultsRecapTakesEveryMatchAndPrematchStaysFirstTeamOnly() throws {
-    let (model, _) = try makeModel()
-    let recap = try #require(model.templates.first { $0.id == "story-results" }).manifest
-    #expect(recap.isResultsRecap)
-    #expect(model.details.allSatisfy { GenerateViewModel.isEligible($0, for: recap) })
-    let prematch = try #require(model.templates.first { $0.id == "post-prematch" }).manifest
-    #expect(model.details.contains { !GenerateViewModel.isEligible($0, for: prematch) })
   }
 
   @Test func recapSelectionHoldsEveryCheckedMatch() throws {
